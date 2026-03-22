@@ -12,32 +12,32 @@ export function CTA() {
   const { connect } = useConnect();
 
   return (
-    <section className="px-5 md:px-8 pb-20 md:pb-28">
+    <section className="px-5 md:px-8 pb-24 md:pb-32">
       <div className="container-page">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           transition={{ duration: 0.5, ease }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#080f1e] via-[#0c1a30] to-[#0a2966] text-white px-6 py-14 md:px-14 md:py-20">
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1628] via-[#0f1d36] to-[#0a2f7e] text-white px-6 py-16 md:px-16 md:py-20">
 
-          {/* Background */}
-          <div className="absolute inset-0 bg-grid opacity-[0.04]" />
-          <div className="absolute top-[-30%] right-[-10%] w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[140px]" />
-          <div className="absolute bottom-[-20%] left-[-10%] w-[350px] h-[350px] bg-emerald-500/10 rounded-full blur-[100px]" />
+          {/* Background glow */}
+          <div className="absolute top-[-30%] right-[-10%] w-[500px] h-[500px] bg-primary/40 rounded-full blur-[150px]" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[400px] h-[400px] bg-tertiary/20 rounded-full blur-[120px]" />
 
+          {/* Content */}
           <div className="relative z-10 max-w-xl mx-auto text-center">
-            <h2 className="font-headline text-2xl md:text-4xl lg:text-[2.5rem] font-extrabold leading-[1.12] tracking-tight">
+            <h2 className="font-headline text-3xl md:text-4xl lg:text-[2.75rem] font-extrabold leading-[1.1] tracking-tight">
               Ready to prove your financial position?
             </h2>
-            <p className="mt-4 text-white/35 text-[15px] md:text-base leading-relaxed max-w-md mx-auto">
-              No sign-up. No backend. Connect, sign, download.
+            <p className="mt-5 text-white/40 text-base md:text-lg leading-relaxed max-w-md mx-auto">
+              No sign-up. No backend. Connect your wallet, sign, download.
             </p>
 
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-3">
               <button onClick={() => connect({ connector: injected() })}
-                className="group inline-flex items-center justify-center gap-2 bg-white text-[#080f1e] px-6 py-3 rounded-full text-[14px] font-semibold shadow-btn hover:shadow-btn-hover hover:-translate-y-px active:translate-y-0 transition-all duration-150">
+                className="group inline-flex items-center justify-center gap-2 bg-white text-[#0a1628] px-7 py-3.5 rounded-full text-[15px] font-semibold hover:-translate-y-[1px] hover:shadow-xl active:translate-y-0 transition-all duration-150">
                 <Wallet className="w-4 h-4" /> Get Started <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </button>
               <Link href="/verify"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-[14px] font-semibold text-white/45 hover:text-white/80 border border-white/10 hover:border-white/20 hover:bg-white/[0.04] transition-all duration-150">
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full text-[15px] font-semibold text-white/50 hover:text-white hover:bg-white/[0.06] transition-all duration-150 border border-white/10">
                 Verify a Statement
               </Link>
             </div>
