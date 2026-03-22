@@ -1,15 +1,7 @@
 "use client";
 
-import { Globe, Layers, GitBranch, Coins } from "lucide-react";
 import type { Network } from "@/types";
 import { NETWORKS } from "@/lib/constants";
-
-const NETWORK_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  hub: Globe,
-  layers: Layers,
-  schema: GitBranch,
-  token: Coins,
-};
 
 interface NetworkSelectorProps {
   selected: Network[];
@@ -18,40 +10,27 @@ interface NetworkSelectorProps {
 
 export function NetworkSelector({ selected, onToggle }: NetworkSelectorProps) {
   return (
-    <section className="bg-surface-container-lowest p-8 rounded-xl">
-      <div className="flex items-center gap-3 mb-6">
-        <span className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center text-sm font-bold">
-          3
-        </span>
-        <h2 className="font-headline text-xl font-bold">Network Coverage</h2>
+    <section className="rounded-xl border border-outline-variant p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <span className="text-[13px] text-on-surface-variant">3.</span>
+        <h2 className="font-headline text-base font-medium text-brand-black">Network</h2>
       </div>
-      <div className="flex flex-wrap gap-3">
-        {(Object.entries(NETWORKS) as [Network, (typeof NETWORKS)[Network]][]).map(
-          ([key, network]) => {
-            const isSelected = selected.includes(key);
-            const isDisabled = !network.enabled;
-            const Icon = NETWORK_ICONS[network.icon] || Globe;
-
-            return (
-              <button
-                key={key}
-                onClick={() => !isDisabled && onToggle(key)}
-                disabled={isDisabled}
-                className={`flex items-center gap-3 px-5 py-3 rounded-full border-2 font-medium transition-colors duration-150 ${
-                  isSelected
-                    ? "border-primary bg-primary/5 text-primary font-bold"
-                    : isDisabled
-                    ? "border-transparent bg-surface-container-low text-on-surface-variant opacity-60 cursor-not-allowed"
-                    : "border-transparent bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
-                }`}
-                title={isDisabled ? "Coming Soon" : undefined}
-              >
-                <Icon className="w-5 h-5" />
-                {network.name}
-              </button>
-            );
-          }
-        )}
+      <div className="flex flex-wrap gap-2">
+        {(Object.entries(NETWORKS) as [Network, (typeof NETWORKS)[Network]][]).map(([key, network]) => {
+          const isSelected = selected.includes(key);
+          const isDisabled = !network.enabled;
+          return (
+            <button key={key} onClick={() => !isDisabled && onToggle(key)} disabled={isDisabled}
+              className={`px-4 py-2 rounded-full text-[13px] transition-colors ${
+                isSelected ? "bg-brand-navy/[0.04] border border-brand-navy/20 text-brand-navy font-medium"
+                : isDisabled ? "bg-surface text-on-surface-variant/40 cursor-not-allowed"
+                : "bg-surface text-on-surface-variant hover:text-brand-black"
+              }`}>
+              {network.name}
+              {isDisabled && <span className="text-[9px] ml-1 uppercase">Soon</span>}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

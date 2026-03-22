@@ -1,18 +1,10 @@
 "use client";
 
-import {
-  Download,
-  Share2,
-  Mail,
-  Send,
-  Check,
-  ArrowRight,
-} from "lucide-react";
-import { CopyButton } from "@/components/shared/copy-button";
+import { Download, Share2, Mail, Send, Check, ArrowRight, ShieldCheck, Copy } from "lucide-react";
 import { PdfViewer } from "@/components/shared/pdf-viewer";
 import type { StatementData } from "@/types";
 import { useState, useCallback } from "react";
-import Link from "next/link";
+import Image from "next/image";
 
 interface StatementResultProps {
   statementData: StatementData;
@@ -24,25 +16,22 @@ interface StatementResultProps {
   onDownload: () => void;
 }
 
+function fmt(n: number) {
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function StatementResult({
-  statementData,
-  verificationHash,
-  statementId,
-  pdfBlobUrl,
-  pdfBlob,
-  onNewStatement,
-  onDownload,
+  statementData, verificationHash, statementId, pdfBlobUrl, pdfBlob, onNewStatement, onDownload,
 }: StatementResultProps) {
   const [shareEmail, setShareEmail] = useState("");
   const [shareName, setShareName] = useState(statementData.personalDetails?.fullName || "");
   const [shareMessage, setShareMessage] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [hashCopied, setHashCopied] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
 
-  const truncatedHash = verificationHash
-    ? `${verificationHash.slice(0, 6)}...${verificationHash.slice(-14)}`
-    : "";
-
+  const truncatedHash = verificationHash ? `${verificationHash.slice(0, 8)}…${verificationHash.slice(-8)}` : "";
   const verifyUrl = typeof window !== "undefined"
     ? `${window.location.origin}/verify?p=${encodeURIComponent(verificationHash)}`
     : `https://fundslip.xyz/verify?p=${encodeURIComponent(verificationHash)}`;
@@ -52,6 +41,12 @@ export function StatementResult({
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   }, [verifyUrl]);
+
+  const handleCopyHash = useCallback(async () => {
+    await navigator.clipboard.writeText(verificationHash);
+    setHashCopied(true);
+    setTimeout(() => setHashCopied(false), 2000);
+  }, [verificationHash]);
 
   const handleSendEmail = useCallback(async () => {
     if (!shareEmail) return;
@@ -69,118 +64,117 @@ export function StatementResult({
     } catch { /* email service may not be configured */ }
   }, [shareEmail, shareName, shareMessage, statementId, statementData.walletAddress, verificationHash]);
 
-  const periodLabel = `${statementData.periodStart.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – ${statementData.periodEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
-
-  const typeLabel = statementData.statementType === "full-history"
-    ? "Full Transaction History"
-    : statementData.statementType === "balance-snapshot"
-    ? "Balance Snapshot"
-    : "Income Summary";
+  const periodLabel = `${statementData.periodStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${statementData.periodEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+  const typeLabel = statementData.statementType === "full-history" ? "Full History" : statementData.statementType === "balance-snapshot" ? "Snapshot" : "Income";
 
   return (
-    <div className="pt-20 pb-16 px-6 md:px-10 container-page">
-      <div className="flex flex-col lg:flex-row gap-10 items-start">
-        {/* Left Column */}
-        <div className="w-full lg:w-5/12 space-y-5">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-on-surface font-headline">
-              Statement Ready
-            </h1>
-            <p className="text-on-surface-variant mt-2 leading-relaxed text-sm">
-              Your {typeLabel} for the period of{" "}
-              <span className="font-semibold text-on-surface">{periodLabel}</span>{" "}
-              has been successfully generated and verified.
-            </p>
+    <div className="pt-20 pb-16 px-5 md:px-6">
+      <div className="container-page">
+        {/* Success header — centered, celebratory */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-1.5 text-tertiary mb-4">
+            <ShieldCheck className="w-5 h-5" />
+            <span className="text-sm font-medium">Verified & Ready</span>
           </div>
+          <h1 className="font-headline text-3xl md:text-4xl font-semibold text-brand-black mb-2">
+            Your statement is ready
+          </h1>
+          <p className="text-on-surface-variant text-[15px]">
+            {typeLabel} · {periodLabel} · ${fmt(statementData.totalValueUsd)}
+          </p>
+        </div>
 
-          <button
-            onClick={onDownload}
-            className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary py-4 rounded-xl font-headline font-bold text-lg flex items-center justify-center gap-3 hover:opacity-90 active:scale-[0.98] transition-all"
-          >
-            <Download className="w-5 h-5" />
-            Download PDF Statement
+        {/* Statement card preview — matching the hero style */}
+        <div className="max-w-3xl mx-auto mb-8 rounded-2xl border border-outline-variant bg-white overflow-hidden">
+          <div className="flex items-center justify-between px-5 md:px-6 py-3 border-b border-outline-variant">
+            <div className="flex items-center gap-2">
+              <Image src="/fundslip.svg" alt="" width={14} height={18} style={{ height: "auto" }} />
+              <span className="font-headline font-semibold text-[13px] text-brand-black">Fundslip</span>
+            </div>
+            <div className="flex items-center gap-1 text-tertiary">
+              <ShieldCheck className="w-3 h-3" />
+              <span className="text-[9px] font-medium uppercase tracking-wide">Verified</span>
+            </div>
+          </div>
+          <div className="px-5 md:px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-[9px] uppercase tracking-wide text-on-surface-variant mb-1">Account</p>
+              <p className="text-[12px] font-mono text-brand-black truncate">
+                {statementData.ensName || `${statementData.walletAddress.slice(0, 8)}…${statementData.walletAddress.slice(-6)}`}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-wide text-on-surface-variant mb-1">Net Worth</p>
+              <p className="text-[12px] font-semibold text-brand-black">${fmt(statementData.totalValueUsd)}</p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-wide text-on-surface-variant mb-1">Block</p>
+              <p className="text-[12px] text-brand-black">#{statementData.blockNumber.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-wide text-on-surface-variant mb-1">Period</p>
+              <p className="text-[12px] text-brand-black">{periodLabel}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons — centered row */}
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row gap-3 mb-8">
+          <button onClick={onDownload}
+            className="flex-1 bg-brand-navy text-white py-3.5 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-brand-navy/90 transition-colors">
+            <Download className="w-4 h-4" /> Download PDF
           </button>
-
-          <button
-            onClick={handleShareLink}
-            className="w-full bg-secondary-container text-on-secondary-container py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-3 hover:bg-primary-fixed transition-colors"
-          >
-            {linkCopied ? (
-              <><Check className="w-4 h-4 text-tertiary" /> Link Copied!</>
-            ) : (
-              <><Share2 className="w-4 h-4" /> Share Secure Link</>
-            )}
+          <button onClick={handleShareLink}
+            className="flex-1 border border-outline-variant py-3.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 text-brand-black hover:bg-surface transition-colors">
+            {linkCopied ? <><Check className="w-4 h-4 text-tertiary" /> Link Copied</> : <><Share2 className="w-4 h-4" /> Copy Verification Link</>}
           </button>
+          <button onClick={() => setShowEmail(!showEmail)}
+            className="flex-1 border border-outline-variant py-3.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 text-brand-black hover:bg-surface transition-colors">
+            <Mail className="w-4 h-4" /> Email
+          </button>
+        </div>
 
-          {/* Share via Email */}
-          <div className="bg-surface-container-lowest rounded-xl p-5 ring-1 ring-outline-variant/15">
-            <h3 className="font-headline font-bold text-sm mb-3 flex items-center gap-2">
-              <Mail className="w-4 h-4 text-primary" />
-              Share via Email
-            </h3>
+        {/* Email form — collapsible */}
+        {showEmail && (
+          <div className="max-w-3xl mx-auto mb-8 rounded-xl border border-outline-variant p-5">
             {emailSent ? (
-              <div className="flex items-center gap-2 text-tertiary font-medium text-sm">
-                <Check className="w-4 h-4" /> Sent to {shareEmail}
-              </div>
+              <p className="text-tertiary text-sm flex items-center gap-2"><Check className="w-4 h-4" /> Sent to {shareEmail}</p>
             ) : (
-              <div className="space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <input type="email" value={shareEmail} onChange={(e) => setShareEmail(e.target.value)}
-                  placeholder="Recipient's email"
-                  className="w-full bg-surface-container-low border-none rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
+                  placeholder="Recipient email" className="bg-surface border-0 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-brand-navy/20 outline-none" />
                 <input type="text" value={shareName} onChange={(e) => setShareName(e.target.value)}
-                  placeholder="Your name (optional)"
-                  className="w-full bg-surface-container-low border-none rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
-                <input type="text" value={shareMessage} onChange={(e) => setShareMessage(e.target.value)}
-                  placeholder="Short message (optional)"
-                  className="w-full bg-surface-container-low border-none rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
+                  placeholder="Your name (optional)" className="bg-surface border-0 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-brand-navy/20 outline-none" />
                 <button onClick={handleSendEmail} disabled={!shareEmail}
-                  className="w-full bg-primary text-on-primary py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50">
+                  className="bg-brand-navy text-white py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-brand-navy/90 transition-colors disabled:opacity-50">
                   <Send className="w-4 h-4" /> Send
                 </button>
               </div>
             )}
           </div>
+        )}
 
-          {/* Verification Details */}
-          <div className="bg-surface-container-lowest rounded-xl p-5 ring-1 ring-outline-variant/15">
-            <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-3">
-              Verification Details
-            </p>
-            <div className="space-y-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-1">Data Fingerprint</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-grow bg-surface-container-low px-3 py-2 rounded text-[11px] font-mono text-on-surface-variant truncate">
-                    {truncatedHash}
-                  </code>
-                  <CopyButton text={verificationHash} />
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-1">Timestamp</p>
-                <p className="text-sm text-on-surface">
-                  {statementData.generatedAt.toLocaleString("en-US", {
-                    month: "long", day: "numeric", year: "numeric",
-                    hour: "2-digit", minute: "2-digit", timeZoneName: "short",
-                  })}
-                </p>
-              </div>
-            </div>
+        {/* Verification details — compact row */}
+        <div className="max-w-3xl mx-auto mb-8 flex flex-col sm:flex-row gap-3 text-[12px] text-on-surface-variant items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span>Fingerprint:</span>
+            <code className="font-mono text-brand-black">{truncatedHash}</code>
+            <button onClick={handleCopyHash} className="text-on-surface-variant hover:text-brand-black transition-colors">
+              {hashCopied ? <Check className="w-3 h-3 text-tertiary" /> : <Copy className="w-3 h-3" />}
+            </button>
           </div>
-
-          <div className="flex justify-between items-center pt-1">
-            <a href={verifyUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary font-bold text-sm hover:underline group">
-              Verify this statement
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+          <div className="flex items-center gap-4">
+            <a href={verifyUrl} target="_blank" rel="noopener noreferrer" className="text-brand-navy hover:underline flex items-center gap-1">
+              Verify <ArrowRight className="w-3 h-3" />
             </a>
-            <button onClick={onNewStatement} className="text-sm text-on-surface-variant hover:text-primary transition-colors font-medium">
-              Generate Another
+            <button onClick={onNewStatement} className="text-on-surface-variant hover:text-brand-black transition-colors">
+              New Statement
             </button>
           </div>
         </div>
 
-        {/* Right Column: PDF Preview via pdfjs-dist canvas */}
-        <div className="w-full lg:w-7/12">
+        {/* PDF preview — full width */}
+        <div className="max-w-3xl mx-auto">
           <PdfViewer pdfBlob={pdfBlob} />
         </div>
       </div>

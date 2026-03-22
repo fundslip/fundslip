@@ -21,28 +21,20 @@ import { downloadPdf } from "@/lib/pdf";
 
 function ConnectWalletGate() {
   const { connect } = useConnect();
-
   return (
-    <div className="pt-20 pb-20 px-6">
-      <div className="container-page">
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <div className="w-20 h-20 bg-primary-fixed rounded-2xl flex items-center justify-center mb-8">
-            <Wallet className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="font-headline text-3xl md:text-4xl font-extrabold tracking-tight text-on-surface mb-4">
-            Connect your wallet to generate a statement
-          </h1>
-          <p className="text-on-surface-variant text-lg mb-10 max-w-md">
-            It takes less than 30 seconds. No sign-up required.
-          </p>
-          <button
-            type="button"
-            onClick={() => connect({ connector: injected() })}
-            className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-10 py-5 rounded-xl font-bold text-lg shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
-          >
-            Connect Wallet
-          </button>
-        </div>
+    <div className="pt-24 pb-20 px-5">
+      <div className="container-page flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <Wallet className="w-8 h-8 text-on-surface-variant mb-6" />
+        <h1 className="font-headline text-2xl md:text-3xl font-semibold text-brand-black mb-3">
+          Connect your wallet
+        </h1>
+        <p className="text-on-surface-variant text-[15px] mb-8 max-w-sm">
+          It takes less than 30 seconds. No sign-up required.
+        </p>
+        <button onClick={() => connect({ connector: injected() })}
+          className="bg-brand-navy text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-brand-navy/90 transition-colors">
+          Connect Wallet
+        </button>
       </div>
     </div>
   );
@@ -51,7 +43,6 @@ function ConnectWalletGate() {
 function GenerateContent() {
   const { address, isConnected } = useAccount();
   const { data: ensName } = useEnsName({ address, query: { enabled: !!address } });
-
   const {
     step, currentProgress, period, setPeriod, statementType, setStatementType,
     networks, toggleNetwork, statementData, verificationHash, statementId,
@@ -59,83 +50,55 @@ function GenerateContent() {
     setCustomEnd, personalDetails, setPersonalDetails, error, pdfBlobUrl, pdfBlob,
   } = useStatement();
 
-  // Listen for reset event from navbar
   useEffect(() => {
     const handler = () => reset();
     window.addEventListener("fundslip:reset", handler);
     return () => window.removeEventListener("fundslip:reset", handler);
   }, [reset]);
 
-  if (!isConnected) {
-    return <ConnectWalletGate />;
-  }
-
-  if (step === "signing" || step === "generating") {
-    return <GeneratingProgress currentStep={currentProgress} isSigning={step === "signing"} />;
-  }
-
+  if (!isConnected) return <ConnectWalletGate />;
+  if (step === "signing" || step === "generating") return <GeneratingProgress currentStep={currentProgress} isSigning={step === "signing"} />;
   if (step === "ready" && statementData && pdfBlobUrl && pdfBlob) {
-    return (
-      <StatementResult
-        statementData={statementData}
-        verificationHash={verificationHash}
-        statementId={statementId}
-        pdfBlobUrl={pdfBlobUrl}
-        pdfBlob={pdfBlob}
-        onNewStatement={reset}
-        onDownload={() => downloadPdf(pdfBlobUrl, statementId)}
-      />
-    );
+    return <StatementResult statementData={statementData} verificationHash={verificationHash}
+      statementId={statementId} pdfBlobUrl={pdfBlobUrl} pdfBlob={pdfBlob}
+      onNewStatement={reset} onDownload={() => downloadPdf(pdfBlobUrl, statementId)} />;
   }
-
-  const needsPeriod = statementType !== "balance-snapshot";
 
   return (
-    <main className="pt-20 pb-20 px-6">
+    <main className="pt-20 pb-20 px-5 md:px-6">
       <div className="container-page">
-        <header className="mb-12">
-          <div className="grid md:grid-cols-2 gap-8 items-end">
+        <header className="mb-10">
+          <div className="grid md:grid-cols-2 gap-6 items-end">
             <div>
-              <p className="text-sm uppercase tracking-[0.1em] text-on-surface-variant mb-2 font-semibold">
-                Statement Configuration
-              </p>
-              <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface leading-tight">
-                Generate Your <br />
-                Verifiable Ledger
-              </h1>
+              <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-2">Configure</p>
+              <h1 className="font-headline text-2xl md:text-3xl font-semibold text-brand-black">Generate Statement</h1>
             </div>
             <BalanceCard balance={totalBalance} ensName={ensName || null} />
           </div>
         </header>
 
         {error && (
-          <div className="mb-8 flex items-center gap-3 p-4 bg-error-container rounded-xl text-on-error-container">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm font-medium">{error}</p>
+          <div className="mb-6 flex items-center gap-3 p-3 border-l-2 border-error bg-white rounded-lg text-sm text-on-error-container">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-error" /> {error}
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
             <TypeSelector selected={statementType} onSelect={setStatementType} />
-            {needsPeriod && (
-              <PeriodSelector
-                selected={period} onSelect={setPeriod}
+            {statementType !== "balance-snapshot" && (
+              <PeriodSelector selected={period} onSelect={setPeriod}
                 customStart={customStart} customEnd={customEnd}
-                onCustomStartChange={setCustomStart} onCustomEndChange={setCustomEnd}
-              />
+                onCustomStartChange={setCustomStart} onCustomEndChange={setCustomEnd} />
             )}
             <NetworkSelector selected={networks} onToggle={toggleNetwork} />
             <PersonalDetailsForm details={personalDetails} onChange={setPersonalDetails} />
           </div>
-
           <div className="lg:col-span-1">
-            <SummaryCard
-              period={period} type={statementType} network="Ethereum"
+            <SummaryCard period={period} type={statementType} network="Ethereum"
               ensName={ensName || null} personalDetails={personalDetails}
               customStart={customStart} customEnd={customEnd}
-              onGenerate={generate} isGenerating={false}
-            />
+              onGenerate={generate} isGenerating={false} />
           </div>
         </div>
       </div>
@@ -147,9 +110,7 @@ export default function GeneratePage() {
   return (
     <Providers>
       <Navbar />
-      <Suspense>
-        <GenerateContent />
-      </Suspense>
+      <Suspense><GenerateContent /></Suspense>
       <Footer />
     </Providers>
   );

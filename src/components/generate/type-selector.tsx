@@ -10,44 +10,28 @@ interface TypeSelectorProps {
 
 export function TypeSelector({ selected, onSelect }: TypeSelectorProps) {
   return (
-    <section className="bg-surface-container-lowest p-8 rounded-xl">
-      <div className="flex items-center gap-3 mb-6">
-        <span className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center text-sm font-bold">
-          1
-        </span>
-        <h2 className="font-headline text-xl font-bold">Statement Type</h2>
+    <section className="rounded-xl border border-outline-variant p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <span className="text-[13px] text-on-surface-variant">1.</span>
+        <h2 className="font-headline text-base font-medium text-brand-black">Statement Type</h2>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-2">
         {TYPE_OPTIONS.map((option) => {
           const isSelected = selected === option.value;
           return (
-            <label
-              key={option.value}
-              className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-colors duration-150 relative ${
-                isSelected
-                  ? "border-primary bg-surface"
-                  : "border-transparent bg-surface-container-low hover:bg-surface-container"
-              }`}
-            >
+            <label key={option.value}
+              className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors relative ${isSelected ? "bg-surface" : "hover:bg-surface/50"}`}>
               {option.recommended && (
-                <div className="absolute -top-2 -right-2 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">
+                <span className="absolute -top-1.5 right-3 text-[8px] font-medium text-tertiary bg-[#d1fae5] px-1.5 py-0.5 rounded">
                   Recommended
-                </div>
+                </span>
               )}
-              <input
-                type="radio"
-                name="statement-type"
-                checked={isSelected}
-                onChange={() => onSelect(option.value)}
-                className="w-5 h-5 text-primary focus:ring-primary/20 mr-4"
-              />
-              <div className="flex-1">
-                <p className="font-bold text-sm">{option.label}</p>
-                <p className="text-xs text-on-surface-variant">{option.description}</p>
+              <input type="radio" name="statement-type" checked={isSelected}
+                onChange={() => onSelect(option.value)} className="w-4 h-4 accent-[#003499] mr-3" />
+              <div>
+                <p className="text-[13px] font-medium text-brand-black">{option.label}</p>
+                <p className="text-[11px] text-on-surface-variant">{option.description}</p>
               </div>
-              {isSelected && (
-                <div className="w-1 h-8 bg-tertiary-fixed rounded-full ml-4" />
-              )}
             </label>
           );
         })}

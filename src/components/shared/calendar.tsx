@@ -122,14 +122,14 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
 
   return (
     <div>
-      <label className="block text-xs uppercase text-on-surface-variant mb-2 font-semibold tracking-wide">
+      <label className="block text-xs uppercase text-on-surface-variant mb-1.5 tracking-wide">
         {label}
       </label>
       <button
         ref={buttonRef}
         type="button"
         onClick={handleToggle}
-        className="w-full bg-surface-container-low rounded-lg px-4 py-3 text-sm text-left focus:ring-2 focus:ring-primary/20 transition-all outline-none flex items-center justify-between"
+        className="w-full bg-surface rounded-lg px-4 py-2.5 text-sm text-left focus:ring-1 focus:ring-brand-navy/20 outline-none flex items-center justify-between"
       >
         <span className={selectedDate ? "text-on-surface" : "text-on-surface-variant"}>
           {displayValue}
@@ -140,7 +140,7 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
       {open && typeof document !== "undefined" && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed z-[9999] bg-surface-container-lowest rounded-xl shadow-lg ring-1 ring-outline-variant/15 p-4"
+          className="fixed z-[9999] bg-white rounded-xl border border-outline-variant shadow-sm p-4"
           style={{
             top: pos.dropUp ? undefined : pos.top,
             bottom: pos.dropUp ? window.innerHeight - pos.top : undefined,
@@ -150,13 +150,13 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
         >
           {/* Month/Year Header */}
           <div className="flex items-center justify-between mb-3">
-            <button type="button" onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-surface-container transition-colors">
+            <button type="button" onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-surface transition-colors">
               <ChevronLeft className="w-4 h-4 text-on-surface-variant" />
             </button>
-            <span className="text-sm font-headline font-bold text-on-surface">
+            <span className="text-sm font-headline font-medium text-brand-black">
               {MONTHS[viewMonth]} {viewYear}
             </span>
-            <button type="button" onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-surface-container transition-colors">
+            <button type="button" onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-surface transition-colors">
               <ChevronRight className="w-4 h-4 text-on-surface-variant" />
             </button>
           </div>
@@ -185,10 +185,10 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
                   onClick={() => selectDay(day)}
                   disabled={disabled}
                   className={`p-1.5 text-center text-sm rounded-lg transition-colors ${
-                    selected ? "bg-primary text-on-primary font-bold"
-                    : disabled ? "text-outline-variant cursor-not-allowed"
-                    : today ? "bg-primary/10 text-primary font-semibold hover:bg-primary/20"
-                    : "text-on-surface hover:bg-surface-container"
+                    selected ? "bg-brand-navy text-white font-medium"
+                    : disabled ? "text-outline cursor-not-allowed"
+                    : today ? "bg-brand-navy/5 text-brand-navy font-medium hover:bg-brand-navy/10"
+                    : "text-on-surface hover:bg-surface"
                   }`}
                 >
                   {day}

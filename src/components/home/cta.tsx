@@ -2,89 +2,39 @@
 
 import { useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
-import { ArrowRight, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRef, useState } from "react";
-
-const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 export function CTA() {
   const { connect } = useConnect();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  };
 
   return (
-    <section className="px-5 md:px-8 pb-24 md:pb-32">
+    <section className="px-5 md:px-6 pb-24 md:pb-32">
       <div className="container-page">
-        <motion.div
-          ref={containerRef}
-          onMouseMove={handleMouseMove}
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, ease }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#061024] via-[#0a1d3d] to-[#0a2f7e] text-white px-6 py-20 md:px-16 md:py-24"
-        >
-          {/* Mouse-following glow — spring physics for smooth tracking */}
-          <motion.div
-            className="absolute w-[500px] h-[500px] rounded-full pointer-events-none"
-            style={{
-              background: `radial-gradient(circle, rgba(59,130,246,0.18) 0%, rgba(96,165,250,0.05) 40%, transparent 65%)`,
-            }}
-            animate={{
-              left: mousePos.x - 250,
-              top: mousePos.y - 250,
-            }}
-            transition={{ type: "spring", stiffness: 120, damping: 20, mass: 0.8 }}
-          />
+        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          transition={{ duration: 0.4 }}
+          className="rounded-2xl bg-gradient-to-br from-brand-navy via-brand-navy to-[#001f5c] text-white px-6 py-16 md:px-20 md:py-24 text-center relative overflow-hidden">
+          {/* Subtle radial light for depth */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-white/[0.03] rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
 
-          {/* Static ambient glow */}
-          <div className="absolute top-[-30%] right-[-10%] w-[400px] h-[400px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute bottom-[-20%] left-[-10%] w-[300px] h-[300px] bg-tertiary/10 rounded-full blur-[100px] pointer-events-none" />
-
-          {/* Floating particles */}
-          {[
-            { x: "15%", y: "25%", s: 4, d: 0, dur: 8 },
-            { x: "80%", y: "35%", s: 3, d: 1.5, dur: 10 },
-            { x: "55%", y: "70%", s: 5, d: 0.5, dur: 7 },
-            { x: "30%", y: "80%", s: 3, d: 2, dur: 9 },
-            { x: "70%", y: "20%", s: 4, d: 3, dur: 6 },
-          ].map((p, i) => (
-            <motion.div key={i} className="absolute rounded-full bg-white/[0.06]"
-              style={{ left: p.x, top: p.y, width: p.s, height: p.s }}
-              animate={{ y: [0, -15, 0, 10, 0], opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: p.dur, delay: p.d, repeat: Infinity, ease: "easeInOut" }} />
-          ))}
-
-          {/* Content */}
-          <div className="relative z-10 max-w-xl mx-auto text-center">
-            <h2 className="font-headline text-3xl md:text-4xl lg:text-[2.75rem] font-extrabold leading-[1.1] tracking-tight">
+          <div className="relative">
+            <h2 className="font-headline text-3xl md:text-4xl font-semibold leading-tight tracking-tight max-w-lg mx-auto">
               Ready to prove your financial position?
             </h2>
-            <p className="mt-5 text-white/40 text-base md:text-lg leading-relaxed max-w-md mx-auto">
-              No sign-up. No backend. Connect your wallet, sign, download.
+            <p className="mt-5 text-white/45 text-base md:text-lg max-w-md mx-auto leading-relaxed">
+              No sign-up. No backend. Connect your wallet, sign, and download your verifiable statement.
             </p>
-
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-3">
               <button onClick={() => connect({ connector: injected() })}
-                className="group/btn inline-flex items-center justify-center gap-2 bg-white text-[#061024] px-7 py-3.5 rounded-full text-[15px] font-semibold hover:-translate-y-[1px] hover:shadow-[0_4px_24px_rgba(255,255,255,0.2)] active:translate-y-0 transition-all duration-150">
-                <Wallet className="w-4 h-4" /> Get Started <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-0.5" />
+                className="bg-white text-brand-navy px-7 py-3.5 rounded-xl text-[15px] font-medium hover:bg-white/90 transition-colors">
+                Generate Statement
               </button>
               <Link href="/verify"
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full text-[15px] font-semibold text-white/50 hover:text-white hover:bg-white/[0.06] transition-all duration-150 border border-white/10">
+                className="px-7 py-3.5 rounded-xl text-[15px] font-medium text-white/50 hover:text-white border border-white/15 hover:border-white/25 transition-colors">
                 Verify a Statement
               </Link>
             </div>
+            <p className="mt-8 text-[13px] text-white/30">Completely free. No gas fees required.</p>
           </div>
         </motion.div>
       </div>

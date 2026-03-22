@@ -3,14 +3,10 @@
 import { useState, useCallback } from "react";
 import { Copy, Check } from "lucide-react";
 
-interface CopyButtonProps {
-  text: string;
-  className?: string;
-}
+interface CopyButtonProps { text: string; className?: string; }
 
 export function CopyButton({ text, className = "" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
@@ -18,16 +14,10 @@ export function CopyButton({ text, className = "" }: CopyButtonProps) {
   }, [text]);
 
   return (
-    <button
-      onClick={handleCopy}
-      className={`p-2 bg-secondary-container text-on-secondary-container rounded-lg hover:bg-primary-fixed transition-colors relative ${className}`}
-      title={copied ? "Copied!" : "Copy to clipboard"}
-    >
-      {copied ? (
-        <Check className="w-4 h-4 text-tertiary" />
-      ) : (
-        <Copy className="w-4 h-4" />
-      )}
+    <button onClick={handleCopy}
+      className={`p-2 bg-surface text-on-surface-variant rounded-lg hover:text-brand-black transition-colors ${className}`}
+      title={copied ? "Copied!" : "Copy"}>
+      {copied ? <Check className="w-4 h-4 text-tertiary" /> : <Copy className="w-4 h-4" />}
     </button>
   );
 }
