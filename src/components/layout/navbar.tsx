@@ -17,24 +17,16 @@ export function Navbar() {
   const { disconnect } = useDisconnect();
   const { data: ensName } = useEnsName({ address, query: { enabled: !!address } });
 
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 16);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setDropdownOpen(false); };
+    const onClick = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
-  useEffect(() => { setMobileOpen(false); }, [pathname]);
-  useEffect(() => { document.body.style.overflow = mobileOpen ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [mobileOpen]);
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const displayName = ensName || (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "");
 
@@ -50,111 +42,108 @@ export function Navbar() {
 
   return (
     <>
-      <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? "glass shadow-[0_1px_0_rgba(0,0,0,0.06)]" : ""}`}>
-        <nav className="flex justify-between items-center h-14 px-5 md:px-8 container-page">
+      {/* Floating nav — sits below the top with margin */}
+      <header className="fixed top-3 md:top-4 left-3 right-3 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-[1080px] z-50">
+        <nav ref={menuRef} className="relative flex justify-between items-center h-12 md:h-[52px] px-3 md:px-4 rounded-2xl bg-white/80 backdrop-blur-2xl shadow-card border border-black/[0.06]">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/fundslip.svg" alt="Fundslip" width={24} height={28} style={{ height: "auto" }} />
-            <span className="font-headline font-extrabold text-on-background text-[16px] tracking-tight">Fundslip</span>
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/fundslip.svg" alt="Fundslip" width={22} height={26} style={{ height: "auto" }} />
+            <span className="font-headline font-extrabold text-on-background text-[15px] tracking-tight">Fundslip</span>
           </Link>
 
-          {/* Desktop nav — pill container like Linear */}
+          {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-0.5 rounded-full bg-on-background/[0.04] p-[3px]">
             {NAV.map((l) => (
               <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
-                className={`relative px-4 py-[6px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-on-background" : "text-on-surface-variant hover:text-on-background"}`}>
+                className={`relative px-3.5 py-[5px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-on-background" : "text-on-surface-variant hover:text-on-background"}`}>
                 {isActive(l) && <motion.span layoutId="nav-active" className="absolute inset-0 bg-white rounded-full shadow-sm" style={{ zIndex: -1 }} transition={{ type: "spring", stiffness: 450, damping: 30 }} />}
                 {l.label}
               </Link>
             ))}
           </div>
 
-          {/* Right */}
-          <div className="flex items-center gap-2.5">
-            {isConnected ? (
-              <div className="relative" ref={dropdownRef}>
-                <button onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2 bg-on-background/[0.04] hover:bg-on-background/[0.07] pl-2 pr-2.5 py-1.5 rounded-full transition-colors">
-                  <div className="w-[22px] h-[22px] rounded-full bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center">
-                    <span className="text-[7px] font-bold text-white">{displayName.slice(0, 2).toUpperCase()}</span>
-                  </div>
-                  <span className="text-[13px] font-medium text-on-background hidden sm:inline">{displayName}</span>
-                  <ChevronDown className={`w-3 h-3 text-on-surface-variant transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
-                </button>
-                <AnimatePresence>
-                  {dropdownOpen && (
-                    <motion.div initial={{ opacity: 0, y: -6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                      transition={{ duration: 0.12 }} className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-card-hover p-1.5 ring-1 ring-black/[0.04]">
-                      <div className="px-3 py-2.5">
-                        <p className="text-[10px] uppercase tracking-[0.1em] text-on-surface-variant font-semibold">Wallet</p>
-                        <p className="text-[11px] font-mono text-on-surface mt-1 truncate">{address}</p>
-                      </div>
-                      <div className="h-px bg-surface-container-low mx-1.5" />
-                      <button onClick={() => { if (address) { navigator.clipboard.writeText(address); setCopied(true); setTimeout(() => setCopied(false), 1500); } }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-on-surface hover:bg-surface-container-low rounded-xl transition-colors mt-1">
-                        {copied ? <Check className="w-3.5 h-3.5 text-tertiary" /> : <Copy className="w-3.5 h-3.5 text-on-surface-variant" />}
-                        {copied ? "Copied" : "Copy address"}
-                      </button>
-                      <button onClick={() => { disconnect(); setDropdownOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-error hover:bg-error-container/40 rounded-xl transition-colors">
-                        <LogOut className="w-3.5 h-3.5" /> Disconnect
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ) : (
+          {/* Right side */}
+          <div className="flex items-center gap-2">
+            {/* Desktop connect */}
+            {!isConnected && (
               <button onClick={() => connect({ connector: injected() })}
-                className="hidden md:flex items-center gap-1.5 bg-on-background text-white px-4 py-[7px] rounded-full text-[13px] font-medium hover:bg-on-background/90 active:scale-[0.97] transition-all">
+                className="hidden md:flex items-center gap-1.5 bg-on-background text-white px-3.5 py-[6px] rounded-full text-[13px] font-medium hover:bg-on-background/90 active:scale-[0.97] transition-all">
                 <Wallet className="w-3.5 h-3.5" /> Connect
               </button>
             )}
-            {/* Hamburger */}
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden flex flex-col justify-center items-center w-9 h-9 gap-[5px]" aria-label="Menu">
-              <motion.span animate={{ rotate: mobileOpen ? 45 : 0, y: mobileOpen ? 3.5 : 0 }} className="block w-[18px] h-[1.5px] bg-on-background rounded-full origin-center" transition={{ duration: 0.15 }} />
-              <motion.span animate={{ opacity: mobileOpen ? 0 : 1 }} className="block w-[18px] h-[1.5px] bg-on-background rounded-full" transition={{ duration: 0.1 }} />
-              <motion.span animate={{ rotate: mobileOpen ? -45 : 0, y: mobileOpen ? -3.5 : 0 }} className="block w-[18px] h-[1.5px] bg-on-background rounded-full origin-center" transition={{ duration: 0.15 }} />
+            {/* Desktop wallet */}
+            {isConnected && (
+              <button onClick={() => setMenuOpen(!menuOpen)} className="hidden md:flex items-center gap-1.5 bg-on-background/[0.04] hover:bg-on-background/[0.07] pl-2 pr-2.5 py-[5px] rounded-full transition-colors">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center">
+                  <span className="text-[7px] font-bold text-white">{displayName.slice(0, 2).toUpperCase()}</span>
+                </div>
+                <span className="text-[13px] font-medium text-on-background">{displayName}</span>
+                <ChevronDown className={`w-3 h-3 text-on-surface-variant transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+              </button>
+            )}
+
+            {/* Mobile: single hamburger that contains everything */}
+            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-[4px]" aria-label="Menu">
+              <motion.span animate={{ rotate: menuOpen ? 45 : 0, y: menuOpen ? 3 : 0 }} className="block w-4 h-[1.5px] bg-on-background rounded-full origin-center" transition={{ duration: 0.15 }} />
+              <motion.span animate={{ opacity: menuOpen ? 0 : 1 }} className="block w-4 h-[1.5px] bg-on-background rounded-full" transition={{ duration: 0.1 }} />
+              <motion.span animate={{ rotate: menuOpen ? -45 : 0, y: menuOpen ? -3 : 0 }} className="block w-4 h-[1.5px] bg-on-background rounded-full origin-center" transition={{ duration: 0.15 }} />
             </button>
           </div>
+
+          {/* Single dropdown — nav + wallet on mobile, wallet-only on desktop */}
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-card-hover p-1.5 ring-1 ring-black/[0.04]"
+              >
+                {/* Nav links (mobile only) */}
+                <div className="md:hidden">
+                  {NAV.map((l) => (
+                    <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
+                      className={`flex items-center px-3.5 py-2.5 rounded-xl text-[15px] font-medium ${isActive(l) ? "text-primary bg-primary/[0.05]" : "text-on-surface-variant"}`}>
+                      {l.label}
+                    </Link>
+                  ))}
+                  <div className="h-px bg-black/[0.04] mx-2 my-1" />
+                </div>
+
+                {/* Wallet section */}
+                {isConnected ? (
+                  <div className="space-y-0.5">
+                    <div className="px-3.5 py-2.5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center">
+                          <span className="text-[7px] font-bold text-white">{displayName.slice(0, 2).toUpperCase()}</span>
+                        </div>
+                        <span className="text-[13px] font-semibold">{displayName}</span>
+                      </div>
+                      <p className="text-[11px] font-mono text-on-surface-variant truncate">{address}</p>
+                    </div>
+                    <button onClick={() => { if (address) { navigator.clipboard.writeText(address); setCopied(true); setTimeout(() => setCopied(false), 1500); } }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-on-surface hover:bg-surface-container-low rounded-xl transition-colors">
+                      {copied ? <Check className="w-3.5 h-3.5 text-tertiary" /> : <Copy className="w-3.5 h-3.5 text-on-surface-variant" />}
+                      {copied ? "Copied" : "Copy address"}
+                    </button>
+                    <button onClick={() => { disconnect(); setMenuOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-error hover:bg-error-container/30 rounded-xl transition-colors">
+                      <LogOut className="w-3.5 h-3.5" /> Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => { connect({ connector: injected() }); setMenuOpen(false); }}
+                    className="w-full flex items-center justify-center gap-2 bg-on-background text-white py-2.5 rounded-xl text-[14px] font-semibold">
+                    <Wallet className="w-4 h-4" /> Connect Wallet
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </nav>
       </header>
-
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-black/5 md:hidden" onClick={() => setMobileOpen(false)} />
-            <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
-              transition={{ type: "spring", stiffness: 400, damping: 28 }}
-              className="fixed top-[56px] left-4 right-4 z-50 bg-white rounded-2xl shadow-card-hover p-2 md:hidden ring-1 ring-black/[0.04]">
-              {NAV.map((l) => (
-                <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
-                  className={`flex items-center px-4 py-3 rounded-xl text-[15px] font-medium ${isActive(l) ? "text-primary bg-primary/[0.05]" : "text-on-surface-variant"}`}>
-                  {l.label}
-                </Link>
-              ))}
-              <div className="h-px bg-surface-container-low mx-2 my-1.5" />
-              {isConnected ? (
-                <div className="px-3 py-2.5 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center">
-                      <span className="text-[7px] font-bold text-white">{displayName.slice(0, 2).toUpperCase()}</span>
-                    </div>
-                    <span className="text-[14px] font-semibold">{displayName}</span>
-                  </div>
-                  <button onClick={() => { disconnect(); setMobileOpen(false); }} className="w-full py-2.5 rounded-xl text-[13px] font-medium text-error bg-error-container/20 flex items-center justify-center gap-2">
-                    <LogOut className="w-3.5 h-3.5" /> Disconnect
-                  </button>
-                </div>
-              ) : (
-                <button onClick={() => { connect({ connector: injected() }); setMobileOpen(false); }} className="w-full py-3 rounded-xl text-[14px] font-semibold bg-on-background text-white flex items-center justify-center gap-2 mx-0">
-                  <Wallet className="w-4 h-4" /> Connect Wallet
-                </button>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </>
   );
 }

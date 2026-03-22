@@ -12,23 +12,26 @@ function XIcon({ className }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className="w-full mt-auto">
-      <div className="container-page px-5 md:px-8 py-8 flex flex-col sm:flex-row justify-between items-center gap-5 border-t border-on-background/[0.04]">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/fundslip.svg" alt="Fundslip" width={18} height={22} style={{ height: "auto" }} />
-            <span className="font-headline font-bold text-on-background/80 text-[14px] tracking-tight">Fundslip</span>
-          </Link>
-          <span className="text-[12px] text-on-surface-variant/40">·</span>
-          <div className="flex items-center gap-2.5">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/40 hover:text-on-surface-variant transition-colors"><Github className="w-[14px] h-[14px]" /></a>
-            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/40 hover:text-on-surface-variant transition-colors"><XIcon className="w-[12px] h-[12px]" /></a>
+    <footer className="w-full mt-auto bg-on-background text-white">
+      <div className="container-page px-5 md:px-8 py-10 md:py-14">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <div className="flex items-center gap-3">
+            <Image src="/fundslip-logo.svg" alt="Fundslip" width={110} height={28} style={{ height: "auto" }} className="brightness-0 invert" />
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-white/40">
+            <Link href="/" className="hover:text-white transition-colors">How it works</Link>
+            <Link href="/generate" className="hover:text-white transition-colors">Generate</Link>
+            <Link href="/verify" className="hover:text-white transition-colors">Verify</Link>
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
           </div>
         </div>
-        <div className="flex items-center gap-5 text-[12px] text-on-surface-variant/50">
-          <Link href="/verify" className="hover:text-on-surface-variant transition-colors">Verify</Link>
-          <a href="#" className="hover:text-on-surface-variant transition-colors">Privacy</a>
-          <a href="#" className="hover:text-on-surface-variant transition-colors">Terms</a>
+        <div className="mt-8 pt-6 border-t border-white/8 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-[12px] text-white/25">&copy; {new Date().getFullYear()} Fundslip. All rights reserved.</p>
+          <div className="flex items-center gap-3">
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-white/25 hover:text-white/60 transition-colors"><Github className="w-4 h-4" /></a>
+            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-white/25 hover:text-white/60 transition-colors"><XIcon className="w-3.5 h-3.5" /></a>
+          </div>
         </div>
       </div>
     </footer>
