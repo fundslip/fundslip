@@ -146,7 +146,7 @@
 /* ── Liquid Glass Nav ── */
 .glass-nav {
   position: relative;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   box-shadow:

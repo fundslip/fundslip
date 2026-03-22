@@ -5,24 +5,50 @@ import { injected } from "wagmi/connectors";
 import { ArrowRight, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRef, useState } from "react";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 export function CTA() {
   const { connect } = useConnect();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setMousePos({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  };
 
   return (
     <section className="px-5 md:px-8 pb-24 md:pb-32">
       <div className="container-page">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+        <motion.div
+          ref={containerRef}
+          onMouseMove={handleMouseMove}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
           transition={{ duration: 0.5, ease }}
-          className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#061024] via-[#0a1d3d] to-[#0a2f7e] text-white px-6 py-20 md:px-16 md:py-24">
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#061024] via-[#0a1d3d] to-[#0a2f7e] text-white px-6 py-20 md:px-16 md:py-24"
+        >
+          {/* Mouse-following glow */}
+          <div
+            className="absolute w-[600px] h-[600px] rounded-full pointer-events-none transition-all duration-300 ease-out"
+            style={{
+              left: `${mousePos.x}%`,
+              top: `${mousePos.y}%`,
+              transform: "translate(-50%, -50%)",
+              background: `radial-gradient(circle, rgba(59,130,246,0.25) 0%, rgba(96,165,250,0.08) 40%, transparent 70%)`,
+            }}
+          />
 
-          {/* Glow effect — moves on hover */}
-          <div className="absolute left-0 top-0 h-full w-full translate-y-[1rem] opacity-70 transition-all duration-700 ease-in-out group-hover:translate-y-[-2rem] group-hover:opacity-100">
-            <div className="absolute left-1/2 bottom-0 h-[256px] w-[60%] -translate-x-1/2 scale-[2.5] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_rgba(59,130,246,0.35)_10%,_transparent_60%)] sm:h-[512px]" />
-            <div className="absolute left-1/2 bottom-0 h-[128px] w-[40%] -translate-x-1/2 scale-[2] rounded-[50%] bg-[radial-gradient(ellipse_at_center,_rgba(96,165,250,0.2)_10%,_transparent_60%)] sm:h-[256px]" />
-          </div>
+          {/* Static ambient glow */}
+          <div className="absolute top-[-30%] right-[-10%] w-[400px] h-[400px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[300px] h-[300px] bg-tertiary/10 rounded-full blur-[100px] pointer-events-none" />
 
           {/* Floating particles */}
           {[

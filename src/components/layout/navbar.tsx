@@ -63,7 +63,7 @@ export function Navbar() {
                   className={`relative px-4 py-[6px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-white font-semibold" : "text-on-surface-variant hover:text-on-background"}`}>
                   {isActive(l) && (
                     <motion.span layoutId="nav-pill"
-                      className="absolute inset-0 bg-on-background rounded-full shadow-btn"
+                      className="absolute inset-0 bg-primary rounded-full shadow-btn"
                       style={{ zIndex: -1 }}
                       transition={{ type: "spring", stiffness: 450, damping: 30 }} />
                   )}

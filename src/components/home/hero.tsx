@@ -6,7 +6,7 @@ import { ArrowRight, Wallet, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { GlassFilter } from "@/components/ui/glass-filter";
+import { MeshGradient } from "@paper-design/shaders-react";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -38,17 +38,21 @@ export function Hero() {
   const { connect } = useConnect();
 
   return (
-    <section className="relative overflow-hidden min-h-screen bg-grid">
-      <GlassFilter />
-
-      {/* Aurora background — organic light movement */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="aurora-bg absolute -inset-[10px]"
-          style={{ maskImage: "radial-gradient(ellipse at 60% 0%, black 20%, transparent 70%)" }} />
+    <section className="relative overflow-hidden min-h-screen">
+      {/* Shader mesh gradient background — light mode adapted */}
+      <div className="absolute inset-0 -z-10">
+        <MeshGradient
+          className="absolute inset-0 w-full h-full opacity-20"
+          colors={["#dce1ff", "#93c5fd", "#f4f5f7", "#a5b4fc", "#bfdbfe"]}
+          speed={0.15}
+        />
       </div>
 
-      {/* Gradient overlays for depth */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface/30 to-white/80 pointer-events-none" />
+      {/* Subtle grid overlay on top of shader */}
+      <div className="absolute inset-0 -z-[5] bg-grid opacity-50 pointer-events-none" />
+
+      {/* Gradient fade to content area */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/60 pointer-events-none" />
 
       <div className="relative z-10 container-page px-5 md:px-8 pt-36 md:pt-44 pb-16 md:pb-20">
         {/* Copy */}
@@ -94,7 +98,6 @@ export function Hero() {
           <div className="absolute -inset-4 md:-inset-6 rounded-[2rem] bg-gradient-to-b from-primary/[0.06] to-transparent blur-2xl pointer-events-none" />
 
           <div className="relative bg-white rounded-2xl md:rounded-[20px] shadow-hero overflow-hidden border border-black/[0.05]">
-            {/* Top bar */}
             <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-3.5 border-b border-black/[0.04]">
               <div className="flex items-center gap-2.5">
                 <Image src="/fundslip.svg" alt="" width={18} height={22} style={{ height: "auto" }} />
@@ -107,7 +110,6 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Content */}
             <div className="px-4 md:px-6 py-5 md:py-6">
               <div className="grid grid-cols-1 md:grid-cols-5 gap-5 md:gap-8">
                 <div className="md:col-span-2">
