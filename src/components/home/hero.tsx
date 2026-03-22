@@ -113,7 +113,7 @@ export function Hero() {
                   { l: "Account", v: "0x4a7e…2f1b", mono: true },
                   { l: "Network", v: "Ethereum" },
                   { l: "Block", v: "#19,452,102" },
-                  { l: "Period", v: "Feb 15 – Mar 15, 2025" },
+                  { l: "Period", v: "Feb 15 – Mar 15, 2026" },
                 ].map((d) => (
                   <div key={d.l}>
                     <p className="text-[8px] md:text-[9px] uppercase tracking-wide text-on-surface-variant mb-1">{d.l}</p>

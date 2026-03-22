@@ -18,7 +18,7 @@ export function Footer() {
             <Image src="/fundslip.svg" alt="Fundslip" width={14} height={18} style={{ height: "auto" }} />
             <span className="font-headline font-semibold text-brand-black text-[13px]">Fundslip</span>
           </Link>
-          <span className="text-[11px] text-on-surface-variant">© 2025</span>
+          <span className="text-[11px] text-on-surface-variant">© 2026</span>
           <a href="https://github.com/fundslip/fundslip" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant hover:text-brand-black transition-colors">
             <GithubIcon className="w-4 h-4" />
           </a>

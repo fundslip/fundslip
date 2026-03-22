@@ -9,7 +9,7 @@ function PrivacyContent() {
     <main className="pt-20 pb-20 px-5 md:px-6">
       <div className="container-page max-w-2xl">
         <h1 className="font-headline text-3xl md:text-4xl font-semibold text-brand-black mb-2 mt-8">Privacy</h1>
-        <p className="text-on-surface-variant text-[15px] mb-10">Last updated: March 2025</p>
+        <p className="text-on-surface-variant text-[15px] mb-10">Last updated: March 2026</p>
 
         <div className="space-y-8 text-[15px] text-on-surface-variant leading-relaxed">
           <section>

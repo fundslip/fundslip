@@ -41,7 +41,7 @@ export const metadata: Metadata = {
       "Generate professional, cryptographically signed financial statements from your Ethereum wallet. Purpose-built for landlords, lenders, and institutions.",
     images: [
       {
-        url: "/og-image.png",
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
         alt: "Fundslip — Your wallet. Your statement. Verifiable by anyone.",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     title: "Fundslip — Verifiable Ethereum Statements",
     description:
       "Generate professional, cryptographically signed financial statements from your Ethereum wallet.",
-    images: ["/og-image.png"],
+    images: ["/opengraph-image"],
   },
   robots: {
     index: true,
