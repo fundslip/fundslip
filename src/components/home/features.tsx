@@ -2,145 +2,113 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  FileText,
-  Lock,
-  ShieldCheck,
-  Fingerprint,
-  ArrowRight,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const FEATURES = [
   {
-    icon: FileText,
-    title: "Mortgage & Rental Ready",
-    description: "PDF statements that traditional financial institutions understand. Formatted, clear, professional — no Etherscan screenshots.",
-    tags: ["Real Estate", "Taxes", "Visa Applications"],
-    accent: "primary" as const,
+    number: "01",
+    title: "Generate",
+    headline: "Professional statements from any Ethereum wallet.",
+    description: "Connect your wallet, choose the period, and get a PDF that mortgage officers and landlords actually understand. Real balances, real transactions, real credibility.",
   },
   {
-    icon: Lock,
-    title: "Zero-Server Privacy",
-    description: "Your data never leaves your browser. All processing happens locally — we never see your balances, transactions, or keys.",
-    accent: "dark" as const,
+    number: "02",
+    title: "Sign",
+    headline: "Cryptographically bound to your identity.",
+    description: "Every statement is EIP-712 signed by the wallet owner. The signature binds your address to the exact on-chain data at a specific block. Unforgeable.",
   },
   {
-    icon: ShieldCheck,
-    title: "Tamper-Proof by Design",
-    description: "Each statement is EIP-712 signed by the wallet owner. Modify a single byte and the signature breaks. Mathematical certainty.",
-    accent: "tertiary" as const,
-    cta: { label: "Try the Verifier", href: "/verify" },
-  },
-  {
-    icon: Fingerprint,
-    title: "Instant Verification",
-    description: "Verifiers scan a QR code, upload the PDF, or paste a code. Re-fetch from the blockchain. Compare. Verified in seconds — no account needed.",
-    accent: "primary" as const,
+    number: "03",
+    title: "Verify",
+    headline: "Anyone can confirm. No account needed.",
+    description: "Scan the QR code, upload the PDF, or paste the verification code. We re-fetch from the blockchain, recompute the hash, and verify the signature. Seconds.",
+    cta: { label: "Try verification", href: "/verify" },
   },
 ];
 
-function FeatureCard({ feature, index }: { feature: typeof FEATURES[0]; index: number }) {
-  const isDark = feature.accent === "dark";
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, delay: index * 0.08, ease }}
-      className={`group relative rounded-2xl p-7 md:p-8 transition-all duration-300 hover:-translate-y-1 ${
-        isDark
-          ? "bg-[#0c1d3a] text-white"
-          : "bg-surface-container-lowest shadow-float hover:shadow-elevated"
-      } ${index === 0 ? "md:col-span-2" : ""}`}
-    >
-      {/* Icon */}
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-5 ${
-        isDark
-          ? "bg-white/10"
-          : feature.accent === "tertiary"
-          ? "bg-tertiary/8"
-          : "bg-primary/8"
-      }`}>
-        <feature.icon className={`w-5 h-5 ${
-          isDark ? "text-white/80" : feature.accent === "tertiary" ? "text-tertiary" : "text-primary"
-        }`} />
-      </div>
-
-      {/* Content */}
-      <h3 className={`text-xl font-headline font-bold mb-3 ${isDark ? "text-white" : "text-on-background"}`}>
-        {feature.title}
-      </h3>
-      <p className={`text-sm leading-relaxed ${isDark ? "text-white/60" : "text-on-surface-variant"}`}>
-        {feature.description}
-      </p>
-
-      {/* Tags */}
-      {feature.tags && (
-        <div className="mt-6 flex flex-wrap gap-2">
-          {feature.tags.map((tag) => (
-            <span
-              key={tag}
-              className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                isDark ? "bg-white/8 text-white/60" : "bg-surface-container text-on-surface-variant"
-              }`}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* CTA */}
-      {feature.cta && (
-        <Link
-          href={feature.cta.href}
-          className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold transition-all duration-200 group/link ${
-            feature.accent === "tertiary" ? "text-tertiary" : "text-primary"
-          }`}
-        >
-          {feature.cta.label}
-          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover/link:translate-x-0.5" />
-        </Link>
-      )}
-    </motion.div>
-  );
-}
-
 export function Features() {
   return (
-    <section className="py-24 md:py-32 px-5 md:px-8">
+    <section className="py-24 md:py-32 px-5 md:px-8 bg-white">
       <div className="container-page">
-        {/* Section header */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, ease }}
-          className="max-w-2xl mb-16"
+          className="max-w-xl mb-20"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/[0.05] border border-primary/10 mb-6">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span className="text-xs font-semibold text-primary">Why Fundslip</span>
-          </div>
-          <h2 className="font-headline text-3xl md:text-4xl font-extrabold text-on-background tracking-tight leading-tight">
-            The bridge between{" "}
-            <span className="text-gradient-primary">DeFi and TradFi.</span>
+          <h2 className="font-headline text-3xl md:text-[2.5rem] font-extrabold text-on-background tracking-tight leading-[1.15]">
+            How it works
           </h2>
           <p className="mt-4 text-on-surface-variant text-lg leading-relaxed">
-            Crypto wealth is real. Traditional institutions just need a language they understand. Fundslip translates.
+            Three steps. No sign-up. No backend. No data stored.
           </p>
         </motion.div>
 
-        {/* Feature grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+        {/* Feature rows */}
+        <div className="space-y-0">
           {FEATURES.map((feature, i) => (
-            <FeatureCard key={feature.title} feature={feature} index={i} />
+            <motion.div
+              key={feature.number}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.5, delay: i * 0.06, ease }}
+              className="group grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-12 py-12 md:py-16 border-t border-outline-variant/10 first:border-t-0"
+            >
+              {/* Number + title */}
+              <div className="md:col-span-3">
+                <div className="flex items-center gap-3 md:flex-col md:items-start md:gap-2">
+                  <span className="text-xs font-mono text-on-surface-variant/40">{feature.number}</span>
+                  <span className="text-sm font-semibold text-primary uppercase tracking-wider">{feature.title}</span>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="md:col-span-9">
+                <h3 className="font-headline text-2xl md:text-[1.75rem] font-bold text-on-background tracking-tight leading-snug">
+                  {feature.headline}
+                </h3>
+                <p className="mt-3 text-on-surface-variant leading-relaxed max-w-2xl">
+                  {feature.description}
+                </p>
+                {feature.cta && (
+                  <Link
+                    href={feature.cta.href}
+                    className="inline-flex items-center gap-1.5 mt-5 text-sm font-semibold text-primary hover:gap-2.5 transition-all duration-200"
+                  >
+                    {feature.cta.label}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
+            </motion.div>
           ))}
         </div>
+
+        {/* Trust strip */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mt-16 pt-12 border-t border-outline-variant/10 grid grid-cols-2 md:grid-cols-4 gap-8"
+        >
+          {[
+            { value: "EIP-712", label: "Typed Data Signatures" },
+            { value: "100%", label: "Client-Side Processing" },
+            { value: "0", label: "Data Stored on Servers" },
+            { value: "∞", label: "Verification Attempts" },
+          ].map(({ value, label }) => (
+            <div key={label}>
+              <div className="text-2xl md:text-3xl font-headline font-extrabold text-on-background tabular-nums">{value}</div>
+              <div className="text-xs text-on-surface-variant mt-1">{label}</div>
+            </div>
+          ))}
+        </motion.div>
       </div>
     </section>
   );
