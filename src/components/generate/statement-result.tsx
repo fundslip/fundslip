@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Share2, Mail, Send, Check, ArrowRight, ShieldCheck, Copy } from "lucide-react";
+import { Download, Share2, Mail, Send, Check, ArrowRight, Copy, ShieldCheck } from "lucide-react";
 import { PdfViewer } from "@/components/shared/pdf-viewer";
 import type { StatementData } from "@/types";
 import { useState, useCallback } from "react";
@@ -70,18 +70,15 @@ export function StatementResult({
   return (
     <div className="pt-20 pb-16 px-5 md:px-6">
       <div className="container-page">
-        {/* Success header — centered, celebratory */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-1.5 text-tertiary mb-4">
-            <ShieldCheck className="w-5 h-5" />
-            <span className="text-sm font-medium">Verified & Ready</span>
-          </div>
-          <h1 className="font-headline text-3xl md:text-4xl font-semibold text-brand-black mb-2">
+        {/* Header with back button */}
+        <div className="mb-10">
+          <button onClick={onNewStatement}
+            className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-brand-black transition-colors mb-6">
+            <ArrowRight className="w-4 h-4 rotate-180" /> New Statement
+          </button>
+          <h1 className="font-headline text-3xl md:text-4xl font-semibold text-brand-black text-center">
             Your statement is ready
           </h1>
-          <p className="text-on-surface-variant text-[15px]">
-            {typeLabel} · {periodLabel} · ${fmt(statementData.totalValueUsd)}
-          </p>
         </div>
 
         {/* Statement card preview — matching the hero style */}
@@ -163,14 +160,9 @@ export function StatementResult({
               {hashCopied ? <Check className="w-3 h-3 text-tertiary" /> : <Copy className="w-3 h-3" />}
             </button>
           </div>
-          <div className="flex items-center gap-4">
-            <a href={verifyUrl} target="_blank" rel="noopener noreferrer" className="text-brand-navy hover:underline flex items-center gap-1">
-              Verify <ArrowRight className="w-3 h-3" />
-            </a>
-            <button onClick={onNewStatement} className="text-on-surface-variant hover:text-brand-black transition-colors">
-              New Statement
-            </button>
-          </div>
+          <a href={verifyUrl} target="_blank" rel="noopener noreferrer" className="text-brand-navy hover:underline flex items-center gap-1">
+            Verify Statement <ArrowRight className="w-3 h-3" />
+          </a>
         </div>
 
         {/* PDF preview — full width */}

@@ -7,7 +7,7 @@ import { useStatement } from "@/hooks/use-statement";
 import { useAccount, useConnect, useEnsName } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { Wallet, AlertCircle } from "lucide-react";
-import { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 
 import { BalanceCard } from "@/components/generate/balance-card";
 import { PeriodSelector } from "@/components/generate/period-selector";
@@ -49,12 +49,6 @@ function GenerateContent() {
     totalBalance, generate, reset, customStart, setCustomStart, customEnd,
     setCustomEnd, personalDetails, setPersonalDetails, error, pdfBlobUrl, pdfBlob,
   } = useStatement();
-
-  useEffect(() => {
-    const handler = () => reset();
-    window.addEventListener("fundslip:reset", handler);
-    return () => window.removeEventListener("fundslip:reset", handler);
-  }, [reset]);
 
   if (!isConnected) return <ConnectWalletGate />;
   if (step === "signing" || step === "generating") return <GeneratingProgress currentStep={currentProgress} isSigning={step === "signing"} />;

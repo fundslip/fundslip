@@ -63,16 +63,9 @@ export function VerifyResult({ result, fingerprint }: VerifyResultProps) {
     <div>
       {/* Success header — centered */}
       <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-1.5 text-tertiary mb-4">
-          <CheckCircle className="w-5 h-5" />
-          <span className="text-sm font-medium">Cryptographically Verified</span>
-        </div>
-        <h1 className="font-headline text-3xl md:text-4xl font-semibold text-brand-black mb-2">
+        <h1 className="font-headline text-3xl md:text-4xl font-semibold text-brand-black">
           Statement is authentic
         </h1>
-        <p className="text-on-surface-variant text-[15px]">
-          {result.ensName || `${result.walletAddress.slice(0, 8)}…${result.walletAddress.slice(-6)}`} · ${fmt(result.totalValueUsd)}
-        </p>
       </div>
 
       {/* Verified statement card — like the hero preview */}

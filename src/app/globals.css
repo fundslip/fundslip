@@ -61,6 +61,11 @@
 
 .container-page { max-width: 1080px; margin-left: auto; margin-right: auto; }
 
+@keyframes textShine {
+  0%, 100% { background-position: 100% center; }
+  50% { background-position: 0% center; }
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 

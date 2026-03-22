@@ -39,8 +39,9 @@ export function Navbar() {
     { href: "/verify", label: "Verify" },
   ];
   const isActive = (l: typeof NAV[0]) => l.exact ? pathname === l.href : pathname.startsWith(l.href);
-  const handleNav = (href: string) => (e: React.MouseEvent) => {
-    if (href === "/generate" && pathname === "/generate") { e.preventDefault(); window.dispatchEvent(new CustomEvent("fundslip:reset")); }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleNav = (_href: string) => () => {
+    // No-op — navigating to the same page just uses normal Next.js routing
   };
 
   return (

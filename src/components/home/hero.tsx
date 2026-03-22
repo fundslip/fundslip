@@ -38,7 +38,12 @@ export function Hero() {
             className="font-headline text-[clamp(2.5rem,6vw,4.25rem)] font-semibold text-brand-black leading-[1.1] tracking-tight">
             Your wallet.<br />
             Your statement.<br />
-            <span className="text-on-surface-variant">Verifiable by anyone.</span>
+            <span
+              className="inline-block bg-[length:200%_100%] animate-[textShine_4s_ease-in-out_infinite] bg-clip-text text-transparent"
+              style={{ backgroundImage: "linear-gradient(90deg, #86868b 0%, #86868b 40%, #1d1d1f 50%, #86868b 60%, #86868b 100%)" }}
+            >
+              Verifiable by anyone.
+            </span>
           </motion.h1>
 
           <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
