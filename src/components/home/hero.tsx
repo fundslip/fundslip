@@ -61,7 +61,7 @@ export function Hero() {
             ) : (
               <button onClick={() => connect({ connector: injected() })}
                 className="inline-flex items-center justify-center bg-brand-navy text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-brand-navy/90 transition-colors">
-                Get Started
+                Generate Statement
               </button>
             )}
             <Link href="/verify"

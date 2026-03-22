@@ -14,10 +14,67 @@ const manrope = Manrope({
   display: "swap",
 });
 
+const siteUrl = "https://fundslip.xyz";
+
 export const metadata: Metadata = {
-  title: "Fundslip | Verifiable Ethereum Statements",
+  title: {
+    default: "Fundslip — Verifiable Ethereum Statements",
+    template: "%s | Fundslip",
+  },
   description:
-    "Generate professional, cryptographically signed financial statements from your Ethereum wallet for landlords, mortgage officers, and accountants.",
+    "Generate professional, cryptographically signed financial statements from your Ethereum wallet. Purpose-built for landlords, lenders, and institutions.",
+  keywords: [
+    "ethereum", "financial statement", "crypto", "proof of funds",
+    "wallet", "EIP-712", "verifiable", "blockchain", "defi",
+    "mortgage", "rental", "bank statement", "fundslip",
+  ],
+  authors: [{ name: "Fundslip", url: siteUrl }],
+  creator: "Fundslip",
+  metadataBase: new URL(siteUrl),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "Fundslip",
+    title: "Fundslip — Verifiable Ethereum Statements",
+    description:
+      "Generate professional, cryptographically signed financial statements from your Ethereum wallet. Purpose-built for landlords, lenders, and institutions.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Fundslip — Your wallet. Your statement. Verifiable by anyone.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@fundslip",
+    creator: "@fundslip",
+    title: "Fundslip — Verifiable Ethereum Statements",
+    description:
+      "Generate professional, cryptographically signed financial statements from your Ethereum wallet.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  icons: {
+    icon: "/fundslip.svg",
+    apple: "/fundslip.svg",
+  },
+  alternates: {
+    canonical: siteUrl,
+  },
 };
 
 export default function RootLayout({
@@ -27,7 +84,36 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${manrope.variable} h-full`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <link rel="icon" href="/fundslip.svg" type="image/svg+xml" />
+      </head>
+      <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: "Fundslip",
+              url: "https://fundslip.xyz",
+              description: "Generate professional, cryptographically signed financial statements from your Ethereum wallet.",
+              applicationCategory: "FinanceApplication",
+              operatingSystem: "Web",
+              offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+              creator: {
+                "@type": "Organization",
+                name: "Fundslip",
+                url: "https://fundslip.xyz",
+                sameAs: [
+                  "https://github.com/fundslip/fundslip",
+                  "https://x.com/fundslip",
+                ],
+              },
+            }),
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
