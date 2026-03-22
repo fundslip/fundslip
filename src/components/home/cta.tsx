@@ -12,14 +12,14 @@ const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 export function CTA() {
   const { connect } = useConnect();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     setMousePos({
-      x: ((e.clientX - rect.left) / rect.width) * 100,
-      y: ((e.clientY - rect.top) / rect.height) * 100,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
     });
   };
 
@@ -35,15 +35,17 @@ export function CTA() {
           transition={{ duration: 0.5, ease }}
           className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#061024] via-[#0a1d3d] to-[#0a2f7e] text-white px-6 py-20 md:px-16 md:py-24"
         >
-          {/* Mouse-following glow */}
-          <div
-            className="absolute w-[600px] h-[600px] rounded-full pointer-events-none transition-all duration-300 ease-out"
+          {/* Mouse-following glow — spring physics for smooth tracking */}
+          <motion.div
+            className="absolute w-[500px] h-[500px] rounded-full pointer-events-none"
             style={{
-              left: `${mousePos.x}%`,
-              top: `${mousePos.y}%`,
-              transform: "translate(-50%, -50%)",
-              background: `radial-gradient(circle, rgba(59,130,246,0.25) 0%, rgba(96,165,250,0.08) 40%, transparent 70%)`,
+              background: `radial-gradient(circle, rgba(59,130,246,0.18) 0%, rgba(96,165,250,0.05) 40%, transparent 65%)`,
             }}
+            animate={{
+              left: mousePos.x - 250,
+              top: mousePos.y - 250,
+            }}
+            transition={{ type: "spring", stiffness: 120, damping: 20, mass: 0.8 }}
           />
 
           {/* Static ambient glow */}

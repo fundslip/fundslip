@@ -60,10 +60,10 @@ export function Navbar() {
             <div className="hidden md:flex items-center gap-0.5 rounded-full bg-on-background/[0.06] p-[3px]">
               {NAV.map((l) => (
                 <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
-                  className={`relative px-4 py-[6px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-white font-semibold" : "text-on-surface-variant hover:text-on-background"}`}>
+                  className={`relative px-4 py-[6px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-on-background font-semibold" : "text-on-surface-variant hover:text-on-background"}`}>
                   {isActive(l) && (
                     <motion.span layoutId="nav-pill"
-                      className="absolute inset-0 bg-primary rounded-full shadow-btn"
+                      className="absolute inset-0 rounded-full bg-white/70 backdrop-blur-md shadow-[inset_1px_1px_0_rgba(255,255,255,0.6),inset_-1px_-1px_0_rgba(255,255,255,0.4),0_1px_3px_rgba(0,0,0,0.08)]"
                       style={{ zIndex: -1 }}
                       transition={{ type: "spring", stiffness: 450, damping: 30 }} />
                   )}

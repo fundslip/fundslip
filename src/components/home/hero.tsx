@@ -42,14 +42,13 @@ export function Hero() {
       {/* Shader mesh gradient background — light mode adapted */}
       <div className="absolute inset-0 -z-10">
         <MeshGradient
-          className="absolute inset-0 w-full h-full opacity-20"
-          colors={["#dce1ff", "#93c5fd", "#f4f5f7", "#a5b4fc", "#bfdbfe"]}
-          speed={0.15}
+          className="absolute inset-0 w-full h-full opacity-50"
+          colors={["#c7d2fe", "#93c5fd", "#e0e7ff", "#a5b4fc", "#dbeafe"]}
+          speed={0.2}
         />
       </div>
 
-      {/* Subtle grid overlay on top of shader */}
-      <div className="absolute inset-0 -z-[5] bg-grid opacity-50 pointer-events-none" />
+      {/* no grid */}
 
       {/* Gradient fade to content area */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/60 pointer-events-none" />
