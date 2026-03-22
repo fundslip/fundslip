@@ -2,46 +2,74 @@
 
 import { useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
-import { Wallet, CheckCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+import Link from "next/link";
+
+const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 export function CTA() {
   const { connect } = useConnect();
 
-  const handleConnect = () => {
-    connect({ connector: injected() });
-  };
-
   return (
-    <section className="py-24 px-6 md:px-12 bg-white">
-      <div className="max-w-4xl mx-auto text-center">
-        <div className="w-16 h-16 bg-primary-container rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-xl">
-          <Wallet className="w-7 h-7 text-white" />
-        </div>
+    <section className="py-24 md:py-32 px-5 md:px-8">
+      <div className="container-page">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease }}
+          className="relative overflow-hidden rounded-3xl bg-[#0c1d3a] px-8 py-16 md:px-16 md:py-20"
+        >
+          {/* Background glow */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/3" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-tertiary/10 rounded-full blur-[100px] -translate-x-1/4 translate-y-1/4" />
 
-        <h2 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tight mb-6">
-          Ready to verify your wealth?
-        </h2>
+          {/* Content */}
+          <div className="relative z-10 max-w-2xl mx-auto text-center">
+            <h2 className="font-headline text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              Ready to prove your{" "}
+              <span className="bg-gradient-to-r from-[#6ee7b7] to-[#34d399] bg-clip-text text-transparent">
+                financial position
+              </span>
+              ?
+            </h2>
 
-        <p className="text-xl text-on-surface-variant mb-12">
-          Join 12,000+ Ethereum users generating verifiable proof of funds for
-          their real-world needs.
-        </p>
+            <p className="mt-5 text-white/50 text-lg max-w-lg mx-auto leading-relaxed">
+              Connect your wallet. Generate a statement. Share it with confidence. No sign-up, no backend, completely free.
+            </p>
 
-        <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <button
-            onClick={handleConnect}
-            className="bg-primary text-on-primary px-10 py-5 rounded-xl font-bold text-lg hover:opacity-90 active:scale-[0.98] transition-all"
-          >
-            Connect Wallet Now
-          </button>
-          <button className="bg-surface-container text-on-surface px-10 py-5 rounded-xl font-bold text-lg hover:bg-surface-container-high transition-colors">
-            Documentation
-          </button>
-        </div>
-        <p className="mt-8 text-sm text-on-surface-variant flex items-center justify-center gap-2">
-          <CheckCircle className="w-4 h-4 text-tertiary" />
-          No sign-up required. Completely free to use.
-        </p>
+            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-3">
+              <button
+                onClick={() => connect({ connector: injected() })}
+                className="group inline-flex items-center justify-center gap-2.5 bg-white text-[#0c1d3a] px-7 py-3.5 rounded-2xl font-semibold text-base hover:-translate-y-px active:translate-y-0 transition-all duration-200 shadow-lg"
+              >
+                Get Started
+                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </button>
+              <Link
+                href="/verify"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-base text-white/70 hover:text-white bg-white/8 hover:bg-white/12 transition-all duration-200"
+              >
+                Verify a Statement
+              </Link>
+            </div>
+
+            {/* Bottom stats */}
+            <div className="mt-14 pt-8 border-t border-white/8 grid grid-cols-3 gap-6">
+              {[
+                { value: "100%", label: "Client-Side" },
+                { value: "EIP-712", label: "Signed" },
+                { value: "$0", label: "Always Free" },
+              ].map(({ value, label }) => (
+                <div key={label} className="text-center">
+                  <div className="text-xl md:text-2xl font-headline font-bold text-white tabular-nums">{value}</div>
+                  <div className="text-xs text-white/40 mt-1">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
