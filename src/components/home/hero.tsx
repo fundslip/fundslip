@@ -27,7 +27,7 @@ function UsdcIcon() {
   return (
     <svg viewBox="0 0 32 32" className="w-full h-full">
       <circle cx="16" cy="16" r="16" fill="#2775CA"/>
-      <path d="M20.5 18.2c0-2.1-1.3-2.8-3.8-3.1-1.8-.3-2.2-.7-2.2-1.5s.6-1.3 1.8-1.3c1.1 0 1.6.4 1.9 1.3.1.2.2.3.4.3h.9c.2 0 .4-.2.3-.4-.3-1.3-1.1-2.2-2.5-2.5V9.8c0-.2-.2-.4-.4-.4h-.8c-.2 0-.4.2-.4.4V11c-1.7.3-2.8 1.4-2.8 2.8 0 2 1.2 2.7 3.7 3 1.7.3 2.3.6 2.3 1.6 0 1-.8 1.6-2 1.6-1.5 0-2.1-.6-2.3-1.5-.1-.2-.2-.3-.4-.3h-1c-.2 0-.4.2-.3.4.3 1.5 1.3 2.4 3 2.7v1.2c0 .2.2.4.4.4h.8c.2 0 .4-.2.4-.4v-1.2c1.8-.3 2.9-1.4 2.9-3.1z" fill="#fff"/>
+      <text x="16" y="21" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="system-ui">$</text>
     </svg>
   );
 }
@@ -37,7 +37,7 @@ export function Hero() {
   const { connect } = useConnect();
 
   return (
-    <section className="relative overflow-hidden bg-grid">
+    <section className="relative overflow-hidden bg-grid min-h-screen">
       {/* Gradient overlays — visible on top of grid */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#e8ecf5]/70 via-surface/40 to-white/80 pointer-events-none" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] pointer-events-none"
@@ -48,7 +48,7 @@ export function Hero() {
       <div className="relative z-10 container-page px-5 md:px-8 pt-28 md:pt-36 pb-16 md:pb-20">
         {/* Copy */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}
-          className="text-center max-w-3xl mx-auto">
+          className="text-center max-w-4xl mx-auto">
 
           <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.08, ease }}
             className="font-headline text-[clamp(2.25rem,6.5vw,4.75rem)] font-extrabold text-on-background leading-[1.06] tracking-tight">
@@ -93,7 +93,7 @@ export function Hero() {
             <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-3.5 border-b border-black/[0.04]">
               <div className="flex items-center gap-2.5">
                 <Image src="/fundslip.svg" alt="" width={18} height={22} style={{ height: "auto" }} />
-                <span className="font-headline font-bold text-[13px] text-on-background tracking-tight">Fundslip</span>
+                <span className="font-headline font-bold text-[15px] text-on-background tracking-tight">Fundslip</span>
                 <span className="hidden sm:inline text-[10px] uppercase tracking-[0.1em] text-on-surface-variant/40 font-medium">· Asset Verification Report</span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-tertiary/8">

@@ -47,7 +47,7 @@ export function Features() {
               </div>
             </div>
             {/* Right — statement preview that FILLS the space */}
-            <div className="bg-gradient-to-br from-[#f3f5f9] to-[#ebeef4] p-5 md:p-6 flex items-stretch">
+            <div className="bg-gradient-to-br from-[#f3f5f9] to-[#ebeef4] p-3 md:p-4 flex items-stretch">
               <div className="w-full bg-white rounded-xl shadow-card p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-center mb-4">
@@ -136,7 +136,7 @@ export function Features() {
                     <Icon className="w-3 h-3" /> {label}
                   </div>
                 ))}
-                <Link href="/verify" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary group/l ml-auto">
+                <Link href="/verify" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary group/l sm:ml-auto">
                   Try verifier <ArrowRight className="w-3 h-3 transition-transform group-hover/l:translate-x-0.5" />
                 </Link>
               </div>

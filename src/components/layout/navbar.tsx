@@ -40,22 +40,22 @@ export function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 w-full z-50 px-3 sm:px-5 md:px-6 pt-2.5 md:pt-3">
-      <div className="glass-nav rounded-2xl container-page overflow-hidden">
+    <header className="fixed top-0 w-full z-[100] px-3 sm:px-5 md:px-6 pt-2.5 md:pt-3">
+      <div className="bg-white rounded-2xl container-page overflow-visible shadow-[0_0_0_1px_rgba(0,0,0,0.06),0_2px_12px_rgba(0,0,0,0.06),0_8px_32px_-8px_rgba(0,0,0,0.1)]">
         {/* Main bar */}
         <nav className="flex justify-between items-center h-14 md:h-[56px] px-4 md:px-5">
           {/* Logo — bigger */}
           <Link href="/" className="flex items-center gap-2.5">
             <Image src="/fundslip.svg" alt="Fundslip" width={24} height={30} style={{ height: "auto" }} />
-            <span className="font-headline font-extrabold text-on-background text-[17px] tracking-tight">Fundslip</span>
+            <span className="font-headline font-extrabold text-on-background text-[19px] tracking-tight">Fundslip</span>
           </Link>
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-0.5 rounded-full bg-on-background/[0.06] p-[3px]">
             {NAV.map((l) => (
               <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
-                className={`relative px-4 py-[6px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-on-background font-semibold" : "text-on-surface-variant hover:text-on-background"}`}>
-                {isActive(l) && <motion.span layoutId="nav-pill" className="absolute inset-0 bg-white rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.08)]" style={{ zIndex: -1 }} transition={{ type: "spring", stiffness: 450, damping: 30 }} />}
+                className={`relative px-4 py-[6px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-white font-semibold" : "text-on-surface-variant hover:text-on-background"}`}>
+                {isActive(l) && <motion.span layoutId="nav-pill" className="absolute inset-0 bg-on-background text-white rounded-full" style={{ zIndex: -1 }} transition={{ type: "spring", stiffness: 450, damping: 30 }} />}
                 {l.label}
               </Link>
             ))}
