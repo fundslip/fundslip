@@ -45,7 +45,7 @@ export function Hero() {
       <div className="absolute top-[30%] right-[-5%] w-[400px] h-[400px] pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(4,120,87,0.05) 0%, transparent 60%)" }} />
 
-      <div className="relative z-10 container-page px-5 md:px-8 pt-28 md:pt-36 pb-16 md:pb-20">
+      <div className="relative z-10 container-page px-5 md:px-8 pt-36 md:pt-44 pb-16 md:pb-20">
         {/* Copy */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}
           className="text-center max-w-4xl mx-auto">

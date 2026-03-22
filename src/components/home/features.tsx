@@ -60,14 +60,14 @@ export function Features() {
                 <div className="mt-4 space-y-1.5">
                   <div className="flex justify-between items-center py-2 border-t border-black/[0.04]">
                     <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#627EEA] flex items-center justify-center"><span className="text-[6px] font-bold text-white">E</span></div>
+                      <svg viewBox="0 0 32 32" className="w-5 h-5"><circle cx="16" cy="16" r="16" fill="#627EEA"/><path d="M16.498 4v8.87l7.497 3.35L16.498 4z" fill="#fff" fillOpacity="0.6"/><path d="M16.498 4L9 16.22l7.498-3.35V4z" fill="#fff"/><path d="M16.498 21.968v6.027L24 17.616l-7.502 4.352z" fill="#fff" fillOpacity="0.6"/><path d="M16.498 27.995v-6.028L9 17.616l7.498 10.379z" fill="#fff"/></svg>
                       <span className="text-[12px] font-medium">Ethereum</span>
                     </div>
                     <span className="text-[12px] font-semibold tabular-nums">$84,120</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-t border-black/[0.04]">
                     <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#2775CA] flex items-center justify-center"><span className="text-[6px] font-bold text-white">U</span></div>
+                      <svg viewBox="0 0 32 32" className="w-5 h-5"><circle cx="16" cy="16" r="16" fill="#2775CA"/><text x="16" y="21" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="system-ui">$</text></svg>
                       <span className="text-[12px] font-medium">USD Coin</span>
                     </div>
                     <span className="text-[12px] font-semibold tabular-nums">$58,382</span>

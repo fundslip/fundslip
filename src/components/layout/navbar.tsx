@@ -20,12 +20,18 @@ export function Navbar() {
   const [walletOpen, setWalletOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const walletRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
 
+  // Close wallet dropdown on outside click
   useEffect(() => {
-    const onClick = (e: MouseEvent) => { if (walletRef.current && !walletRef.current.contains(e.target as Node)) setWalletOpen(false); };
+    const onClick = (e: MouseEvent) => {
+      if (walletRef.current && !walletRef.current.contains(e.target as Node)) setWalletOpen(false);
+      // Close mobile menu on outside click
+      if (menuOpen && headerRef.current && !headerRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, []);
+  }, [menuOpen]);
   useEffect(() => { setMenuOpen(false); setWalletOpen(false); }, [pathname]);
 
   const displayName = ensName || (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "");
@@ -41,21 +47,25 @@ export function Navbar() {
 
   return (
     <header className="fixed top-0 w-full z-[100] px-3 sm:px-5 md:px-6 pt-2.5 md:pt-3">
-      <div className="bg-white rounded-2xl container-page overflow-visible shadow-[0_0_0_1px_rgba(0,0,0,0.06),0_2px_12px_rgba(0,0,0,0.06),0_8px_32px_-8px_rgba(0,0,0,0.1)]">
-        {/* Main bar */}
+      <div ref={headerRef} className="rounded-2xl container-page overflow-visible bg-white/[0.92] backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.05),0_2px_12px_rgba(0,0,0,0.05),0_8px_32px_-8px_rgba(0,0,0,0.08)]">
         <nav className="flex justify-between items-center h-14 md:h-[56px] px-4 md:px-5">
-          {/* Logo — bigger */}
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
             <Image src="/fundslip.svg" alt="Fundslip" width={24} height={30} style={{ height: "auto" }} />
             <span className="font-headline font-extrabold text-on-background text-[19px] tracking-tight">Fundslip</span>
           </Link>
 
-          {/* Desktop nav */}
+          {/* Desktop nav pills */}
           <div className="hidden md:flex items-center gap-0.5 rounded-full bg-on-background/[0.06] p-[3px]">
             {NAV.map((l) => (
               <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
                 className={`relative px-4 py-[6px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-white font-semibold" : "text-on-surface-variant hover:text-on-background"}`}>
-                {isActive(l) && <motion.span layoutId="nav-pill" className="absolute inset-0 bg-on-background text-white rounded-full" style={{ zIndex: -1 }} transition={{ type: "spring", stiffness: 450, damping: 30 }} />}
+                {isActive(l) && (
+                  <motion.span layoutId="nav-pill"
+                    className="absolute inset-0 bg-on-background rounded-full shadow-btn"
+                    style={{ zIndex: -1 }}
+                    transition={{ type: "spring", stiffness: 450, damping: 30 }} />
+                )}
                 {l.label}
               </Link>
             ))}
@@ -63,7 +73,7 @@ export function Navbar() {
 
           {/* Right */}
           <div className="flex items-center gap-2">
-            {/* Desktop wallet */}
+            {/* Desktop wallet dropdown */}
             {isConnected ? (
               <div className="relative hidden md:block" ref={walletRef}>
                 <button onClick={() => setWalletOpen(!walletOpen)}
@@ -78,7 +88,7 @@ export function Navbar() {
                   {walletOpen && (
                     <motion.div initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.97 }}
                       transition={{ duration: 0.12 }}
-                      className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-card-hover p-1.5 ring-1 ring-black/[0.04]">
+                      className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-card-hover p-1.5 ring-1 ring-black/[0.04] z-[110]">
                       <div className="px-3 py-2.5">
                         <p className="text-[10px] uppercase tracking-[0.1em] text-on-surface-variant font-semibold">Wallet</p>
                         <p className="text-[11px] font-mono text-on-surface mt-1 truncate">{address}</p>
@@ -104,15 +114,25 @@ export function Navbar() {
               </button>
             )}
 
-            {/* Mobile hamburger — opens full-width expansion */}
-            <button onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden flex items-center justify-center w-9 h-9 rounded-full hover:bg-on-background/[0.05] transition-colors">
-              <Menu className="w-[18px] h-[18px] text-on-background" />
-            </button>
+            {/* Mobile: single button — wallet avatar + hamburger if connected, just hamburger if not */}
+            {isConnected ? (
+              <button onClick={() => setMenuOpen(!menuOpen)}
+                className="md:hidden flex items-center gap-1.5 bg-on-background/[0.06] hover:bg-on-background/[0.09] pl-1.5 pr-2 py-1 rounded-full transition-colors">
+                <div className="w-[22px] h-[22px] rounded-full bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center">
+                  <span className="text-[7px] font-bold text-white">{displayName.slice(0, 2).toUpperCase()}</span>
+                </div>
+                <Menu className="w-3.5 h-3.5 text-on-surface-variant" />
+              </button>
+            ) : (
+              <button onClick={() => setMenuOpen(!menuOpen)}
+                className="md:hidden flex items-center justify-center w-9 h-9 rounded-full hover:bg-on-background/[0.05] transition-colors">
+                <Menu className="w-[18px] h-[18px] text-on-background" />
+              </button>
+            )}
           </div>
         </nav>
 
-        {/* Mobile expanded menu — stretches the header down */}
+        {/* Mobile expanded menu */}
         <AnimatePresence>
           {menuOpen && (
             <motion.div
@@ -125,7 +145,7 @@ export function Navbar() {
               <div className="px-3 py-3 space-y-0.5">
                 {NAV.map((l) => (
                   <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
-                    className={`flex items-center px-3 py-3 rounded-xl text-[15px] font-medium ${isActive(l) ? "text-primary bg-primary/[0.06] font-semibold" : "text-on-surface-variant"}`}>
+                    className={`flex items-center px-3 py-3 rounded-xl text-[15px] font-medium ${isActive(l) ? "text-white bg-on-background font-semibold" : "text-on-surface-variant"}`}>
                     {l.label}
                   </Link>
                 ))}

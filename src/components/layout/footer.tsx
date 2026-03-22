@@ -9,9 +9,9 @@ function XIcon({ className }: { className?: string }) {
 export function Footer() {
   return (
     <footer className="w-full mt-auto border-t border-on-background/[0.06]">
-      <div className="container-page px-5 md:px-8 py-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {/* Left — logo + socials */}
+      <div className="container-page px-5 md:px-8 py-6">
+        <div className="flex items-center justify-between">
+          {/* Left */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2">
               <Image src="/fundslip.svg" alt="Fundslip" width={18} height={22} style={{ height: "auto" }} />
@@ -21,11 +21,11 @@ export function Footer() {
             <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant hover:text-on-background transition-colors"><Github className="w-4 h-4" /></a>
             <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant hover:text-on-background transition-colors"><XIcon className="w-3.5 h-3.5" /></a>
           </div>
-          {/* Right — links */}
-          <div className="flex items-center gap-5 text-[13px] text-on-surface-variant">
+          {/* Right — links always visible */}
+          <div className="flex items-center gap-4 text-[12px] sm:text-[13px] text-on-surface-variant">
             <Link href="/verify" className="hover:text-on-background transition-colors">Verify</Link>
-            <a href="#" className="hover:text-on-background transition-colors">Privacy</a>
-            <a href="#" className="hover:text-on-background transition-colors">Terms</a>
+            <a href="#" className="hidden sm:inline hover:text-on-background transition-colors">Privacy</a>
+            <a href="#" className="hidden sm:inline hover:text-on-background transition-colors">Terms</a>
           </div>
         </div>
       </div>
