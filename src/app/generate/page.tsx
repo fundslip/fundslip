@@ -23,26 +23,24 @@ function ConnectWalletGate() {
   const { connect } = useConnect();
 
   return (
-    <div className="pt-[96px] pb-20 px-6">
-      <div className="container-page">
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <div className="w-20 h-20 bg-primary-fixed rounded-2xl flex items-center justify-center mb-8">
-            <Wallet className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="font-headline text-3xl md:text-4xl font-extrabold tracking-tight text-on-surface mb-4">
-            Connect your wallet to generate a statement
-          </h1>
-          <p className="text-on-surface-variant text-lg mb-10 max-w-md">
-            It takes less than 30 seconds. No sign-up required.
-          </p>
-          <button
-            type="button"
-            onClick={() => connect({ connector: injected() })}
-            className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-10 py-5 rounded-xl font-bold text-lg shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
-          >
-            Connect Wallet
-          </button>
+    <div className="min-h-screen pt-16 flex items-center justify-center px-6">
+      <div className="text-center max-w-md">
+        <div className="w-14 h-14 bg-navy/[0.06] rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <Wallet className="w-6 h-6 text-navy" strokeWidth={1.5} />
         </div>
+        <h1 className="font-headline text-[28px] font-bold text-gray-900 mb-3">
+          Connect your wallet to generate a statement
+        </h1>
+        <p className="text-gray-500 text-base mb-8">
+          It takes less than 30 seconds. No sign-up required.
+        </p>
+        <button
+          type="button"
+          onClick={() => connect({ connector: injected() })}
+          className="bg-navy text-white px-8 py-3.5 rounded-lg font-medium text-[15px] hover:bg-navy-light transition-colors"
+        >
+          Connect Wallet
+        </button>
       </div>
     </div>
   );
@@ -91,17 +89,14 @@ function GenerateContent() {
   const needsPeriod = statementType !== "balance-snapshot";
 
   return (
-    <main className="pt-[96px] pb-20 px-6">
+    <main className="pt-24 pb-20 px-6 lg:px-8">
       <div className="container-page">
         <header className="mb-12">
           <div className="grid md:grid-cols-2 gap-8 items-end">
             <div>
-              <p className="text-sm uppercase tracking-[0.1em] text-on-surface-variant mb-2 font-semibold">
-                Statement Configuration
-              </p>
-              <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface leading-tight">
-                Generate Your <br />
-                Verifiable Ledger
+              <p className="section-label mb-2">Statement Configuration</p>
+              <h1 className="font-headline text-[32px] font-bold text-gray-900 leading-tight">
+                Generate Your <br />Verifiable Ledger
               </h1>
             </div>
             <BalanceCard balance={totalBalance} ensName={ensName || null} />
@@ -109,14 +104,14 @@ function GenerateContent() {
         </header>
 
         {error && (
-          <div className="mb-8 flex items-center gap-3 p-4 bg-error-container rounded-xl text-on-error-container">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm font-medium">{error}</p>
+          <div className="mb-6 flex items-center gap-3 p-4 bg-error-light rounded-xl">
+            <AlertCircle className="w-4 h-4 text-error flex-shrink-0" strokeWidth={1.5} />
+            <p className="text-sm text-gray-700">{error}</p>
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-5">
             <TypeSelector selected={statementType} onSelect={setStatementType} />
             {needsPeriod && (
               <PeriodSelector

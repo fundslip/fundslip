@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck, Info } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import type { StatementPeriod, StatementType, PersonalDetails } from "@/types";
 
 interface SummaryCardProps {
@@ -21,93 +21,72 @@ const TYPE_LABELS: Record<StatementType, string> = {
   "income-summary": "Income Summary",
 };
 
-function getPeriodLabel(period: StatementPeriod, customStart: string, customEnd: string): string {
+function getPeriodLabel(period: StatementPeriod, cs: string, ce: string): string {
   switch (period) {
     case "7d": return "Last 7 Days";
     case "30d": return "Last 30 Days";
     case "90d": return "Last 90 Days";
     case "custom": {
-      if (customStart && customEnd) {
-        const start = new Date(customStart + "T00:00:00");
-        const end = new Date(customEnd + "T00:00:00");
-        return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+      if (cs && ce) {
+        const s = new Date(cs + "T00:00:00");
+        const e = new Date(ce + "T00:00:00");
+        return `${s.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${e.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
       }
       return "Custom Range";
     }
   }
 }
 
-export function SummaryCard({
-  period,
-  type,
-  network,
-  ensName,
-  personalDetails,
-  customStart,
-  customEnd,
-  onGenerate,
-  isGenerating,
-}: SummaryCardProps) {
+export function SummaryCard({ period, type, network, ensName, personalDetails, customStart, customEnd, onGenerate, isGenerating }: SummaryCardProps) {
+  const showPeriod = type !== "balance-snapshot";
+
   return (
-    <div className="sticky top-24 space-y-6">
-      <div className="bg-surface-container-low p-6 rounded-xl border-l-4 border-primary">
-        <h3 className="font-headline text-lg font-bold mb-4">Summary</h3>
-        <ul className="space-y-4 text-sm mb-8">
-          <li className="flex justify-between">
-            <span className="text-on-surface-variant">Type</span>
-            <span className="font-semibold">{TYPE_LABELS[type]}</span>
-          </li>
-          {type !== "balance-snapshot" && (
-            <li className="flex justify-between">
-              <span className="text-on-surface-variant">Period</span>
-              <span className="font-semibold">{getPeriodLabel(period, customStart, customEnd)}</span>
-            </li>
+    <div className="sticky top-24 space-y-5">
+      <div className="bg-white rounded-xl p-6">
+        <h3 className="font-headline text-base font-bold text-gray-900 mb-5">Summary</h3>
+        <div className="space-y-4 text-sm mb-6">
+          <div className="flex justify-between">
+            <span className="text-gray-400">Type</span>
+            <span className="font-medium text-gray-900">{TYPE_LABELS[type]}</span>
+          </div>
+          {showPeriod && (
+            <div className="flex justify-between">
+              <span className="text-gray-400">Period</span>
+              <span className="font-medium text-gray-900">{getPeriodLabel(period, customStart, customEnd)}</span>
+            </div>
           )}
-          <li className="flex justify-between">
-            <span className="text-on-surface-variant">Network</span>
-            <span className="font-semibold">{network}</span>
-          </li>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Network</span>
+            <span className="font-medium text-gray-900">{network}</span>
+          </div>
           {personalDetails.fullName && (
-            <li className="flex justify-between">
-              <span className="text-on-surface-variant">Name</span>
-              <span className="font-semibold">{personalDetails.fullName}</span>
-            </li>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Name</span>
+              <span className="font-medium text-gray-900">{personalDetails.fullName}</span>
+            </div>
           )}
-          <li className="pt-4 border-t border-outline-variant flex justify-between items-center">
-            <span className="text-on-surface-variant">Fee</span>
-            <span className="text-tertiary-container font-bold bg-tertiary-fixed px-2 py-0.5 rounded text-[10px] uppercase">
-              Free Tier
-            </span>
-          </li>
-        </ul>
+          <div className="pt-3 border-t border-gray-100 flex justify-between items-center">
+            <span className="text-gray-400">Fee</span>
+            <span className="bg-emerald-light text-emerald-dark text-[10px] font-semibold px-2 py-0.5 rounded-full">FREE TIER</span>
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={onGenerate}
           disabled={isGenerating}
-          className="w-full py-4 rounded-xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 mb-4"
+          className="w-full bg-navy text-white py-3.5 rounded-lg font-semibold text-[15px] hover:bg-navy-light transition-colors disabled:opacity-50 mb-4"
         >
-          {isGenerating ? "Generating..." : "Generate Statement"}
+          Generate Statement
         </button>
-        <div className="flex gap-3 p-4 bg-surface-container-lowest rounded-lg border border-outline-variant/30">
-          <ShieldCheck className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-          <p className="text-[11px] text-on-surface-variant leading-relaxed">
-            By clicking generate, you will be prompted to sign a message (SIWE)
-            to verify ownership of{" "}
-            <span className="font-bold">{ensName || "your wallet"}</span>. No
-            gas fee required.
+
+        <div className="flex items-start gap-2.5 text-xs text-gray-400">
+          <ShieldCheck className="w-4 h-4 text-gray-300 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+          <p className="leading-relaxed">
+            You&apos;ll be prompted to sign a message to verify ownership of{" "}
+            <span className="text-gray-600 font-medium">{ensName || "your wallet"}</span>. No gas fee.
           </p>
         </div>
-      </div>
-
-      <div className="p-6 bg-surface-container-high rounded-xl">
-        <div className="flex items-center gap-2 mb-2">
-          <Info className="w-5 h-5 text-primary" />
-          <h4 className="font-bold text-sm">Data Privacy</h4>
-        </div>
-        <p className="text-xs text-on-surface-variant leading-relaxed">
-          Statements are cryptographically signed and encrypted. Only you can
-          access or share the generated PDF/JSON link.
-        </p>
       </div>
     </div>
   );

@@ -1,22 +1,6 @@
 import Link from "next/link";
 import { Github } from "lucide-react";
 
-function FundslipIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 52 62" fill="none" className={className}>
-      <rect x="6" y="0" width="46" height="56" rx="5" fill="#0048cc" opacity="0.35"/>
-      <rect x="0" y="6" width="46" height="56" rx="5" fill="#003499"/>
-      <rect x="9" y="16" width="28" height="2.2" rx="1.1" fill="#fff" opacity="0.85"/>
-      <rect x="9" y="22.5" width="19" height="2.2" rx="1.1" fill="#fff" opacity="0.4"/>
-      <rect x="9" y="29" width="23" height="2.2" rx="1.1" fill="#fff" opacity="0.4"/>
-      <line x1="9" y1="40" x2="27" y2="40" stroke="#85f8c4" strokeWidth="1.8" strokeLinecap="round"/>
-      <line x1="9" y1="45" x2="20" y2="45" stroke="#85f8c4" strokeWidth="1.8" strokeLinecap="round" opacity="0.6"/>
-      <circle cx="36" cy="49" r="7" fill="#85f8c4"/>
-      <path d="M32.5,49 L34.8,51.3 L39.5,46.5" stroke="#003499" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
 function XIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor">
@@ -27,29 +11,26 @@ function XIcon({ className }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className="w-full mt-auto border-t border-surface-container bg-surface-container-low/50">
-      <div className="flex flex-col sm:flex-row justify-between items-center py-5 px-6 md:px-10 container-page gap-4">
+    <footer className="mt-auto bg-gray-50">
+      <div className="flex flex-col sm:flex-row justify-between items-center py-10 px-6 lg:px-8 container-page gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <FundslipIcon className="h-5 w-auto" />
-            <span className="font-headline font-bold text-on-background text-base tracking-tight">
-              Fundslip
-            </span>
-          </Link>
+          <span className="text-[13px] text-gray-400">
+            © 2025 Fundslip. Verifiable Ethereum Statements.
+          </span>
           <div className="flex items-center gap-3">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant hover:text-primary transition-colors" title="GitHub">
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600 transition-colors">
               <Github className="w-4 h-4" />
             </a>
-            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant hover:text-primary transition-colors" title="X (Twitter)">
+            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600 transition-colors">
               <XIcon className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
-        <div className="flex flex-wrap justify-center gap-5 text-xs text-on-surface-variant">
-          <Link href="/" className="hover:text-primary transition-colors">How it works</Link>
-          <Link href="/verify" className="hover:text-primary transition-colors">Verify</Link>
-          <a href="#" className="hover:text-primary transition-colors">Privacy</a>
-          <a href="#" className="hover:text-primary transition-colors">Terms</a>
+        <div className="flex flex-wrap justify-center gap-6 text-[13px] text-gray-500">
+          <Link href="/" className="hover:text-gray-900 transition-colors">How it works</Link>
+          <Link href="/verify" className="hover:text-gray-900 transition-colors">Verify</Link>
+          <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
+          <a href="#" className="hover:text-gray-900 transition-colors">Terms</a>
         </div>
       </div>
     </footer>

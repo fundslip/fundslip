@@ -11,7 +11,7 @@ export default function HomePage() {
   return (
     <Providers>
       <Navbar />
-      <main className="pt-[72px] flex-1">
+      <main className="pt-16 flex-1">
         <Hero />
         <Features />
         <CTA />

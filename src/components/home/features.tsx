@@ -1,125 +1,80 @@
 "use client";
 
 import Link from "next/link";
-import {
-  FileText,
-  Lock,
-  ShieldCheck,
-  Coins,
-  Layers,
-  Wallet,
-  BarChart3,
-  ArrowRight,
-} from "lucide-react";
+import { FileText, Lock, ShieldCheck, Coins, Layers, Wallet, BarChart3, ArrowRight } from "lucide-react";
 
 export function Features() {
   return (
-    <section className="py-24 px-6 md:px-12 bg-surface-container-low">
+    <section className="py-24 px-6 lg:px-8 bg-gray-100">
       <div className="container-page">
-        <div className="mb-16">
-          <div className="editorial-header text-primary mb-2">
-            The Verification Gap
-          </div>
-          <h2 className="font-headline text-4xl font-extrabold tracking-tight">
-            Bridging DeFi and TradFi.
-          </h2>
+        <div className="mb-14">
+          <p className="section-label mb-2">The Verification Gap</p>
+          <h2 className="font-headline text-[32px] font-bold text-gray-900">Bridging DeFi and TradFi.</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Feature Card 1 — Mortgage & Rental Ready */}
-          <div className="md:col-span-2 bg-surface-container-lowest p-10 rounded-xl relative overflow-hidden group hover:-translate-y-0.5 transition-transform duration-150">
-            <div className="relative z-10 h-full flex flex-col justify-between">
-              <div>
-                <FileText className="w-10 h-10 text-primary mb-6" />
-                <h3 className="text-2xl font-bold font-headline mb-4">
-                  Mortgage &amp; Rental Ready
-                </h3>
-                <p className="text-on-surface-variant text-lg leading-relaxed max-w-lg">
-                  Stop sending screenshots of Etherscan. Fundslip generates
-                  clean, PDF-ready statements that traditional financial
-                  institutions understand and trust.
-                </p>
-              </div>
-              <div className="mt-12 flex gap-4">
-                <div className="bg-surface-container px-4 py-2 rounded-lg text-xs font-semibold">
-                  Real Estate
-                </div>
-                <div className="bg-surface-container px-4 py-2 rounded-lg text-xs font-semibold">
-                  Taxes
-                </div>
-                <div className="bg-surface-container px-4 py-2 rounded-lg text-xs font-semibold">
-                  Visa Apps
-                </div>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+          {/* Card 1 — Mortgage Ready (wide) */}
+          <div className="md:col-span-3 bg-white p-8 rounded-xl hover:shadow-sm transition-shadow duration-200">
+            <FileText className="w-8 h-8 text-navy mb-5" strokeWidth={1.5} />
+            <h3 className="text-xl font-bold font-headline text-gray-900 mb-3">Mortgage &amp; Rental Ready</h3>
+            <p className="text-gray-600 text-[15px] leading-relaxed max-w-md mb-8">
+              Stop sending screenshots of Etherscan. Fundslip generates clean,
+              PDF-ready statements that traditional financial institutions understand and trust.
+            </p>
+            <div className="flex gap-2">
+              {["Real Estate", "Taxes", "Visa Apps"].map(tag => (
+                <span key={tag} className="bg-gray-100 px-3 py-1.5 rounded-md text-xs font-medium text-gray-600">{tag}</span>
+              ))}
             </div>
           </div>
 
-          {/* Feature Card 2 — Zero-Server Privacy (Dark Navy) */}
-          <div className="bg-primary p-10 rounded-xl text-on-primary flex flex-col justify-between hover:-translate-y-0.5 transition-transform duration-150">
+          {/* Card 2 — Privacy (dark) */}
+          <div className="md:col-span-2 bg-navy p-8 rounded-xl text-white flex flex-col justify-between">
             <div>
-              <Lock className="w-10 h-10 mb-6" />
-              <h3 className="text-2xl font-bold font-headline mb-4">
-                Zero-Server Privacy
-              </h3>
-              <p className="text-on-primary-container leading-relaxed">
+              <Lock className="w-8 h-8 mb-5 text-white/80" strokeWidth={1.5} />
+              <h3 className="text-xl font-bold font-headline mb-3">Zero-Server Privacy</h3>
+              <p className="text-white/60 text-[15px] leading-relaxed">
                 Your transaction history never leaves your browser. All data
-                processing is done locally, ensuring 100% privacy and custody.
+                processing is done locally, ensuring 100% privacy.
               </p>
             </div>
-            <div className="mt-8 pt-6 border-t border-primary-container">
-              <div className="text-sm font-bold opacity-80 uppercase tracking-widest">
-                Privacy First
-              </div>
+            <div className="mt-8 pt-5 border-t border-white/10">
+              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-white/40">Privacy First</span>
             </div>
           </div>
 
-          {/* Feature Card 3 — Tamper-Proof */}
-          <div className="bg-surface-container-lowest p-10 rounded-xl flex flex-col justify-between border-l-4 border-tertiary-fixed hover:-translate-y-0.5 transition-transform duration-150">
+          {/* Card 3 — Tamper-Proof */}
+          <div className="md:col-span-2 bg-white p-8 rounded-xl border-l-[3px] border-emerald hover:shadow-sm transition-shadow duration-200 flex flex-col justify-between">
             <div>
-              <ShieldCheck className="w-10 h-10 text-tertiary mb-6" />
-              <h3 className="text-2xl font-bold font-headline mb-4">
-                Tamper-Proof Verification
-              </h3>
-              <p className="text-on-surface-variant leading-relaxed">
-                Each statement includes a unique cryptographic signature.
-                Verifiers can validate the authenticity of the report on-chain
-                without needing your private keys.
+              <ShieldCheck className="w-8 h-8 text-emerald mb-5" strokeWidth={1.5} />
+              <h3 className="text-xl font-bold font-headline text-gray-900 mb-3">Tamper-Proof Verification</h3>
+              <p className="text-gray-600 text-[15px] leading-relaxed">
+                Each statement includes a unique cryptographic signature verifiable on-chain.
               </p>
             </div>
-            <Link
-              href="/verify"
-              className="mt-8 text-primary font-bold flex items-center gap-2 group"
-            >
-              Try the Verifier{" "}
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            <Link href="/verify" className="mt-6 text-navy font-semibold text-sm flex items-center gap-1.5 group">
+              Try the Verifier <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
 
-          {/* Feature Card 4 — Multi-Asset */}
-          <div className="md:col-span-2 bg-surface-container-lowest p-10 rounded-xl flex flex-col md:flex-row gap-10 items-center hover:-translate-y-0.5 transition-transform duration-150">
+          {/* Card 4 — Multi-Asset (wide) */}
+          <div className="md:col-span-3 bg-white p-8 rounded-xl flex flex-col md:flex-row gap-8 items-center hover:shadow-sm transition-shadow duration-200">
             <div className="flex-1">
-              <h3 className="text-2xl font-bold font-headline mb-4">
-                Multi-Asset Compatibility
-              </h3>
-              <p className="text-on-surface-variant leading-relaxed">
-                From ETH and ERC-20 tokens to staked assets and liquidity
-                positions. Fundslip aggregates your entire Ethereum portfolio
-                into a single, cohesive balance sheet.
+              <h3 className="text-xl font-bold font-headline text-gray-900 mb-3">Multi-Asset Compatibility</h3>
+              <p className="text-gray-600 text-[15px] leading-relaxed">
+                From ETH and ERC-20 tokens to staked assets. Fundslip aggregates your portfolio into a single balance sheet.
               </p>
             </div>
-            <div className="flex-1 grid grid-cols-2 gap-4 w-full">
+            <div className="flex-1 grid grid-cols-2 gap-2.5 w-full">
               {[
                 { Icon: Coins, label: "ERC-20" },
                 { Icon: Layers, label: "L2 Support" },
                 { Icon: Wallet, label: "Staking" },
                 { Icon: BarChart3, label: "NFT Value" },
               ].map(({ Icon, label }) => (
-                <div
-                  key={label}
-                  className="bg-surface p-4 rounded-lg flex items-center gap-3"
-                >
-                  <Icon className="w-5 h-5 text-primary" />
-                  <span className="font-semibold text-sm">{label}</span>
+                <div key={label} className="bg-gray-50 p-3 rounded-lg flex items-center gap-2.5">
+                  <Icon className="w-4 h-4 text-navy" strokeWidth={1.5} />
+                  <span className="text-sm font-medium text-gray-700">{label}</span>
                 </div>
               ))}
             </div>
