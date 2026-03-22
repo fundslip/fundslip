@@ -74,6 +74,18 @@
 
 @layer base {
   * { @apply border-outline-variant/15; }
+  :root {
+    --blue-500: #3b82f6;
+    --indigo-300: #a5b4fc;
+    --blue-300: #93c5fd;
+    --violet-200: #ddd6fe;
+    --blue-400: #60a5fa;
+    --white: #f4f5f7;
+    --black: #0f172a;
+    --transparent: transparent;
+    --brand: 220 80% 28%;
+    --brand-foreground: 220 70% 50%;
+  }
   body {
     @apply bg-surface text-on-surface antialiased;
     font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -87,7 +99,7 @@
 
 .container-page { max-width: 1120px; margin-left: auto; margin-right: auto; }
 
-/* Background grid — VISIBLE, not subtle */
+/* ── Background Grid ── */
 .bg-grid {
   background-image:
     linear-gradient(rgba(10,47,126,0.06) 1px, transparent 1px),
@@ -95,6 +107,35 @@
   background-size: 48px 48px;
 }
 
+/* ── Aurora Background ── */
+.aurora-bg {
+  --aurora: repeating-linear-gradient(100deg, var(--blue-500) 10%, var(--indigo-300) 15%, var(--blue-300) 20%, var(--violet-200) 25%, var(--blue-400) 30%);
+  --light-gradient: repeating-linear-gradient(100deg, var(--white) 0%, var(--white) 7%, var(--transparent) 10%, var(--transparent) 12%, var(--white) 16%);
+  background-image: var(--light-gradient), var(--aurora);
+  background-size: 300%, 200%;
+  background-position: 50% 50%, 50% 50%;
+  filter: blur(10px) invert;
+  opacity: 0.35;
+  animation: aurora 60s linear infinite;
+  pointer-events: none;
+}
+.aurora-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--light-gradient), var(--aurora);
+  background-size: 200%, 100%;
+  animation: aurora 60s linear infinite;
+  background-attachment: fixed;
+  mix-blend-mode: difference;
+}
+
+@keyframes aurora {
+  from { background-position: 50% 50%, 50% 50%; }
+  to { background-position: 350% 50%, 350% 50%; }
+}
+
+/* ── Gradient Text ── */
 .text-gradient-primary {
   background: linear-gradient(135deg, #0a2f7e 0%, #2563eb 60%, #60a5fa 100%);
   -webkit-background-clip: text;
@@ -102,27 +143,37 @@
   background-clip: text;
 }
 
-/* Glass nav — NOT too transparent, real frosted glass */
+/* ── Liquid Glass Nav ── */
 .glass-nav {
-  background: rgba(244, 245, 247, 0.82);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  position: relative;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.05),
     0 2px 12px rgba(0, 0, 0, 0.06),
     0 8px 32px -8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+/* Glass inner refraction layers */
+.glass-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 2px 2px 1px 0 rgba(255,255,255,0.4), inset -1px -1px 1px 1px rgba(255,255,255,0.3);
+  pointer-events: none;
+  z-index: 1;
 }
 
-.glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); }
-
+/* ── Shadows ── */
 .shadow-card { box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px -2px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03); }
 .shadow-card-hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 16px 48px -8px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04); }
 .shadow-hero { box-shadow: 0 4px 24px -4px rgba(10,47,126,0.08), 0 24px 80px -12px rgba(10,47,126,0.12), 0 0 0 1px rgba(10,47,126,0.04); }
 .shadow-btn { box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 2px 8px -2px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.12); }
 .shadow-btn-hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12), 0 8px 24px -4px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.12); }
 
+/* ── Editorial Label ── */
 .editorial-header {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.6875rem;

@@ -7,7 +7,7 @@ import { injected } from "wagmi/connectors";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, LogOut, Copy, Check, Wallet, Menu } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -47,7 +47,7 @@ export function Navbar() {
 
   return (
     <header className="fixed top-0 w-full z-[100] px-3 sm:px-5 md:px-6 pt-2.5 md:pt-3">
-      <div ref={headerRef} className="rounded-2xl container-page overflow-visible bg-white/[0.92] backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.05),0_2px_12px_rgba(0,0,0,0.05),0_8px_32px_-8px_rgba(0,0,0,0.08)]">
+      <div ref={headerRef} className="glass-nav rounded-2xl container-page overflow-visible">
         <nav className="flex justify-between items-center h-14 md:h-[56px] px-4 md:px-5">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
@@ -56,20 +56,22 @@ export function Navbar() {
           </Link>
 
           {/* Desktop nav pills */}
-          <div className="hidden md:flex items-center gap-0.5 rounded-full bg-on-background/[0.06] p-[3px]">
-            {NAV.map((l) => (
-              <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
-                className={`relative px-4 py-[6px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-white font-semibold" : "text-on-surface-variant hover:text-on-background"}`}>
-                {isActive(l) && (
-                  <motion.span layoutId="nav-pill"
-                    className="absolute inset-0 bg-on-background rounded-full shadow-btn"
-                    style={{ zIndex: -1 }}
-                    transition={{ type: "spring", stiffness: 450, damping: 30 }} />
-                )}
-                {l.label}
-              </Link>
-            ))}
-          </div>
+          <LayoutGroup id="nav">
+            <div className="hidden md:flex items-center gap-0.5 rounded-full bg-on-background/[0.06] p-[3px]">
+              {NAV.map((l) => (
+                <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
+                  className={`relative px-4 py-[6px] rounded-full text-[13px] font-medium transition-colors duration-150 ${isActive(l) ? "text-white font-semibold" : "text-on-surface-variant hover:text-on-background"}`}>
+                  {isActive(l) && (
+                    <motion.span layoutId="nav-pill"
+                      className="absolute inset-0 bg-on-background rounded-full shadow-btn"
+                      style={{ zIndex: -1 }}
+                      transition={{ type: "spring", stiffness: 450, damping: 30 }} />
+                  )}
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          </LayoutGroup>
 
           {/* Right */}
           <div className="flex items-center gap-2">

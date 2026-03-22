@@ -6,6 +6,7 @@ import { ArrowRight, Wallet, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import { GlassFilter } from "@/components/ui/glass-filter";
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -37,13 +38,17 @@ export function Hero() {
   const { connect } = useConnect();
 
   return (
-    <section className="relative overflow-hidden bg-grid min-h-screen">
-      {/* Gradient overlays — visible on top of grid */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#e8ecf5]/70 via-surface/40 to-white/80 pointer-events-none" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] pointer-events-none"
-        style={{ background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(10,47,126,0.08) 0%, transparent 70%)" }} />
-      <div className="absolute top-[30%] right-[-5%] w-[400px] h-[400px] pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(4,120,87,0.05) 0%, transparent 60%)" }} />
+    <section className="relative overflow-hidden min-h-screen bg-grid">
+      <GlassFilter />
+
+      {/* Aurora background — organic light movement */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="aurora-bg absolute -inset-[10px]"
+          style={{ maskImage: "radial-gradient(ellipse at 60% 0%, black 20%, transparent 70%)" }} />
+      </div>
+
+      {/* Gradient overlays for depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface/30 to-white/80 pointer-events-none" />
 
       <div className="relative z-10 container-page px-5 md:px-8 pt-36 md:pt-44 pb-16 md:pb-20">
         {/* Copy */}
@@ -105,7 +110,6 @@ export function Hero() {
             {/* Content */}
             <div className="px-4 md:px-6 py-5 md:py-6">
               <div className="grid grid-cols-1 md:grid-cols-5 gap-5 md:gap-8">
-                {/* Left */}
                 <div className="md:col-span-2">
                   <p className="text-[9px] uppercase tracking-[0.12em] text-on-surface-variant font-semibold mb-1.5">Total Net Worth</p>
                   <p className="text-[2.5rem] md:text-[3rem] font-headline font-extrabold text-on-background tabular-nums tracking-tight leading-none">
@@ -113,8 +117,6 @@ export function Hero() {
                   </p>
                   <p className="text-[10px] text-on-surface-variant mt-2 font-mono">Block #19,452,102 · Ethereum</p>
                 </div>
-
-                {/* Right — with real token icons */}
                 <div className="md:col-span-3 space-y-1.5">
                   <p className="text-[9px] uppercase tracking-[0.12em] text-on-surface-variant font-semibold mb-2">Holdings</p>
                   {[
@@ -122,9 +124,7 @@ export function Hero() {
                     { Icon: UsdcIcon, sym: "USDC", name: "USD Coin", qty: "58,382.88", val: "$58,382.88", pct: 41 },
                   ].map((a) => (
                     <div key={a.sym} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#f6f7f9]">
-                      <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-                        <a.Icon />
-                      </div>
+                      <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0"><a.Icon /></div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline">
                           <span className="text-[12px] font-semibold text-on-background">{a.name}</span>
@@ -144,8 +144,6 @@ export function Hero() {
                   ))}
                 </div>
               </div>
-
-              {/* Bottom bar */}
               <div className="mt-5 pt-4 border-t border-black/[0.04] flex items-center justify-between">
                 <div className="flex items-center gap-2 text-[10px] text-on-surface-variant">
                   <span className="font-mono bg-on-background/[0.03] px-1.5 py-0.5 rounded text-[9px]">0x4a7e…2f1b</span>
