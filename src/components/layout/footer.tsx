@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Github } from "lucide-react";
 
 function XIcon({ className }: { className?: string }) {
@@ -11,20 +12,20 @@ function XIcon({ className }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className="w-full mt-auto border-t border-outline-variant/8">
-      <div className="container-page px-5 md:px-8 py-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <footer className="w-full mt-auto">
+      <div className="container-page px-5 md:px-8 py-8 flex flex-col sm:flex-row justify-between items-center gap-5 border-t border-on-background/[0.04]">
         <div className="flex items-center gap-4">
-          <span className="text-xs text-on-surface-variant/50">&copy; {new Date().getFullYear()} Fundslip</span>
-          <div className="flex items-center gap-2">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
-              <Github className="w-3.5 h-3.5" />
-            </a>
-            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/40 hover:text-on-surface-variant transition-colors">
-              <XIcon className="w-3 h-3" />
-            </a>
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/fundslip.svg" alt="Fundslip" width={18} height={22} style={{ height: "auto" }} />
+            <span className="font-headline font-bold text-on-background/80 text-[14px] tracking-tight">Fundslip</span>
+          </Link>
+          <span className="text-[12px] text-on-surface-variant/40">·</span>
+          <div className="flex items-center gap-2.5">
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/40 hover:text-on-surface-variant transition-colors"><Github className="w-[14px] h-[14px]" /></a>
+            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/40 hover:text-on-surface-variant transition-colors"><XIcon className="w-[12px] h-[12px]" /></a>
           </div>
         </div>
-        <div className="flex items-center gap-5 text-xs text-on-surface-variant/50">
+        <div className="flex items-center gap-5 text-[12px] text-on-surface-variant/50">
           <Link href="/verify" className="hover:text-on-surface-variant transition-colors">Verify</Link>
           <a href="#" className="hover:text-on-surface-variant transition-colors">Privacy</a>
           <a href="#" className="hover:text-on-surface-variant transition-colors">Terms</a>
