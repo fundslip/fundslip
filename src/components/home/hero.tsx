@@ -39,22 +39,20 @@ export function Hero() {
 
   return (
     <section className="relative overflow-hidden min-h-screen">
-      {/* Shader mesh gradient background — light mode adapted */}
-      <div className="absolute inset-0 -z-10">
-        <MeshGradient
-          className="absolute inset-0 w-full h-full opacity-50"
-          colors={["#c7d2fe", "#93c5fd", "#e0e7ff", "#a5b4fc", "#dbeafe"]}
-          speed={0.2}
-        />
-      </div>
+      {/* Living shader background */}
+      <MeshGradient
+        className="!absolute !inset-0 !w-full !h-full"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 0 }}
+        colors={["#dbeafe", "#c7d2fe", "#e0e7ff", "#bfdbfe", "#ede9fe"]}
+        speed={0.3}
+        distortion={0.4}
+        swirl={0.3}
+      />
 
-      {/* no grid */}
+      {/* Fade overlay so text stays readable */}
+      <div className="absolute inset-0 z-[1] bg-gradient-to-b from-surface/40 via-surface/20 to-white/70 pointer-events-none" />
 
-      {/* Gradient fade to content area */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/60 pointer-events-none" />
-
-      <div className="relative z-10 container-page px-5 md:px-8 pt-36 md:pt-44 pb-16 md:pb-20">
-        {/* Copy */}
+      <div className="relative z-[2] container-page px-5 md:px-8 pt-36 md:pt-44 pb-16 md:pb-20">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}
           className="text-center max-w-4xl mx-auto">
 
@@ -90,12 +88,10 @@ export function Hero() {
           </motion.div>
         </motion.div>
 
-        {/* Product preview card */}
+        {/* Product card */}
         <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.4, ease }}
           className="mt-14 md:mt-20 relative max-w-[860px] mx-auto">
-
           <div className="absolute -inset-4 md:-inset-6 rounded-[2rem] bg-gradient-to-b from-primary/[0.06] to-transparent blur-2xl pointer-events-none" />
-
           <div className="relative bg-white rounded-2xl md:rounded-[20px] shadow-hero overflow-hidden border border-black/[0.05]">
             <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-3.5 border-b border-black/[0.04]">
               <div className="flex items-center gap-2.5">
@@ -108,7 +104,6 @@ export function Hero() {
                 <span className="text-[9px] font-bold text-tertiary uppercase tracking-wider">Verified</span>
               </div>
             </div>
-
             <div className="px-4 md:px-6 py-5 md:py-6">
               <div className="grid grid-cols-1 md:grid-cols-5 gap-5 md:gap-8">
                 <div className="md:col-span-2">
@@ -148,12 +143,10 @@ export function Hero() {
               <div className="mt-5 pt-4 border-t border-black/[0.04] flex items-center justify-between">
                 <div className="flex items-center gap-2 text-[10px] text-on-surface-variant">
                   <span className="font-mono bg-on-background/[0.03] px-1.5 py-0.5 rounded text-[9px]">0x4a7e…2f1b</span>
-                  <span>·</span>
-                  <span>EIP-712 Signed</span>
+                  <span>·</span><span>EIP-712 Signed</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-primary font-medium">
-                  <span>fundslip.xyz/verify</span>
-                  <ArrowRight className="w-2.5 h-2.5" />
+                  <span>fundslip.xyz/verify</span><ArrowRight className="w-2.5 h-2.5" />
                 </div>
               </div>
             </div>

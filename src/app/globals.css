@@ -99,35 +99,6 @@
 
 .container-page { max-width: 1120px; margin-left: auto; margin-right: auto; }
 
-/* grid removed */
-
-/* ── Aurora Background ── */
-.aurora-bg {
-  --aurora: repeating-linear-gradient(100deg, var(--blue-500) 10%, var(--indigo-300) 15%, var(--blue-300) 20%, var(--violet-200) 25%, var(--blue-400) 30%);
-  --light-gradient: repeating-linear-gradient(100deg, var(--white) 0%, var(--white) 7%, var(--transparent) 10%, var(--transparent) 12%, var(--white) 16%);
-  background-image: var(--light-gradient), var(--aurora);
-  background-size: 300%, 200%;
-  background-position: 50% 50%, 50% 50%;
-  filter: blur(10px) invert;
-  opacity: 0.35;
-  animation: aurora 60s linear infinite;
-  pointer-events: none;
-}
-.aurora-bg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: var(--light-gradient), var(--aurora);
-  background-size: 200%, 100%;
-  animation: aurora 60s linear infinite;
-  background-attachment: fixed;
-  mix-blend-mode: difference;
-}
-
-@keyframes aurora {
-  from { background-position: 50% 50%, 50% 50%; }
-  to { background-position: 350% 50%, 350% 50%; }
-}
 
 /* ── Gradient Text ── */
 .text-gradient-primary {
