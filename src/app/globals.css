@@ -10,15 +10,15 @@
   --font-sans: var(--font-inter);
   --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --color-surface: #f0f2f5;
+  --color-surface: #f4f5f7;
   --color-surface-dim: #d8dadc;
-  --color-surface-bright: #f0f2f5;
+  --color-surface-bright: #f4f5f7;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #eaecf0;
-  --color-surface-container: #e2e5ea;
-  --color-surface-container-high: #dadde3;
-  --color-surface-container-highest: #d2d5dc;
-  --color-surface-variant: #dadde3;
+  --color-surface-container-low: #eff1f4;
+  --color-surface-container: #e6e9ed;
+  --color-surface-container-high: #dde0e5;
+  --color-surface-container-highest: #d5d8de;
+  --color-surface-variant: #dde0e5;
   --color-surface-tint: #1b53d6;
 
   --color-primary: #0a2f7e;
@@ -54,7 +54,7 @@
   --color-on-error: #ffffff;
   --color-on-error-container: #991b1b;
 
-  --color-background: #f0f2f5;
+  --color-background: #f4f5f7;
   --color-on-background: #0f172a;
   --color-on-surface: #0f172a;
   --color-on-surface-variant: #64748b;
@@ -87,13 +87,14 @@
 
 .container-page { max-width: 1120px; margin-left: auto; margin-right: auto; }
 
-/* ── Background grid ── visible dots pattern */
-.bg-dot-grid {
-  background-image: radial-gradient(circle, rgba(10,47,126,0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
+/* Background grid — VISIBLE, not subtle */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(10,47,126,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10,47,126,0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
-/* ── Gradient text ── */
 .text-gradient-primary {
   background: linear-gradient(135deg, #0a2f7e 0%, #2563eb 60%, #60a5fa 100%);
   -webkit-background-clip: text;
@@ -101,30 +102,34 @@
   background-clip: text;
 }
 
-/* ── Glass nav ── frosted, opaque enough for contrast */
+/* Glass nav — NOT too transparent, real frosted glass */
 .glass-nav {
-  background: rgba(240, 242, 245, 0.82);
+  background: rgba(244, 245, 247, 0.82);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow:
-    0 0 0 0.5px rgba(0, 0, 0, 0.06),
-    0 4px 16px -2px rgba(0, 0, 0, 0.08),
-    0 12px 40px -8px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+    0 0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 2px 12px rgba(0, 0, 0, 0.06),
+    0 8px 32px -8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); }
 
-/* ── Shadows ── */
 .shadow-card { box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px -2px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03); }
 .shadow-card-hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 16px 48px -8px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04); }
 .shadow-hero { box-shadow: 0 4px 24px -4px rgba(10,47,126,0.08), 0 24px 80px -12px rgba(10,47,126,0.12), 0 0 0 1px rgba(10,47,126,0.04); }
-.shadow-btn { box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 4px 12px -2px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.15); }
-.shadow-btn-hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12), 0 8px 24px -4px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.15); }
+.shadow-btn { box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 2px 8px -2px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.12); }
+.shadow-btn-hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12), 0 8px 24px -4px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.12); }
 
-.editorial-header { font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.editorial-header {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
 
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .no-scrollbar::-webkit-scrollbar { display: none; }
