@@ -122,21 +122,25 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
 
   return (
     <div>
-      <label className="section-label block mb-1.5">{label}</label>
+      <label className="block text-xs uppercase text-on-surface-variant mb-2 font-semibold tracking-wide">
+        {label}
+      </label>
       <button
         ref={buttonRef}
         type="button"
         onClick={handleToggle}
-        className="w-full bg-white border border-[rgba(0,0,0,0.08)] rounded-lg px-3.5 py-2.5 text-sm text-left focus:border-navy focus:ring-[3px] focus:ring-navy/[0.08] transition-all outline-none flex items-center justify-between"
+        className="w-full bg-surface-container-low rounded-lg px-4 py-3 text-sm text-left focus:ring-2 focus:ring-primary/20 transition-all outline-none flex items-center justify-between"
       >
-        <span className={selectedDate ? "text-gray-900" : "text-gray-400"}>{displayValue}</span>
-        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-90" : ""}`} />
+        <span className={selectedDate ? "text-on-surface" : "text-on-surface-variant"}>
+          {displayValue}
+        </span>
+        <ChevronRight className={`w-4 h-4 text-on-surface-variant transition-transform ${open ? "rotate-90" : ""}`} />
       </button>
 
       {open && typeof document !== "undefined" && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed z-[9999] bg-white rounded-xl shadow-md ring-1 ring-black/[0.04] p-4"
+          className="fixed z-[9999] bg-surface-container-lowest rounded-xl shadow-lg ring-1 ring-outline-variant/15 p-4"
           style={{
             top: pos.dropUp ? undefined : pos.top,
             bottom: pos.dropUp ? window.innerHeight - pos.top : undefined,
@@ -146,23 +150,27 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
         >
           {/* Month/Year Header */}
           <div className="flex items-center justify-between mb-3">
-            <button type="button" onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              <ChevronLeft className="w-4 h-4 text-gray-400" />
+            <button type="button" onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-surface-container transition-colors">
+              <ChevronLeft className="w-4 h-4 text-on-surface-variant" />
             </button>
-            <span className="text-sm font-headline font-bold text-gray-900">
+            <span className="text-sm font-headline font-bold text-on-surface">
               {MONTHS[viewMonth]} {viewYear}
             </span>
-            <button type="button" onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              <ChevronRight className="w-4 h-4 text-gray-400" />
+            <button type="button" onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-surface-container transition-colors">
+              <ChevronRight className="w-4 h-4 text-on-surface-variant" />
             </button>
           </div>
 
+          {/* Day Headers */}
           <div className="grid grid-cols-7 gap-0 mb-1">
             {DAYS.map((d) => (
-              <div key={d} className="text-center text-[10px] font-medium text-gray-400 uppercase tracking-wide py-1">{d}</div>
+              <div key={d} className="text-center text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide py-1">
+                {d}
+              </div>
             ))}
           </div>
 
+          {/* Days Grid */}
           <div className="grid grid-cols-7 gap-0">
             {days.map((day, i) => {
               if (day === null) return <div key={`empty-${i}`} className="p-1" />;
@@ -177,10 +185,10 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
                   onClick={() => selectDay(day)}
                   disabled={disabled}
                   className={`p-1.5 text-center text-sm rounded-lg transition-colors ${
-                    selected ? "bg-navy text-white font-semibold"
-                    : disabled ? "text-gray-300 cursor-not-allowed"
-                    : today ? "bg-navy/[0.06] text-navy font-semibold hover:bg-navy/[0.1]"
-                    : "text-gray-700 hover:bg-gray-100"
+                    selected ? "bg-primary text-on-primary font-bold"
+                    : disabled ? "text-outline-variant cursor-not-allowed"
+                    : today ? "bg-primary/10 text-primary font-semibold hover:bg-primary/20"
+                    : "text-on-surface hover:bg-surface-container"
                   }`}
                 >
                   {day}

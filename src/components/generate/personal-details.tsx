@@ -9,37 +9,54 @@ interface PersonalDetailsFormProps {
 
 export function PersonalDetailsForm({ details, onChange }: PersonalDetailsFormProps) {
   return (
-    <section className="bg-white rounded-xl p-7">
-      <div className="flex items-center gap-3 mb-5">
-        <span className="w-7 h-7 rounded-full bg-navy text-white flex items-center justify-center text-xs font-semibold">4</span>
-        <h2 className="font-headline text-lg font-bold text-gray-900">
-          Personal Details <span className="text-gray-400 font-normal text-sm ml-1">(Optional)</span>
+    <section className="bg-surface-container-lowest p-8 rounded-xl">
+      <div className="flex items-center gap-3 mb-6">
+        <span className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center text-sm font-bold">
+          4
+        </span>
+        <h2 className="font-headline text-xl font-bold">
+          Personal Details{" "}
+          <span className="text-on-surface-variant font-normal text-sm ml-2">
+            (Optional)
+          </span>
         </h2>
       </div>
-      <div className="space-y-4 max-w-md">
+      <p className="text-xs uppercase text-on-surface-variant mb-4 font-semibold tracking-wide">
+        Add your name and address to the statement
+      </p>
+      <div className="space-y-4 max-w-lg">
         <div>
-          <label className="section-label block mb-1.5">Full Name</label>
+          <label className="block text-xs uppercase text-on-surface-variant mb-2 ml-1 font-semibold tracking-wide">
+            Full Name
+          </label>
           <input
             type="text"
             value={details.fullName}
-            onChange={(e) => onChange({ ...details, fullName: e.target.value })}
-            className="w-full bg-white border border-[rgba(0,0,0,0.08)] rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-navy focus:ring-[3px] focus:ring-navy/[0.08] transition-all outline-none"
+            onChange={(e) =>
+              onChange({ ...details, fullName: e.target.value })
+            }
+            className="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
             placeholder="e.g. Alex Richardson"
           />
         </div>
         <div>
-          <label className="section-label block mb-1.5">Address</label>
+          <label className="block text-xs uppercase text-on-surface-variant mb-2 ml-1 font-semibold tracking-wide">
+            Address
+          </label>
           <input
             type="text"
             value={details.address}
-            onChange={(e) => onChange({ ...details, address: e.target.value })}
-            className="w-full bg-white border border-[rgba(0,0,0,0.08)] rounded-lg px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-navy focus:ring-[3px] focus:ring-navy/[0.08] transition-all outline-none"
+            onChange={(e) =>
+              onChange({ ...details, address: e.target.value })
+            }
+            className="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
             placeholder="e.g. 42 Maple Street, London, UK"
           />
         </div>
       </div>
-      <p className="text-xs text-gray-400 mt-4">
-        Added to your PDF statement only. Never stored or sent to any server.
+      <p className="text-xs text-on-surface-variant mt-4 leading-relaxed">
+        This information is added to your PDF statement only. It is never stored
+        or sent to any server.
       </p>
     </section>
   );

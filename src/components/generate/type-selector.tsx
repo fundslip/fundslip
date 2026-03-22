@@ -10,39 +10,44 @@ interface TypeSelectorProps {
 
 export function TypeSelector({ selected, onSelect }: TypeSelectorProps) {
   return (
-    <section className="bg-white rounded-xl p-7">
-      <div className="flex items-center gap-3 mb-5">
-        <span className="w-7 h-7 rounded-full bg-navy text-white flex items-center justify-center text-xs font-semibold">1</span>
-        <h2 className="font-headline text-lg font-bold text-gray-900">Statement Type</h2>
+    <section className="bg-surface-container-lowest p-8 rounded-xl">
+      <div className="flex items-center gap-3 mb-6">
+        <span className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center text-sm font-bold">
+          1
+        </span>
+        <h2 className="font-headline text-xl font-bold">Statement Type</h2>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {TYPE_OPTIONS.map((option) => {
           const isSelected = selected === option.value;
           return (
             <label
               key={option.value}
-              className={`flex items-center p-4 rounded-lg cursor-pointer transition-all duration-150 relative ${
+              className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-colors duration-150 relative ${
                 isSelected
-                  ? "bg-[#f8faff] border-l-[3px] border-navy pl-[13px]"
-                  : "bg-gray-50 hover:bg-gray-100"
+                  ? "border-primary bg-surface"
+                  : "border-transparent bg-surface-container-low hover:bg-surface-container"
               }`}
             >
               {option.recommended && (
-                <span className="absolute -top-2 -right-1 bg-emerald-light text-emerald-dark text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                <div className="absolute -top-2 -right-2 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">
                   Recommended
-                </span>
+                </div>
               )}
               <input
                 type="radio"
                 name="statement-type"
                 checked={isSelected}
                 onChange={() => onSelect(option.value)}
-                className="w-4 h-4 text-navy focus:ring-navy/20 mr-4 accent-navy"
+                className="w-5 h-5 text-primary focus:ring-primary/20 mr-4"
               />
               <div className="flex-1">
-                <p className="font-semibold text-sm text-gray-900">{option.label}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{option.description}</p>
+                <p className="font-bold text-sm">{option.label}</p>
+                <p className="text-xs text-on-surface-variant">{option.description}</p>
               </div>
+              {isSelected && (
+                <div className="w-1 h-8 bg-tertiary-fixed rounded-full ml-4" />
+              )}
             </label>
           );
         })}

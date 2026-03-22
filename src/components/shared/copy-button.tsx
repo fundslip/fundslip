@@ -3,7 +3,10 @@
 import { useState, useCallback } from "react";
 import { Copy, Check } from "lucide-react";
 
-interface CopyButtonProps { text: string; className?: string; }
+interface CopyButtonProps {
+  text: string;
+  className?: string;
+}
 
 export function CopyButton({ text, className = "" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
@@ -16,12 +19,15 @@ export function CopyButton({ text, className = "" }: CopyButtonProps) {
 
   return (
     <button
-      type="button"
       onClick={handleCopy}
-      className={`p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors ${className}`}
-      title={copied ? "Copied!" : "Copy"}
+      className={`p-2 bg-secondary-container text-on-secondary-container rounded-lg hover:bg-primary-fixed transition-colors relative ${className}`}
+      title={copied ? "Copied!" : "Copy to clipboard"}
     >
-      {copied ? <Check className="w-3.5 h-3.5 text-emerald" /> : <Copy className="w-3.5 h-3.5" strokeWidth={1.5} />}
+      {copied ? (
+        <Check className="w-4 h-4 text-tertiary" />
+      ) : (
+        <Copy className="w-4 h-4" />
+      )}
     </button>
   );
 }

@@ -135,10 +135,10 @@ function VerifyContent() {
     return (
       <>
         <Navbar />
-        <main className="pt-24 pb-24 px-6 lg:px-8">
+        <main className="pt-20 pb-24 px-6">
           <div className="container-page">
             <button type="button" onClick={() => setResult(null)}
-              className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-8">
+              className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary transition-colors mb-8">
               <ArrowLeft className="w-4 h-4" /> Verify another statement
             </button>
             <VerifyResult result={result} fingerprint={lastFingerprint} />
@@ -153,19 +153,18 @@ function VerifyContent() {
   return (
     <>
       <Navbar />
-      <main className="pt-24 pb-24 px-6 lg:px-8">
+      <main className="pt-20 pb-24 px-6">
         <div className="container-page">
-          <header className="mb-12">
-            <p className="section-label mb-2">Statement Verification</p>
-            <h1 className="font-headline text-[32px] font-bold text-gray-900 mb-3">
+          <header className="mb-12 text-center md:text-left">
+            <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-4">
               Verify a Fundslip Statement
             </h1>
-            <p className="text-gray-500 text-base max-w-xl leading-relaxed">
+            <p className="text-on-surface-variant text-lg max-w-2xl leading-relaxed">
               Upload the PDF, scan the QR code, or paste the verification code.
-              We verify the cryptographic signature against on-chain data.
+              We re-fetch on-chain data and verify the cryptographic signature.
             </p>
           </header>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-7"><QrScanner onScan={handleCodeVerify} /></div>
             <div className="md:col-span-5"><PdfUpload onFileSelected={handlePdfUpload} /></div>
             <div className="md:col-span-12"><HashInput onVerify={handleCodeVerify} isVerifying={isVerifying} /></div>

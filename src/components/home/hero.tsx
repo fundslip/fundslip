@@ -3,65 +3,77 @@
 import { useAccount, useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { StatementPreview } from "./statement-preview";
-import Link from "next/link";
+import { Code, CloudOff, Shield } from "lucide-react";
 
 export function Hero() {
   const { isConnected } = useAccount();
   const { connect } = useConnect();
 
-  return (
-    <section className="pt-24 pb-20 px-6 lg:px-8">
-      <div className="container-page grid grid-cols-1 lg:grid-cols-5 gap-16 lg:gap-20 items-center">
-        {/* Left — 3/5 width */}
-        <div className="lg:col-span-3">
-          <p className="section-label text-gray-500 mb-3">Financial Autonomy</p>
+  const handleConnect = () => {
+    connect({ connector: injected() });
+  };
 
-          <h1 className="font-headline text-[44px] md:text-[52px] font-bold text-gray-900 leading-[1.1] mb-5">
+  return (
+    <section className="relative overflow-hidden pt-20 pb-24 px-6 md:px-12 bg-surface">
+      <div className="container-page grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="z-10">
+          <div className="editorial-header text-primary mb-4">
+            Financial Autonomy
+          </div>
+
+          <h1 className="font-headline text-5xl md:text-6xl font-extrabold text-on-background tracking-tight leading-[1.1] mb-6">
             Your wallet. Your statement.{" "}
-            <span className="text-navy">Verifiable by anyone.</span>
+            <span className="text-primary">Verifiable by anyone.</span>
           </h1>
 
-          <p className="text-lg text-gray-600 leading-relaxed mb-10 max-w-lg">
+          <p className="text-xl text-on-surface-variant leading-relaxed mb-10 max-w-xl">
             Generate professional, cryptographically signed financial statements
             from your Ethereum wallet for landlords, mortgage officers, and
             accountants.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-4">
             {isConnected ? (
-              <Link
+              <a
                 href="/generate"
-                className="bg-navy text-white px-7 py-3.5 rounded-lg font-medium text-[15px] hover:bg-navy-light transition-colors text-center"
+                className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:opacity-90 active:scale-[0.98] transition-all text-center"
               >
                 Generate Statement
-              </Link>
+              </a>
             ) : (
               <button
-                onClick={() => connect({ connector: injected() })}
-                className="bg-navy text-white px-7 py-3.5 rounded-lg font-medium text-[15px] hover:bg-navy-light transition-colors"
+                onClick={handleConnect}
+                className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
               >
                 Connect Wallet
               </button>
             )}
-            <button className="border border-gray-300 text-gray-700 px-7 py-3.5 rounded-lg font-medium text-[15px] hover:bg-gray-50 hover:border-gray-400 transition-colors">
+            <button
+              onClick={() => window.open("/sample-statement.pdf", "_blank")}
+              className="bg-surface-container-lowest text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-surface-container transition-colors"
+            >
               View Sample Report
             </button>
           </div>
 
-          {/* Trust signals */}
-          <div className="mt-12 flex flex-wrap gap-6 items-center text-[13px] text-gray-400">
-            <span>&lt;/&gt; Open Source</span>
-            <span className="w-px h-3 bg-gray-200" />
-            <span>No Backend</span>
-            <span className="w-px h-3 bg-gray-200" />
-            <span>Private &amp; Secure</span>
+          {/* Trust Indicators */}
+          <div className="mt-16 flex flex-wrap gap-8 items-center opacity-70">
+            <div className="flex items-center gap-2">
+              <Code className="w-5 h-5 text-tertiary" />
+              <span className="text-sm font-semibold">Open Source</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CloudOff className="w-5 h-5 text-tertiary" />
+              <span className="text-sm font-semibold">No Backend</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-tertiary" />
+              <span className="text-sm font-semibold">Private &amp; Secure</span>
+            </div>
           </div>
         </div>
 
-        {/* Right — 2/5 width */}
-        <div className="lg:col-span-2 hidden lg:block">
-          <StatementPreview />
-        </div>
+        <StatementPreview />
       </div>
     </section>
   );
