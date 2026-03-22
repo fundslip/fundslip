@@ -8,21 +8,24 @@ function XIcon({ className }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className="w-full mt-auto py-6 px-5 md:px-8">
-      <div className="container-page flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/fundslip.svg" alt="Fundslip" width={16} height={20} style={{ height: "auto" }} />
-          <span className="font-headline font-bold text-on-surface-variant text-[13px] tracking-tight">Fundslip</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 mr-2">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/30 hover:text-on-surface-variant transition-colors"><Github className="w-3.5 h-3.5" /></a>
-            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/30 hover:text-on-surface-variant transition-colors"><XIcon className="w-3 h-3" /></a>
+    <footer className="w-full mt-auto px-5 md:px-8 pb-6 pt-8">
+      <div className="container-page">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-5 px-5 rounded-2xl bg-white/50 backdrop-blur-sm border border-black/[0.04]">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2">
+              <Image src="/fundslip.svg" alt="Fundslip" width={18} height={22} style={{ height: "auto" }} />
+              <span className="font-headline font-bold text-on-background text-[14px] tracking-tight">Fundslip</span>
+            </Link>
+            <span className="text-on-surface-variant/20">·</span>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"><Github className="w-4 h-4" /></a>
+            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"><XIcon className="w-3.5 h-3.5" /></a>
           </div>
-          <div className="hidden sm:flex items-center gap-4 text-[11px] text-on-surface-variant/40">
-            <Link href="/verify" className="hover:text-on-surface-variant transition-colors">Verify</Link>
-            <a href="#" className="hover:text-on-surface-variant transition-colors">Privacy</a>
-            <a href="#" className="hover:text-on-surface-variant transition-colors">Terms</a>
+          <div className="flex items-center gap-5 text-[12px] text-on-surface-variant/60">
+            <Link href="/" className="hover:text-on-surface transition-colors">How it works</Link>
+            <Link href="/generate" className="hover:text-on-surface transition-colors">Generate</Link>
+            <Link href="/verify" className="hover:text-on-surface transition-colors">Verify</Link>
+            <a href="#" className="hover:text-on-surface transition-colors">Privacy</a>
+            <a href="#" className="hover:text-on-surface transition-colors">Terms</a>
           </div>
         </div>
       </div>
