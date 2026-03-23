@@ -49,6 +49,7 @@
 @layer base {
   * { @apply border-outline-variant; }
   html { font-size: 110%; }
+  button, a, [role="button"], label[class*="cursor"], input[type="radio"], input[type="checkbox"] { cursor: pointer; }
   body {
     @apply bg-white text-on-surface antialiased;
     font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
