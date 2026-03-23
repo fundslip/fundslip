@@ -1,15 +1,14 @@
 // Pre-rendered logo as a base64 PNG data URL for PDF embedding.
-// This is generated from the fundslip.svg icon.
-// We encode it as a function that renders the SVG to canvas and returns a data URL.
+// Uses a promise cache to prevent race conditions on concurrent calls.
 
-let cachedLogoDataUrl: string | null = null;
+let cachedPromise: Promise<string> | null = null;
 
-export async function getLogoDataUrl(): Promise<string> {
-  if (cachedLogoDataUrl) return cachedLogoDataUrl;
+export function getLogoDataUrl(): Promise<string> {
+  if (cachedPromise) return cachedPromise;
 
-  if (typeof document === "undefined") return "";
+  if (typeof document === "undefined") return Promise.resolve("");
 
-  return new Promise((resolve) => {
+  cachedPromise = new Promise<string>((resolve) => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 62" fill="none">
       <rect x="6" y="0" width="46" height="56" rx="5" fill="#0048cc" opacity="0.35"/>
       <rect x="0" y="6" width="46" height="56" rx="5" fill="#003499"/>
@@ -33,8 +32,7 @@ export async function getLogoDataUrl(): Promise<string> {
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(img, 0, 0, 104, 124);
-        cachedLogoDataUrl = canvas.toDataURL("image/png");
-        resolve(cachedLogoDataUrl);
+        resolve(canvas.toDataURL("image/png"));
       } else {
         resolve("");
       }
@@ -43,9 +41,12 @@ export async function getLogoDataUrl(): Promise<string> {
 
     img.onerror = () => {
       URL.revokeObjectURL(url);
+      cachedPromise = null; // Allow retry on failure
       resolve("");
     };
 
     img.src = url;
   });
+
+  return cachedPromise;
 }

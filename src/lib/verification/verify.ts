@@ -84,13 +84,25 @@ export async function verifyPayload(
   onProgress?.(2, "Fetching on-chain data for preview...");
 
   let ethBalanceNum = 0;
-  try { ethBalanceNum = (await getEthBalance(checksumWallet, decoded.chainId)).balance; } catch { /* */ }
+  try {
+    ethBalanceNum = (await getEthBalance(checksumWallet, decoded.chainId)).balance;
+  } catch (e) {
+    console.warn("Failed to fetch ETH balance during verification:", e);
+  }
 
   let tokens: Awaited<ReturnType<typeof getTokenBalances>> = [];
-  try { tokens = await getTokenBalances(checksumWallet, decoded.chainId); } catch { /* */ }
+  try {
+    tokens = await getTokenBalances(checksumWallet, decoded.chainId);
+  } catch (e) {
+    console.warn("Failed to fetch token balances during verification:", e);
+  }
 
   let prices: Record<string, number> = {};
-  try { prices = await fetchPrices(["ETH", ...tokens.map(t => t.symbol)]); } catch { /* */ }
+  try {
+    prices = await fetchPrices(["ETH", ...tokens.map(t => t.symbol)]);
+  } catch (e) {
+    console.warn("Failed to fetch prices during verification:", e);
+  }
 
   const ethPriceUsd = prices.ETH || 0;
   const ethValueUsd = ethBalanceNum * ethPriceUsd;
@@ -102,13 +114,15 @@ export async function verifyPayload(
   let transactions: Transaction[] = [];
   if (decoded.statementType !== 0) {
     onProgress?.(3, "Fetching transaction history...");
-    // Use a broad range since we don't have exact period in the payload
+    // Use 90-day window since exact period is in the dataHash, not the payload
     const now = Math.floor(Date.now() / 1000);
-    const monthAgo = now - 30 * 86400;
+    const rangeStart = now - 90 * 86400;
     try {
-      const result = await getTransactionHistory(decoded.wallet, monthAgo, now, decoded.chainId, ethPriceUsd, prices);
+      const result = await getTransactionHistory(decoded.wallet, rangeStart, now, decoded.chainId, ethPriceUsd, prices);
       transactions = result.transactions;
-    } catch { /* */ }
+    } catch (e) {
+      console.warn("Failed to fetch transactions during verification:", e);
+    }
   }
 
   let ensName: string | null = null;
@@ -116,13 +130,18 @@ export async function verifyPayload(
 
   onProgress?.(4, "Building preview...");
 
-  const now = new Date();
+  const nowDate = new Date();
+  // Derive period from transaction data if available, otherwise use 90-day window
+  const txTimestamps = transactions.map(t => t.timestamp).filter(t => t > 0);
+  const periodEnd = txTimestamps.length > 0 ? new Date(Math.max(...txTimestamps) * 1000) : nowDate;
+  const periodStart = txTimestamps.length > 0 ? new Date(Math.min(...txTimestamps) * 1000) : new Date(nowDate.getTime() - 90 * 86400000);
+
   const statementData: StatementData = {
     walletAddress: decoded.wallet,
     ensName,
     network: "ethereum",
-    periodStart: new Date(now.getTime() - 30 * 86400000),
-    periodEnd: now,
+    periodStart,
+    periodEnd,
     statementType: stType as StatementData["statementType"],
     ethBalance: ethBalanceNum,
     ethPriceUsd,
@@ -130,7 +149,7 @@ export async function verifyPayload(
     tokens: pricedTokens,
     transactions,
     totalValueUsd,
-    generatedAt: now,
+    generatedAt: nowDate,
     blockNumber: decoded.blockNumber,
     networkName: getNetworkName(decoded.chainId),
   };

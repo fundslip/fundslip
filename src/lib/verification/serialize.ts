@@ -37,8 +37,10 @@ export function serializeStatementData(
     a.address.toLowerCase().localeCompare(b.address.toLowerCase())
   );
 
-  // Sort tx hashes for determinism
-  const sortedTxHashes = [...txHashes].sort();
+  // Sort tx hashes for determinism, validate hex format
+  const sortedTxHashes = [...txHashes]
+    .filter(h => /^0x[0-9a-fA-F]{64}$/.test(h))
+    .sort();
 
   // ABI encode in fixed order
   const encoded = encodeAbiParameters(

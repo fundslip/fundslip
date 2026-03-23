@@ -139,6 +139,12 @@ export function useStatement() {
             end.setTime(new Date(ce + "T23:59:59").getTime());
             break;
         }
+        // Validate date range
+        if (start >= end) {
+          setError("Start date must be before end date.");
+          setStep("config");
+          return;
+        }
         const periodStartTs = Math.floor(start.getTime() / 1000);
         const periodEndTs = Math.floor(end.getTime() / 1000);
 

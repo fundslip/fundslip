@@ -36,13 +36,18 @@ const CACHE_TTL = 60_000; // 1 minute
 export async function fetchPrices(
   symbols: string[]
 ): Promise<Record<string, number>> {
-  // Return cached if fresh
+  // Return cached if fresh AND has ALL requested symbols
   if (priceCache && Date.now() - priceCache.timestamp < CACHE_TTL) {
     const cached: Record<string, number> = {};
+    let allFound = true;
     for (const s of symbols) {
-      if (priceCache.prices[s] !== undefined) cached[s] = priceCache.prices[s];
+      if (priceCache.prices[s] !== undefined) {
+        cached[s] = priceCache.prices[s];
+      } else {
+        allFound = false;
+      }
     }
-    if (Object.keys(cached).length > 0) return cached;
+    if (allFound) return cached;
   }
 
   const ids = symbols

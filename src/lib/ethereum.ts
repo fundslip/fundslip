@@ -51,7 +51,7 @@ export async function getTokenBalances(address: Address, chainId: number = 1): P
     if (result.status === "success" && result.result) {
       const rawBalance = result.result as bigint;
       if (rawBalance > BigInt(0)) {
-        const balanceFormatted = Number(rawBalance) / Math.pow(10, token.decimals);
+        const balanceFormatted = parseFloat(formatUnits(rawBalance, token.decimals));
         tokens.push({
           name: token.name, symbol: token.symbol, balance: rawBalance.toString(),
           balanceFormatted, decimals: token.decimals, contractAddress: token.address,
@@ -148,9 +148,13 @@ async function getBlockByTimestamp(timestamp: number, closest: "before" | "after
   try {
     const res = await fetch(url);
     const data = await res.json();
-    if (data.status === "1" && data.result) return data.result;
-    return "0";
-  } catch { return "0"; }
+    if (data.status === "1" && data.result && data.result !== "0") return data.result;
+  } catch { /* continue to fallback */ }
+  // Fallback: use latest block for "before" or earliest reasonable for "after"
+  if (closest === "before") {
+    try { return String(await getClient(chainId).getBlockNumber()); } catch { /* */ }
+  }
+  return "1"; // Block 1, not 0 (genesis) -- avoids fetching entire chain history
 }
 
 const PAGE_SIZE = 1000;

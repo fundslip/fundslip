@@ -1,25 +1,62 @@
 import { NextResponse } from "next/server";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length < 254 && !email.includes("\n") && !email.includes("\r");
+}
+
+// Simple in-memory rate limiter: max 5 emails per IP per minute
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 5;
+const RATE_WINDOW = 60_000;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { email, pdfBase64, statementId, walletAddress, verificationHash } = body;
-
-    if (!email || !pdfBase64) {
-      return NextResponse.json(
-        { error: "Email and PDF data are required" },
-        { status: 400 }
-      );
+    // Rate limit by IP
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
     }
 
-    // Attempt to use Resend if API key is available
+    const body = await request.json();
+    const { email, pdfBase64, statementId, walletAddress, verificationHash, senderName, message } = body;
+
+    // Validate email
+    if (!email || !isValidEmail(email)) {
+      return NextResponse.json({ error: "Valid email address is required" }, { status: 400 });
+    }
+
     const resendKey = process.env.RESEND_API_KEY;
     if (!resendKey) {
-      return NextResponse.json(
-        { error: "Email service not configured" },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: "Email service not configured" }, { status: 503 });
     }
+
+    // Sanitize all user-provided strings
+    const safeStatementId = escapeHtml(String(statementId || "").slice(0, 50));
+    const safeWallet = escapeHtml(String(walletAddress || "").slice(0, 42));
+    const safeHash = escapeHtml(String(verificationHash || "").slice(0, 200));
+    const safeSenderName = escapeHtml(String(senderName || "").slice(0, 100));
+    const safeMessage = escapeHtml(String(message || "").slice(0, 500));
 
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
@@ -27,54 +64,56 @@ export async function POST(request: Request) {
     await resend.emails.send({
       from: "Fundslip <statements@fundslip.xyz>",
       to: email,
-      subject: `Your Fundslip Financial Statement — ${statementId}`,
+      subject: `Fundslip Statement ${safeStatementId}`,
       html: `
-        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; color: #191c1e;">
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; color: #1d1d1f;">
           <div style="margin-bottom: 32px;">
-            <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin: 0;">Fundslip</h1>
-            <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #434654; margin-top: 4px;">Asset Verification Report</p>
+            <h1 style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin: 0;">Fundslip</h1>
+            <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #86868b; margin-top: 4px;">Asset Verification Report</p>
           </div>
 
-          <p style="font-size: 14px; line-height: 1.6; color: #434654;">
-            Your verifiable financial statement has been generated and is attached to this email as a PDF.
+          ${safeSenderName ? `<p style="font-size: 14px; color: #86868b; margin-bottom: 16px;">From: ${safeSenderName}</p>` : ""}
+          ${safeMessage ? `<p style="font-size: 14px; line-height: 1.6; color: #1d1d1f; margin-bottom: 24px;">${safeMessage}</p>` : ""}
+
+          <p style="font-size: 14px; line-height: 1.6; color: #86868b;">
+            A verifiable financial statement has been shared with you.
           </p>
 
-          <div style="background: #f2f4f6; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #434654; font-weight: 700; margin: 0 0 8px;">Statement ID</p>
-            <p style="font-size: 16px; font-weight: 700; margin: 0;">${statementId}</p>
+          <div style="background: #f5f5f7; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #86868b; margin: 0 0 6px;">Statement</p>
+            <p style="font-size: 14px; font-weight: 500; margin: 0;">${safeStatementId}</p>
           </div>
 
-          <div style="background: #f2f4f6; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #434654; font-weight: 700; margin: 0 0 8px;">Verification Hash</p>
-            <p style="font-family: 'Courier New', monospace; font-size: 11px; color: #434654; word-break: break-all; margin: 0;">${verificationHash}</p>
+          ${safeHash ? `
+          <div style="background: #f5f5f7; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #86868b; margin: 0 0 6px;">Fingerprint</p>
+            <p style="font-family: monospace; font-size: 10px; color: #86868b; word-break: break-all; margin: 0;">${safeHash}</p>
           </div>
+          ` : ""}
 
-          <p style="font-size: 12px; color: #747686; margin-top: 32px;">
-            To verify this statement, visit <a href="https://fundslip.xyz/verify" style="color: #003499;">fundslip.xyz/verify</a>
+          <p style="font-size: 12px; color: #86868b; margin-top: 28px;">
+            To verify this statement, visit <a href="https://fundslip.xyz/verify" style="color: #003499; text-decoration: none;">fundslip.xyz/verify</a>
           </p>
 
-          <hr style="border: none; border-top: 1px solid #eceef0; margin: 32px 0;" />
+          <hr style="border: none; border-top: 1px solid #e5e5ea; margin: 28px 0;" />
 
-          <p style="font-size: 10px; color: #747686;">
-            Generated by Fundslip — fundslip.xyz<br/>
-            Wallet: ${walletAddress}
+          <p style="font-size: 10px; color: #86868b;">
+            Fundslip &mdash; fundslip.xyz<br/>
+            Wallet: ${safeWallet}
           </p>
         </div>
       `,
-      attachments: [
-        {
-          filename: `fundslip-statement-${statementId}.pdf`,
+      ...(pdfBase64 ? {
+        attachments: [{
+          filename: `fundslip-statement-${safeStatementId}.pdf`,
           content: pdfBase64,
-        },
-      ],
+        }],
+      } : {}),
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Email send error:", error);
-    return NextResponse.json(
-      { error: "Failed to send email" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
   }
 }

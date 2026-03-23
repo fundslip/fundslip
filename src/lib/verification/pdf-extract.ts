@@ -70,8 +70,13 @@ export async function extractPayloadFromPdf(pdfBytes: Uint8Array): Promise<strin
     if (prefixIdx !== -1) {
       const afterPrefix = rawText.slice(prefixIdx + 9);
       const match = afterPrefix.match(/^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+/);
-      if (match && match[0].length > 100) {
-        return match[0];
+      if (match && match[0].length >= 150 && match[0].length <= 200) {
+        // Validate it decodes to exactly PAYLOAD_SIZE bytes
+        try {
+          const bs58 = (await import("bs58")).default;
+          const decoded = bs58.decode(match[0]);
+          if (decoded.length === 123) return match[0];
+        } catch { /* not valid Base58 */ }
       }
     }
 

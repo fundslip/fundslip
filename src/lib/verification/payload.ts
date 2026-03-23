@@ -27,8 +27,12 @@ export interface DecodedPayload {
   signature: `0x${string}`;
 }
 
-const CHAIN_ID_MAP: Record<number, number> = { 1: 1, 11155111: 11 };
-const CHAIN_ID_REVERSE: Record<number, number> = { 1: 1, 11: 11155111 };
+const CHAIN_ID_MAP: Record<number, number> = {
+  1: 1, 11155111: 11, 10: 10, 42161: 42, 8453: 84,
+};
+const CHAIN_ID_REVERSE: Record<number, number> = {
+  1: 1, 11: 11155111, 10: 10, 42: 42161, 84: 8453,
+};
 
 function hexToBytes(hex: string): Uint8Array {
   const h = hex.replace("0x", "");
@@ -53,8 +57,10 @@ export function buildPayload(
   const view = new DataView(buf.buffer);
 
   buf.set(hexToBytes(wallet), 0);          // 20 bytes
-  buf[20] = CHAIN_ID_MAP[chainId] || 1;    // 1 byte
-  view.setUint32(21, blockNumber);          // 4 bytes
+  const compactChain = CHAIN_ID_MAP[chainId];
+  if (compactChain === undefined) throw new Error(`Unsupported chain ID: ${chainId}`);
+  buf[20] = compactChain;                   // 1 byte
+  view.setUint32(21, blockNumber, false);    // 4 bytes, big-endian
   buf[25] = statementType;                  // 1 byte
   buf.set(hexToBytes(dataHash), 26);        // 32 bytes
   buf.set(hexToBytes(signature), 58);       // 65 bytes
@@ -72,8 +78,8 @@ export function decodePayload(encoded: string): DecodedPayload {
 
   return {
     wallet: "0x" + bytesToHex(buf.slice(0, 20)),
-    chainId: CHAIN_ID_REVERSE[buf[20]] || 1,
-    blockNumber: view.getUint32(21),
+    chainId: CHAIN_ID_REVERSE[buf[20]] ?? 1,
+    blockNumber: view.getUint32(21, false),   // big-endian
     statementType: buf[25],
     dataHash: ("0x" + bytesToHex(buf.slice(26, 58))) as `0x${string}`,
     signature: ("0x" + bytesToHex(buf.slice(58, 123))) as `0x${string}`,
