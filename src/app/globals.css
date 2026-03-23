@@ -48,6 +48,7 @@
 
 @layer base {
   * { @apply border-outline-variant; }
+  html { font-size: 110%; }
   body {
     @apply bg-white text-on-surface antialiased;
     font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
