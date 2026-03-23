@@ -73,12 +73,12 @@ This is a structured, human-readable message. Your wallet shows you exactly what
 The signature, wallet address, block number, and data hash are packed into a **123-byte payload**:
 
 ```
-20 bytes -- wallet address
- 1 byte  -- chain ID
- 4 bytes -- block number
- 1 byte  -- statement type
-32 bytes -- data hash
-65 bytes -- ECDSA signature (r, s, v)
+20 bytes — wallet address
+ 1 byte  — chain ID
+ 4 bytes — block number
+ 1 byte  — statement type
+32 bytes — data hash
+65 bytes — ECDSA signature (r, s, v)
 -----------
 123 bytes total
 ```
@@ -124,9 +124,9 @@ An Alchemy export has none of these properties. It is data without identity, wit
 ETH and 25+ major ERC-20 tokens including USDC, USDT, DAI, WETH, WBTC, LINK, UNI, AAVE, MKR, stETH, rETH, cbETH, and more.
 
 **Statement Types:**
-- **Balance Snapshot** -- holdings at a specific block height
-- **Full Transaction History** -- complete send/receive/contract audit for a period
-- **Income Summary** -- incoming transfers only (for tax/income proof)
+- **Balance Snapshot** — holdings at a specific block height
+- **Full Transaction History** — complete send/receive/contract audit for a period
+- **Income Summary** — incoming transfers only (for tax/income proof)
 
 **Networks:**
 Ethereum mainnet. L2 support (Optimism, Arbitrum, Base) is planned.
@@ -203,13 +203,13 @@ src/
 
 ## Use Cases
 
-- **Rental applications** -- prove you can afford the rent
-- **Mortgage pre-approval** -- show liquid crypto holdings
-- **Tax reporting** -- document income from DeFi
-- **Visa applications** -- proof of funds for immigration
-- **Grant applications** -- demonstrate treasury holdings
-- **Audit trails** -- verifiable point-in-time snapshots
-- **Legal proceedings** -- court-admissible financial evidence
+- **Rental applications** — prove you can afford the rent
+- **Mortgage pre-approval** — show liquid crypto holdings
+- **Tax reporting** — document income from DeFi
+- **Visa applications** — proof of funds for immigration
+- **Grant applications** — demonstrate treasury holdings
+- **Audit trails** — verifiable point-in-time snapshots
+- **Legal proceedings** — court-admissible financial evidence
 
 ## FAQ
 

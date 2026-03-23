@@ -143,7 +143,7 @@
     </g>
 
     <!-- Fundslip footer -->
-    <text x="28" y="568" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="8" fill="#86868b">Fundslip -- fundslip.xyz</text>
+    <text x="28" y="568" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="8" fill="#86868b">Fundslip — fundslip.xyz</text>
     <text x="492" y="568" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="8" fill="#86868b">March 15, 2025</text>
   </g>
 

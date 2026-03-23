@@ -154,7 +154,7 @@ async function getBlockByTimestamp(timestamp: number, closest: "before" | "after
   if (closest === "before") {
     try { return String(await getClient(chainId).getBlockNumber()); } catch { /* */ }
   }
-  return "1"; // Block 1, not 0 (genesis) -- avoids fetching entire chain history
+  return "1"; // Block 1, not 0 (genesis) — avoids fetching entire chain history
 }
 
 const PAGE_SIZE = 1000;
