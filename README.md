@@ -6,12 +6,14 @@
   <a href="https://fundslip.xyz">Website</a> ·
   <a href="https://fundslip.xyz/generate">Generate</a> ·
   <a href="https://fundslip.xyz/verify">Verify</a> ·
-  <a href="https://x.com/fundslip">Twitter</a> ·
-  <a href="https://github.com/fundslip/fundslip">GitHub</a>
+  <a href="https://x.com/fundslip">Twitter</a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
+  <a href="https://github.com/fundslip/fundslip"><img src="https://img.shields.io/github/stars/fundslip/fundslip?style=flat" alt="Stars" /></a>
+  <a href="https://github.com/fundslip/fundslip/issues"><img src="https://img.shields.io/github/issues/fundslip/fundslip" alt="Issues" /></a>
+  <img src="https://img.shields.io/badge/EIP--712-signed-003499" alt="EIP-712" />
 </p>
 
 ---
