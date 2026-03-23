@@ -1,12 +1,23 @@
 "use client";
 
-import { useConnect } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
 export function CTA() {
+  const { isConnected } = useAccount();
   const { connect } = useConnect();
+  const router = useRouter();
+
+  const handleGenerate = () => {
+    if (isConnected) {
+      router.push("/generate");
+    } else {
+      connect({ connector: injected() }, { onSuccess: () => router.push("/generate") });
+    }
+  };
 
   return (
     <section className="px-5 md:px-6 pb-24 md:pb-32">
@@ -25,7 +36,7 @@ export function CTA() {
               No sign-up. No backend. Connect your wallet, sign, and download your verifiable statement.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-3">
-              <button onClick={() => connect({ connector: injected() })}
+              <button onClick={handleGenerate}
                 className="bg-white text-brand-navy px-7 py-3.5 rounded-xl text-[15px] font-medium hover:bg-white/90 transition-colors">
                 Generate Statement
               </button>

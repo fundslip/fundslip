@@ -2,6 +2,7 @@
 
 import { useAccount, useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
+import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import Link from "next/link";
@@ -22,6 +23,15 @@ const TRANSACTIONS = [
 export function Hero() {
   const { isConnected } = useAccount();
   const { connect } = useConnect();
+  const router = useRouter();
+
+  const handleGenerate = () => {
+    if (isConnected) {
+      router.push("/generate");
+    } else {
+      connect({ connector: injected() }, { onSuccess: () => router.push("/generate") });
+    }
+  };
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
 
@@ -53,17 +63,10 @@ export function Hero() {
 
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
             className="mt-7 flex flex-col sm:flex-row justify-center gap-3">
-            {isConnected ? (
-              <Link href="/generate"
-                className="inline-flex items-center justify-center bg-brand-navy text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-brand-navy/90 transition-colors">
-                Generate Statement
-              </Link>
-            ) : (
-              <button onClick={() => connect({ connector: injected() })}
-                className="inline-flex items-center justify-center bg-brand-navy text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-brand-navy/90 transition-colors">
-                Generate Statement
-              </button>
-            )}
+            <button onClick={handleGenerate}
+              className="inline-flex items-center justify-center bg-brand-navy text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-brand-navy/90 transition-colors">
+              Generate Statement
+            </button>
             <Link href="/verify"
               className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-[14px] font-medium text-brand-black border border-outline-variant hover:bg-surface transition-colors">
               Verify a Statement
