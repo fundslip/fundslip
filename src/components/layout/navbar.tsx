@@ -49,7 +49,7 @@ export function Navbar() {
       <nav className="container-page flex justify-between items-center h-13 px-5 md:px-6">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/fundslip.svg" alt="Fundslip" width={18} height={22} style={{ height: "auto" }} />
-          <span className="font-headline font-semibold text-brand-black text-[14px] hidden sm:block">Fundslip</span>
+          <span className="font-headline font-semibold text-brand-black text-[16px]">Fundslip</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
