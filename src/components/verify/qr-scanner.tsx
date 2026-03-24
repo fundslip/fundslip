@@ -18,9 +18,7 @@ export function QrScanner({ onScan }: QrScannerProps) {
       setScannerInstance(scanner);
       await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 220, height: 220 } },
         (decodedText) => {
-          // Try to extract the payload param from a verification URL (?p=...)
           try { const url = new URL(decodedText); const p = url.searchParams.get("p"); if (p) { onScan(p); scanner.stop().then(() => setIsActive(false)); return; } } catch { /* not a URL */ }
-          // Pass raw text — extractPayloadFromUrl in the verify flow handles raw Base58 strings
           if (decodedText.length > 80) { onScan(decodedText); scanner.stop().then(() => setIsActive(false)); return; }
           setError("Not a Fundslip QR code.");
         }, () => {});
@@ -33,13 +31,12 @@ export function QrScanner({ onScan }: QrScannerProps) {
   }, [scannerInstance]);
 
   return (
-    <section className="rounded-xl border border-outline-variant p-4 sm:p-6 h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-3">
+    <section className="rounded-xl border border-outline-variant p-6 flex flex-col h-full">
+      <div className="flex items-center gap-2 mb-4">
         <Camera className="w-4 h-4 text-on-surface-variant" />
         <h2 className="font-headline text-base font-medium text-brand-black">Scan QR Code</h2>
       </div>
-      <p className="text-on-surface-variant mb-3 text-sm">Point your camera at the QR code on the statement.</p>
-      <div className="w-full min-h-[240px] sm:min-h-[280px] bg-surface rounded-lg flex items-center justify-center relative overflow-hidden flex-1">
+      <div className="w-full min-h-[340px] bg-surface rounded-lg flex items-center justify-center relative overflow-hidden flex-1">
         {isActive ? (
           <>
             <div id="qr-reader-element" className="absolute inset-0 w-full h-full [&_video]:!w-full [&_video]:!h-full [&_video]:object-cover" />
@@ -54,7 +51,7 @@ export function QrScanner({ onScan }: QrScannerProps) {
           </div>
         )}
       </div>
-      {error && <p className="mt-2 text-xs text-error">{error}</p>}
+      <p className="mt-4 text-[11px] text-on-surface-variant">{error || "Point your camera at the QR code on the statement."}</p>
     </section>
   );
 }

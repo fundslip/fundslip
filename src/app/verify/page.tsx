@@ -109,13 +109,18 @@ function VerifyContent() {
     <main className="pt-20 pb-24 px-5 md:px-6">
       <div className="container-page">
         <header className="mb-10">
-          <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-2">Verification</p>
-          <h1 className="font-headline text-2xl md:text-3xl font-semibold text-brand-black mb-3">
-            Verify a Statement
-          </h1>
-          <p className="text-on-surface-variant text-[15px] max-w-xl">
-            Upload the PDF, scan the QR code, or paste the verification code. We re-fetch on-chain data and verify the signature.
-          </p>
+          <div className="grid md:grid-cols-2 gap-6 items-end">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-2">Verification</p>
+              <h1 className="font-headline text-2xl md:text-3xl font-semibold text-brand-black">Verify a Statement</h1>
+            </div>
+            <div className="pt-2 md:pt-0 md:pb-0 md:h-[98px] md:flex md:flex-col md:justify-end">
+              <p className="text-[10px] uppercase tracking-wide text-on-surface-variant mb-1">How it works</p>
+              <p className="text-[15px] text-on-surface-variant leading-snug">
+                Upload the PDF, scan the QR code, or paste the verification code to verify.
+              </p>
+            </div>
+          </div>
         </header>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <QrScanner onScan={handleCodeVerify} />

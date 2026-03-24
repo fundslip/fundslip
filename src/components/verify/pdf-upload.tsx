@@ -23,7 +23,7 @@ export function PdfUpload({ onFileSelected }: PdfUploadProps) {
         <h2 className="font-headline text-base font-medium text-brand-black">Upload PDF</h2>
       </div>
       <label
-        className={`flex-grow flex flex-col items-center justify-center min-h-[180px] border border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+        className={`flex-grow flex flex-col items-center justify-center min-h-[340px] border border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
           isDragOver ? "border-brand-navy bg-brand-navy/[0.02]" : "border-outline hover:border-outline/80"
         }`}
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
