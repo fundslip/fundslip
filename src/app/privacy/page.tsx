@@ -34,7 +34,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="font-headline text-lg font-semibold text-brand-black mb-3">Verification</h2>
             <p>
-              When someone verifies a statement, the verification code is decoded in their browser. The on-chain data is re-fetched from public nodes and compared against the cryptographic signature. No data is sent to any server during this process.
+              When someone verifies a statement, the statement fingerprint is decoded in their browser. The on-chain data is re-fetched from public nodes and compared against the cryptographic signature. No data is sent to any server during this process.
             </p>
           </section>
 

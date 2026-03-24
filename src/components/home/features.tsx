@@ -57,7 +57,7 @@ export function Features() {
                 Anyone can verify instantly
               </h3>
               <p className="text-[14px] text-on-surface-variant leading-relaxed mb-5">
-                Scan the QR code, upload the PDF, or paste the verification code. No account needed.
+                Scan the QR code, upload the PDF, or paste the statement fingerprint. No account needed.
               </p>
               <Link href="/verify" className="text-[13px] text-brand-black hover:underline">
                 Try verifier →

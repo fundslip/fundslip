@@ -182,7 +182,7 @@ export function StatementResult({
         {/* Verification details — compact row */}
         <div className="max-w-3xl mx-auto mb-8 flex flex-col sm:flex-row gap-3 text-[12px] text-on-surface-variant items-center justify-between">
           <div className="flex items-center gap-2">
-            <span>Fingerprint:</span>
+            <span>Statement Fingerprint:</span>
             <code className="font-mono text-brand-black">{truncatedHash}</code>
             <button onClick={handleCopyHash} className="text-on-surface-variant hover:text-brand-black transition-colors">
               {hashCopied ? <Check className="w-3 h-3 text-tertiary" /> : <Copy className="w-3 h-3" />}

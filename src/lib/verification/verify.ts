@@ -43,7 +43,7 @@ export async function verifyPayload(
     decoded = decodePayload(payloadString);
     onProgress?.(0, "Payload decoded successfully");
   } catch (e) {
-    return { status: "error", error: `Invalid verification code: ${e instanceof Error ? e.message : "decode failed"}` };
+    return { status: "error", error: `Invalid statement fingerprint: ${e instanceof Error ? e.message : "decode failed"}` };
   }
 
   const checksumWallet = getAddress(decoded.wallet);
@@ -76,7 +76,7 @@ export async function verifyPayload(
       status: "signature_mismatch",
       wallet: decoded.wallet,
       blockNumber: decoded.blockNumber,
-      error: "Signature does not match. This statement may be forged or the verification code is corrupted.",
+      error: "Signature does not match. This statement may be forged or the fingerprint is corrupted.",
     };
   }
 

@@ -329,7 +329,7 @@ export async function generatePdfBlob(
   doc.text("Upload this PDF or scan the QR code to verify.", vx, fy + 11.5);
 
   // Fingerprint
-  label(doc, "Fingerprint", vx, fy + 16);
+  label(doc, "Statement Fingerprint", vx, fy + 16);
   doc.setFont("courier", "normal"); doc.setFontSize(4); doc.setTextColor(...BLACK);
   const fp = hash || "";
   const maxFpW = CW - 22;

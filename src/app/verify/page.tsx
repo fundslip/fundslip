@@ -55,7 +55,7 @@ function VerifyContent() {
       const { verifyPayload, extractPayloadFromUrl } = await import("@/lib/verification");
       const payload = extractPayloadFromUrl(input);
       if (!payload) {
-        setResult({ verified: false, statementId: "", walletAddress: "", ensName: null, totalValueUsd: 0, tokens: [], ethBalance: "0", statementType: "", periodStart: "", periodEnd: "", blockNumber: 0, generatedAt: "", verifiedAt: new Date(), error: "Invalid input. Paste the verification code from the statement." });
+        setResult({ verified: false, statementId: "", walletAddress: "", ensName: null, totalValueUsd: 0, tokens: [], ethBalance: "0", statementType: "", periodStart: "", periodEnd: "", blockNumber: 0, generatedAt: "", verifiedAt: new Date(), error: "Invalid input. Paste the statement fingerprint from your document." });
       } else {
         setLastFingerprint(payload);
         const r = await verifyPayload(payload, onProgress);
@@ -117,7 +117,7 @@ function VerifyContent() {
             <div className="pt-2 md:pt-0 md:pb-0 md:h-[98px] md:flex md:flex-col md:justify-end">
               <p className="text-[10px] uppercase tracking-wide text-on-surface-variant mb-1">How it works</p>
               <p className="text-[15px] text-on-surface-variant leading-snug">
-                Upload the PDF, scan the QR code, or paste the verification code to verify.
+                Upload the PDF, scan the QR code, or paste the statement fingerprint to verify.
               </p>
             </div>
           </div>

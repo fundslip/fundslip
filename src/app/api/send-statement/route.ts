@@ -112,7 +112,7 @@ export async function POST(request: Request) {
 
           ${safeHash ? `
           <div style="background: #f5f5f7; border-radius: 8px; padding: 16px; margin: 20px 0;">
-            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #86868b; margin: 0 0 6px;">Fingerprint</p>
+            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #86868b; margin: 0 0 6px;">Statement Fingerprint</p>
             <p style="font-family: monospace; font-size: 10px; color: #86868b; word-break: break-all; margin: 0;">${safeHash}</p>
           </div>
           ` : ""}

@@ -10,17 +10,17 @@ const image = {
 export const metadata: Metadata = {
   title: "Verify Statement",
   description:
-    "Verify any Fundslip statement instantly. Upload the PDF, scan the QR code, or paste the verification code. No account needed.",
+    "Verify any Fundslip statement instantly. Upload the PDF, scan the QR code, or paste the statement fingerprint. No account needed.",
   openGraph: {
     title: "Verify Statement | Fundslip",
     description:
-      "Verify any Fundslip statement instantly. Upload the PDF, scan the QR code, or paste the verification code.",
+      "Verify any Fundslip statement instantly. Upload the PDF, scan the QR code, or paste the statement fingerprint.",
     images: [image],
   },
   twitter: {
     title: "Verify Statement | Fundslip",
     description:
-      "Verify any Fundslip statement instantly. Upload the PDF, scan the QR code, or paste the verification code.",
+      "Verify any Fundslip statement instantly. Upload the PDF, scan the QR code, or paste the statement fingerprint.",
     images: [image],
   },
 };

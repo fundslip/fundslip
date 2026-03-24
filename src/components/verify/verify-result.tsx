@@ -44,7 +44,7 @@ export function VerifyResult({ result, fingerprint }: VerifyResultProps) {
         </div>
         <h2 className="font-headline text-2xl font-semibold text-brand-black mb-2">Verification Failed</h2>
         <p className="text-on-surface-variant text-[15px] mb-6 max-w-sm mx-auto">
-          {result.error || "The verification code could not be validated."}
+          {result.error || "The statement fingerprint could not be validated."}
         </p>
         <div className="rounded-xl bg-surface p-5 text-left flex items-start gap-3">
           <AlertTriangle className="w-4 h-4 text-error flex-shrink-0 mt-0.5" />
@@ -125,7 +125,7 @@ export function VerifyResult({ result, fingerprint }: VerifyResultProps) {
       {fingerprint && (
         <div className="max-w-3xl mx-auto mb-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-on-surface-variant">
           <div className="flex items-center gap-2">
-            <span>Fingerprint:</span>
+            <span>Statement Fingerprint:</span>
             <code className="font-mono text-brand-black">{truncatedFp}</code>
             <button onClick={handleCopyFp} className="text-on-surface-variant hover:text-brand-black transition-colors">
               {fpCopied ? <Check className="w-3 h-3 text-tertiary" /> : <Copy className="w-3 h-3" />}
