@@ -75,7 +75,7 @@ export function Features() {
             { val: "0", label: "Servers Required" },
             { val: "∞", label: "Free Verifications" },
           ].map(({ val, label }) => (
-            <div key={label} className="text-center md:text-left">
+            <div key={label} className="text-center">
               <div className="text-2xl font-headline font-semibold text-brand-black tabular-nums tracking-tight">{val}</div>
               <div className="text-[11px] text-on-surface-variant mt-1">{label}</div>
             </div>

@@ -106,7 +106,7 @@ export function VerifyResult({ result, fingerprint }: VerifyResultProps) {
           {result.ethBalance && parseFloat(result.ethBalance) > 0 && (
             <div className="flex items-center justify-between py-2.5 border-t border-outline-variant/50">
               <div className="flex items-center gap-2.5">
-                <div className="w-5 h-5 rounded-full bg-[#627EEA]" />
+                <Image src="/eth.svg" alt="ETH" width={20} height={20} className="w-5 h-5" />
                 <span className="text-[12px] font-medium text-brand-black">Ethereum</span>
               </div>
               <span className="text-[12px] text-brand-black tabular-nums">{parseFloat(result.ethBalance).toFixed(4)} ETH</span>

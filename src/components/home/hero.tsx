@@ -9,14 +9,14 @@ import Image from "next/image";
 import { useRef } from "react";
 
 const TRANSACTIONS = [
-  { date: "Mar 15", desc: "Received ETH", from: "0x8ba1…f0e2", type: "Receive", val: "$4,280.00" },
-  { date: "Mar 12", desc: "Sent USDC", from: "0x3f21…a8c4", type: "Send", val: "$2,500.00" },
-  { date: "Mar 10", desc: "Uniswap Swap", from: "0x68b3…9d17", type: "Contract", val: "$1,847.32" },
-  { date: "Mar 8", desc: "Received USDC", from: "0xd4e5…7b23", type: "Receive", val: "$12,000.00" },
-  { date: "Mar 5", desc: "Lido Stake", from: "0xae78…6393", type: "Contract", val: "$8,120.00" },
-  { date: "Mar 3", desc: "Sent ETH", from: "0x1a2b…c3d4", type: "Send", val: "$950.00" },
-  { date: "Mar 1", desc: "Received DAI", from: "0x7fc6…4a76", type: "Receive", val: "$3,200.00" },
-  { date: "Feb 28", desc: "Aave Deposit", from: "0x7fc6…c84a", type: "Contract", val: "$5,000.00" },
+  { date: "Mar 15", desc: "Received ETH", from: "vitalik.eth", type: "Receive", val: "$4,280.00" },
+  { date: "Mar 12", desc: "Sent USDC", from: "nick.eth", type: "Send", val: "$2,500.00" },
+  { date: "Mar 10", desc: "Uniswap Swap", from: "uniswap.eth", type: "Contract", val: "$1,847.32" },
+  { date: "Mar 8", desc: "Received USDC", from: "ens.eth", type: "Receive", val: "$12,000.00" },
+  { date: "Mar 5", desc: "Lido Stake", from: "lido.eth", type: "Contract", val: "$8,120.00" },
+  { date: "Mar 3", desc: "Sent ETH", from: "brantly.eth", type: "Send", val: "$950.00" },
+  { date: "Mar 1", desc: "Received DAI", from: "aave.eth", type: "Receive", val: "$3,200.00" },
+  { date: "Feb 28", desc: "Aave Deposit", from: "compound.eth", type: "Contract", val: "$5,000.00" },
 ];
 
 export function Hero() {
@@ -112,7 +112,7 @@ export function Hero() {
             <div className="px-4 md:px-8 pt-5 md:pt-6 pb-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 {[
-                  { l: "Account", v: "0x4a7e…2f1b", mono: true },
+                  { l: "Account", v: "sshdopey.eth", mono: true },
                   { l: "Network", v: "Ethereum" },
                   { l: "Block", v: "#19,452,102" },
                   { l: "Period", v: "Feb 15 – Mar 15, 2026" },
@@ -136,11 +136,11 @@ export function Hero() {
               <p className="text-[8px] md:text-[9px] uppercase tracking-wide text-on-surface-variant mb-2">Holdings</p>
               <div className="border-t border-outline-variant/60">
                 {[
-                  { sym: "ETH", name: "Ethereum", qty: "32.4500", val: "$84,120.00", color: "#627EEA" },
-                  { sym: "USDC", name: "USD Coin", qty: "58,382.88", val: "$58,382.88", color: "#2775CA" },
+                  { sym: "ETH", name: "Ethereum", qty: "32.4500", val: "$84,120.00", icon: "/eth.svg" },
+                  { sym: "USDC", name: "USD Coin", qty: "58,382.88", val: "$58,382.88", icon: "/usdc.svg" },
                 ].map((a) => (
                   <div key={a.sym} className="flex items-center gap-2.5 md:gap-3 py-2.5 md:py-3 border-b border-outline-variant/40">
-                    <div className="w-5 h-5 md:w-6 md:h-6 rounded-full flex-shrink-0" style={{ backgroundColor: a.color }} />
+                    <Image src={a.icon} alt={a.sym} width={24} height={24} className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
                     <div className="flex-1 min-w-0 flex justify-between items-baseline">
                       <span className="text-[11px] md:text-[12px] font-medium text-brand-black">{a.name}</span>
                       <span className="text-[11px] md:text-[12px] text-brand-black tabular-nums">{a.val}</span>
