@@ -49,7 +49,7 @@ export function Hero() {
             Your statement.<br />
             <span
               className="inline-block bg-[length:200%_100%] animate-[textShine_4s_ease-in-out_infinite] bg-clip-text text-transparent"
-              style={{ backgroundImage: "linear-gradient(90deg, #86868b 0%, #86868b 40%, #1d1d1f 50%, #86868b 60%, #86868b 100%)" }}
+              style={{ backgroundImage: "linear-gradient(90deg, #6e6e73 0%, #6e6e73 40%, #1d1d1f 50%, #6e6e73 60%, #6e6e73 100%)" }}
             >
               Verifiable by anyone.
             </span>

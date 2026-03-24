@@ -34,7 +34,7 @@ function typeTitle(type: string): string {
 type C3 = [number, number, number];
 const NAVY: C3 = [0, 52, 153];       // brand-navy #003499
 const BLACK: C3 = [29, 29, 31];      // brand-black #1d1d1f
-const GRAY: C3 = [134, 134, 139];    // on-surface-variant #86868b
+const GRAY: C3 = [110, 110, 115];    // on-surface-variant #6e6e73
 const LIGHT: C3 = [162, 162, 167];   // lighter gray
 const RULE: C3 = [229, 229, 234];    // outline-variant #e5e5ea
 const SURFACE: C3 = [245, 245, 247]; // surface #f5f5f7

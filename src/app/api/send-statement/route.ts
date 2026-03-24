@@ -95,35 +95,35 @@ export async function POST(request: Request) {
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; color: #1d1d1f;">
           <div style="margin-bottom: 32px;">
             <h1 style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin: 0;">Fundslip</h1>
-            <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #86868b; margin-top: 4px;">Asset Verification Report</p>
+            <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #6e6e73; margin-top: 4px;">Asset Verification Report</p>
           </div>
 
-          ${safeSenderName ? `<p style="font-size: 14px; color: #86868b; margin-bottom: 16px;">From: ${safeSenderName}</p>` : ""}
+          ${safeSenderName ? `<p style="font-size: 14px; color: #6e6e73; margin-bottom: 16px;">From: ${safeSenderName}</p>` : ""}
           ${safeMessage ? `<p style="font-size: 14px; line-height: 1.6; color: #1d1d1f; margin-bottom: 24px;">${safeMessage}</p>` : ""}
 
-          <p style="font-size: 14px; line-height: 1.6; color: #86868b;">
+          <p style="font-size: 14px; line-height: 1.6; color: #6e6e73;">
             A verifiable financial statement has been shared with you.
           </p>
 
           <div style="background: #f5f5f7; border-radius: 8px; padding: 16px; margin: 20px 0;">
-            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #86868b; margin: 0 0 6px;">Statement</p>
+            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #6e6e73; margin: 0 0 6px;">Statement</p>
             <p style="font-size: 14px; font-weight: 500; margin: 0;">${safeStatementId}</p>
           </div>
 
           ${safeHash ? `
           <div style="background: #f5f5f7; border-radius: 8px; padding: 16px; margin: 20px 0;">
-            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #86868b; margin: 0 0 6px;">Statement Fingerprint</p>
-            <p style="font-family: monospace; font-size: 10px; color: #86868b; word-break: break-all; margin: 0;">${safeHash}</p>
+            <p style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #6e6e73; margin: 0 0 6px;">Statement Fingerprint</p>
+            <p style="font-family: monospace; font-size: 10px; color: #6e6e73; word-break: break-all; margin: 0;">${safeHash}</p>
           </div>
           ` : ""}
 
-          <p style="font-size: 12px; color: #86868b; margin-top: 28px;">
+          <p style="font-size: 12px; color: #6e6e73; margin-top: 28px;">
             To verify this statement, visit <a href="https://fundslip.xyz/verify" style="color: #003499; text-decoration: none;">fundslip.xyz/verify</a>
           </p>
 
           <hr style="border: none; border-top: 1px solid #e5e5ea; margin: 28px 0;" />
 
-          <p style="font-size: 10px; color: #86868b;">
+          <p style="font-size: 10px; color: #6e6e73;">
             Fundslip &mdash; fundslip.xyz<br/>
             Wallet: ${safeWallet}
           </p>
