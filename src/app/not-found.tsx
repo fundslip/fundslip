@@ -70,7 +70,7 @@ export default function NotFound() {
           <p className="text-on-surface-variant text-[17px] leading-relaxed mb-2">
             This page could not be verified.
           </p>
-          <p className="text-on-surface-variant/60 text-[15px] mb-10">
+          <p className="text-on-surface-variant text-[15px] mb-10">
             The page you are looking for does not exist or has been moved.
           </p>
         </motion.div>

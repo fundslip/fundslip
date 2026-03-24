@@ -48,19 +48,19 @@ export function Features() {
                 <h3 className="font-headline text-xl font-semibold text-white tracking-tight mb-3">
                   Your keys never leave your device
                 </h3>
-                <p className="text-[14px] text-white/50 leading-relaxed">
+                <p className="text-[14px] text-white/65 leading-relaxed">
                   Everything happens in your browser. No backend, no database, no accounts. We never see your private keys.
                 </p>
                 {/* Inline stat */}
                 <div className="mt-6 flex items-center gap-4">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-2xl font-headline font-semibold text-white">0</span>
-                    <span className="text-[11px] text-white/30">Servers</span>
+                    <span className="text-[11px] text-white/50">Servers</span>
                   </div>
                   <div className="w-px h-5 bg-white/10" />
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-2xl font-headline font-semibold text-white">100%</span>
-                    <span className="text-[11px] text-white/30">Client-side</span>
+                    <span className="text-[11px] text-white/50">Client-side</span>
                   </div>
                 </div>
               </div>

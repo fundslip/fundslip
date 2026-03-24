@@ -128,7 +128,7 @@ export function Hero() {
             <div className="mx-4 md:mx-8 bg-surface rounded-lg px-4 md:px-5 py-3 md:py-4 mb-5">
               <p className="text-[8px] md:text-[9px] uppercase tracking-wide text-on-surface-variant mb-1">Total Net Worth</p>
               <p className="text-[1.5rem] md:text-[2.25rem] font-headline font-semibold text-brand-black tabular-nums tracking-tight leading-none">
-                $142,502<span className="text-on-surface-variant/30">.88</span>
+                $142,502<span className="text-on-surface-variant/50">.88</span>
               </p>
             </div>
 

@@ -55,7 +55,7 @@ export function CTA() {
               <h2 className="font-headline text-3xl md:text-[2.5rem] font-semibold leading-[1.15] tracking-tight text-white">
                 Ready to prove your<br className="hidden md:block" /> financial position?
               </h2>
-              <p className="mt-5 text-white/45 text-[15px] leading-relaxed max-w-md">
+              <p className="mt-5 text-white/60 text-[15px] leading-relaxed max-w-md">
                 No sign-up. No backend. Connect your wallet, sign, and download your verifiable statement.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -64,7 +64,7 @@ export function CTA() {
                   Generate Statement <ArrowRight className="w-4 h-4" />
                 </button>
                 <Link href="/verify"
-                  className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl text-[15px] font-medium text-white/50 hover:text-white border border-white/10 hover:border-white/25 transition-colors">
+                  className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl text-[15px] font-medium text-white/70 hover:text-white border border-white/15 hover:border-white/30 transition-colors">
                   Verify a Statement
                 </Link>
               </div>
@@ -129,7 +129,7 @@ export function CTA() {
                     <div className="bg-surface rounded-lg px-4 py-3 mb-4">
                       <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">Total Net Worth</p>
                       <p className="text-[22px] font-headline font-semibold text-brand-black tracking-tight leading-none">
-                        $142,502<span className="text-on-surface-variant/30">.88</span>
+                        $142,502<span className="text-on-surface-variant/50">.88</span>
                       </p>
                     </div>
 

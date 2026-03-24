@@ -102,7 +102,7 @@ export default function Error({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="mt-10 text-[11px] text-on-surface-variant/40 font-mono"
+            className="mt-10 text-[11px] text-on-surface-variant font-mono"
           >
             {error.digest}
           </motion.p>
