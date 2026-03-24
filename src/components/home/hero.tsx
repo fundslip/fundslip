@@ -171,8 +171,6 @@ export function Hero() {
                 ))}
               </div>
             </div>
-
-            <div className="h-16 md:h-24" />
           </motion.div>
         </motion.div>
       </div>
