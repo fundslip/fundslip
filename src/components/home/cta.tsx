@@ -1,21 +1,20 @@
 "use client";
 
 import { useAccount, useConnect } from "wagmi";
-import { injected } from "wagmi/connectors";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
 export function CTA() {
   const { isConnected } = useAccount();
-  const { connect } = useConnect();
+  const { connect, connectors } = useConnect();
   const router = useRouter();
 
   const handleGenerate = () => {
     if (isConnected) {
       router.push("/generate");
     } else {
-      connect({ connector: injected() }, { onSuccess: () => router.push("/generate") });
+      connect({ connector: connectors[0] }, { onSuccess: () => router.push("/generate") });
     }
   };
 

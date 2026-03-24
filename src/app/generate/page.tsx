@@ -1,26 +1,24 @@
 "use client";
 
-import { Providers } from "@/components/providers";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
 import { useStatement } from "@/hooks/use-statement";
-import { useAccount, useConnect, useEnsName } from "wagmi";
-import { injected } from "wagmi/connectors";
+import { useAccount, useConnect } from "wagmi";
+import { useCachedEnsName } from "@/hooks/use-cached-ens";
 import { Wallet, AlertCircle } from "lucide-react";
 import { Suspense } from "react";
 
 import { BalanceCard } from "@/components/generate/balance-card";
 import { PeriodSelector } from "@/components/generate/period-selector";
 import { TypeSelector } from "@/components/generate/type-selector";
-import { NetworkSelector } from "@/components/generate/network-selector";
+import { ConnectedNetwork } from "@/components/generate/network-selector";
 import { PersonalDetailsForm } from "@/components/generate/personal-details";
 import { SummaryCard } from "@/components/generate/summary-card";
 import { GeneratingProgress } from "@/components/generate/generating-progress";
 import { StatementResult } from "@/components/generate/statement-result";
 import { downloadPdf } from "@/lib/pdf";
+import { getNetworkName } from "@/lib/ethereum";
 
 function ConnectWalletGate() {
-  const { connect } = useConnect();
+  const { connect, connectors } = useConnect();
   return (
     <div className="pt-24 pb-20 px-5">
       <div className="container-page flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -31,7 +29,7 @@ function ConnectWalletGate() {
         <p className="text-on-surface-variant text-[15px] mb-8 max-w-sm">
           It takes less than 30 seconds. No sign-up required.
         </p>
-        <button onClick={() => connect({ connector: injected() })}
+        <button onClick={() => connect({ connector: connectors[0] })}
           className="bg-brand-navy text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-brand-navy/90 transition-colors">
           Connect Wallet
         </button>
@@ -42,10 +40,10 @@ function ConnectWalletGate() {
 
 function GenerateContent() {
   const { address, isConnected } = useAccount();
-  const { data: ensName } = useEnsName({ address, query: { enabled: !!address } });
+  const ensName = useCachedEnsName(address);
   const {
     step, currentProgress, period, setPeriod, statementType, setStatementType,
-    networks, toggleNetwork, statementData, verificationHash, statementId,
+    chainId, statementData, verificationHash, statementId,
     totalBalance, generate, reset, customStart, setCustomStart, customEnd,
     setCustomEnd, personalDetails, setPersonalDetails, error, pdfBlobUrl, pdfBlob,
   } = useStatement();
@@ -67,7 +65,7 @@ function GenerateContent() {
               <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-2">Configure</p>
               <h1 className="font-headline text-2xl md:text-3xl font-semibold text-brand-black">Generate Statement</h1>
             </div>
-            <BalanceCard balance={totalBalance} ensName={ensName || null} />
+            <BalanceCard balance={totalBalance} />
           </div>
         </header>
 
@@ -85,11 +83,11 @@ function GenerateContent() {
                 customStart={customStart} customEnd={customEnd}
                 onCustomStartChange={setCustomStart} onCustomEndChange={setCustomEnd} />
             )}
-            <NetworkSelector selected={networks} onToggle={toggleNetwork} />
+            <ConnectedNetwork chainId={chainId} />
             <PersonalDetailsForm details={personalDetails} onChange={setPersonalDetails} />
           </div>
           <div className="lg:col-span-1">
-            <SummaryCard period={period} type={statementType} network="Ethereum"
+            <SummaryCard period={period} type={statementType} network={getNetworkName(chainId)}
               ensName={ensName || null} personalDetails={personalDetails}
               customStart={customStart} customEnd={customEnd}
               onGenerate={generate} isGenerating={false} />
@@ -101,11 +99,5 @@ function GenerateContent() {
 }
 
 export default function GeneratePage() {
-  return (
-    <Providers>
-      <Navbar />
-      <Suspense><GenerateContent /></Suspense>
-      <Footer />
-    </Providers>
-  );
+  return <Suspense><GenerateContent /></Suspense>;
 }

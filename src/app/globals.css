@@ -82,3 +82,9 @@
 .h-13 { height: 3.25rem; }
 
 ::selection { background: rgba(0,52,153,0.08); color: #003499; }
+
+/* Force html5-qrcode video to fill container on resize */
+#qr-reader-element { position: absolute; inset: 0; }
+#qr-reader-element > div { width: 100% !important; height: 100% !important; }
+#qr-reader-element video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+#qr-reader-element img { display: none; } /* hide the library's placeholder image */

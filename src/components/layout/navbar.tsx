@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useAccount, useConnect, useDisconnect, useEnsName } from "wagmi";
-import { injected } from "wagmi/connectors";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, LogOut, Copy, Check, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { copyToClipboard } from "@/lib/clipboard";
+import { useCachedEnsName } from "@/hooks/use-cached-ens";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
+  const { address, isConnected, isReconnecting } = useAccount();
+  const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
-  const { data: ensName } = useEnsName({ address, query: { enabled: !!address } });
+  const ensName = useCachedEnsName(address);
+
+  // Treat reconnecting (wagmi restoring session) as "connected" to avoid flash
+  const showWallet = isConnected || (isReconnecting && !!address);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
@@ -39,9 +43,10 @@ export function Navbar() {
     { href: "/verify", label: "Verify" },
   ];
   const isActive = (l: typeof NAV[0]) => l.exact ? pathname === l.href : pathname.startsWith(l.href);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleNav = (_href: string) => () => {
-    // No-op — navigating to the same page just uses normal Next.js routing
+
+  const handleConnect = () => {
+    const connector = connectors[0];
+    if (connector) connect({ connector });
   };
 
   return (
@@ -54,7 +59,7 @@ export function Navbar() {
 
         <div className="hidden md:flex items-center gap-6">
           {NAV.map((l) => (
-            <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
+            <Link key={l.href} href={l.href}
               className={`text-[13px] transition-colors ${isActive(l) ? "text-brand-black font-medium" : "text-on-surface-variant hover:text-brand-black"}`}>
               {l.label}
             </Link>
@@ -63,7 +68,7 @@ export function Navbar() {
 
         <div className="flex items-center gap-2">
           {/* Desktop wallet / connect */}
-          {isConnected ? (
+          {showWallet ? (
             <div className="relative hidden md:block" ref={walletRef}>
               <button onClick={() => setWalletOpen(!walletOpen)}
                 className="flex items-center gap-2 text-[13px] text-brand-black">
@@ -83,7 +88,7 @@ export function Navbar() {
                       <p className="text-[11px] font-mono text-brand-black mt-0.5 truncate">{address}</p>
                     </div>
                     <div className="h-px bg-outline-variant mx-1.5" />
-                    <button onClick={() => { if (address) { navigator.clipboard.writeText(address); setCopied(true); setTimeout(() => setCopied(false), 1500); } }}
+                    <button onClick={async () => { if (address) { const ok = await copyToClipboard(address); if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); } } }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-brand-black hover:bg-surface rounded-lg transition-colors mt-0.5">
                       {copied ? <Check className="w-3.5 h-3.5 text-tertiary" /> : <Copy className="w-3.5 h-3.5 text-on-surface-variant" />}
                       {copied ? "Copied" : "Copy address"}
@@ -97,24 +102,25 @@ export function Navbar() {
               </AnimatePresence>
             </div>
           ) : (
-            <button onClick={() => connect({ connector: injected() })}
+            <button onClick={handleConnect}
               className="hidden md:block text-[13px] font-medium text-white bg-brand-navy px-4 py-1.5 rounded-lg hover:bg-brand-navy/90 transition-colors">
               Connect Wallet
             </button>
           )}
 
-          {/* Mobile: connect button + hamburger when disconnected, wallet pill + hamburger when connected */}
-          {isConnected ? (
+          {/* Mobile */}
+          {showWallet ? (
             <button onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden flex items-center gap-1.5 py-1 pl-1 pr-2 rounded-full bg-surface">
-              <div className="w-6 h-6 rounded-full bg-brand-navy flex items-center justify-center">
+              className="md:hidden flex items-center gap-1.5 py-1 pl-1 pr-2.5 rounded-full bg-surface max-w-[200px]">
+              <div className="w-6 h-6 rounded-full bg-brand-navy flex items-center justify-center flex-shrink-0">
                 <span className="text-[7px] font-medium text-white">{displayName.slice(0, 2).toUpperCase()}</span>
               </div>
-              {menuOpen ? <X className="w-3.5 h-3.5 text-on-surface-variant" /> : <Menu className="w-3.5 h-3.5 text-on-surface-variant" />}
+              <span className="text-[11px] text-brand-black truncate">{displayName}</span>
+              {menuOpen ? <X className="w-3.5 h-3.5 text-on-surface-variant flex-shrink-0" /> : <Menu className="w-3.5 h-3.5 text-on-surface-variant flex-shrink-0" />}
             </button>
           ) : (
             <div className="md:hidden flex items-center gap-2">
-              <button onClick={() => connect({ connector: injected() })}
+              <button onClick={handleConnect}
                 className="text-[12px] font-medium text-white bg-brand-navy px-3 py-1.5 rounded-lg">
                 Connect
               </button>
@@ -132,15 +138,15 @@ export function Navbar() {
             transition={{ duration: 0.15 }} className="md:hidden border-t border-outline-variant/60">
             <div className="px-5 py-3 space-y-1">
               {NAV.map((l) => (
-                <Link key={l.href} href={l.href} onClick={handleNav(l.href)}
+                <Link key={l.href} href={l.href}
                   className={`block px-3 py-2.5 rounded-lg text-[15px] ${isActive(l) ? "text-brand-black font-medium bg-surface" : "text-on-surface-variant"}`}>
                   {l.label}
                 </Link>
               ))}
-              {isConnected && (
+              {showWallet && (
                 <div className="pt-2 border-t border-outline-variant/60 mt-2 space-y-2">
                   <div className="flex items-center gap-2 px-3">
-                    <span className="text-[13px] text-brand-black font-mono">{displayName}</span>
+                    <span className="text-[13px] text-brand-black font-mono truncate">{displayName}</span>
                   </div>
                   <button onClick={() => { disconnect(); setMenuOpen(false); }}
                     className="w-full py-2 text-[13px] text-error flex items-center justify-center gap-2">

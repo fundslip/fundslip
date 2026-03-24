@@ -1,10 +1,4 @@
-"use client";
-
-import { Providers } from "@/components/providers";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
-
-function PrivacyContent() {
+export default function PrivacyPage() {
   return (
     <main className="pt-20 pb-20 px-5 md:px-6">
       <div className="container-page max-w-2xl">
@@ -80,15 +74,5 @@ function PrivacyContent() {
         </div>
       </div>
     </main>
-  );
-}
-
-export default function PrivacyPage() {
-  return (
-    <Providers>
-      <Navbar />
-      <PrivacyContent />
-      <Footer />
-    </Providers>
   );
 }

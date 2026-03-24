@@ -1,11 +1,13 @@
 import { http, createConfig, fallback } from "wagmi";
 import { mainnet, sepolia } from "wagmi/chains";
+import { injected } from "wagmi/connectors";
 
 export const MAINNET_RPC = "https://eth.llamarpc.com";
 export const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
 
 export const wagmiConfig = createConfig({
   chains: [mainnet, sepolia],
+  connectors: [injected()],
   transports: {
     [mainnet.id]: fallback([
       http(MAINNET_RPC),

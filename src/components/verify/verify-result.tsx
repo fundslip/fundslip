@@ -5,6 +5,7 @@ import { PdfViewer } from "@/components/shared/pdf-viewer";
 import type { VerificationResult } from "@/types";
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
+import { copyToClipboard } from "@/lib/clipboard";
 
 function fmt(n: number): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -18,9 +19,8 @@ export function VerifyResult({ result, fingerprint }: VerifyResultProps) {
 
   const handleCopyFp = useCallback(async () => {
     if (!fingerprint) return;
-    await navigator.clipboard.writeText(fingerprint);
-    setFpCopied(true);
-    setTimeout(() => setFpCopied(false), 2000);
+    const ok = await copyToClipboard(fingerprint);
+    if (ok) { setFpCopied(true); setTimeout(() => setFpCopied(false), 2000); }
   }, [fingerprint]);
 
   useEffect(() => {

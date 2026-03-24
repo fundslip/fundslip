@@ -4,11 +4,18 @@ import { TRACKED_TOKENS, ERC20_ABI } from "./constants";
 import { MAINNET_RPC, SEPOLIA_RPC } from "./wagmi-config";
 import type { TokenBalance, Transaction } from "@/types";
 
+// Cache public clients — reuse connections instead of creating fresh on every call
+const clientCache = new Map<number, ReturnType<typeof createPublicClient>>();
+
 function getClient(chainId: number) {
+  const cached = clientCache.get(chainId);
+  if (cached) return cached;
   const isSepolia = chainId === sepolia.id;
   const chain: Chain = isSepolia ? sepolia : mainnet;
   const rpc = isSepolia ? SEPOLIA_RPC : MAINNET_RPC;
-  return createPublicClient({ chain, transport: http(rpc, { timeout: 15_000 }) });
+  const client = createPublicClient({ chain, transport: http(rpc, { timeout: 5_000 }) });
+  clientCache.set(chainId, client);
+  return client;
 }
 
 export function getNetworkName(chainId: number): string {
@@ -33,6 +40,8 @@ export async function getEthBalance(address: Address, chainId: number = 1): Prom
 }
 
 export async function getTokenBalances(address: Address, chainId: number = 1): Promise<TokenBalance[]> {
+  // TRACKED_TOKENS are mainnet contracts — skip on other chains to avoid wasted RPC calls
+  if (chainId !== mainnet.id) return [];
   const client = getClient(chainId);
   let results;
   try {
@@ -101,12 +110,13 @@ export async function getTransactionHistory(
     if (sym && !tokenPrices[sym] && !STABLECOINS.has(sym)) missingSymbols.add(sym);
   }
 
-  // Fetch prices for tokens we don't have yet
+  // Fetch prices for tokens we don't have yet (merged into new object to avoid mutating caller's reference)
+  let mergedPrices = tokenPrices;
   if (missingSymbols.size > 0) {
     try {
       const { fetchPrices } = await import("./prices");
       const extra = await fetchPrices([...missingSymbols]);
-      Object.assign(tokenPrices, extra);
+      mergedPrices = { ...tokenPrices, ...extra };
     } catch { /* continue with what we have */ }
   }
 
@@ -117,7 +127,7 @@ export async function getTransactionHistory(
     const decimals = parseInt(tx.tokenDecimal || "18");
     const amount = parseFloat(formatUnits(BigInt(tx.value), decimals));
     const symbol = tx.tokenSymbol || "";
-    const tokenPrice = tokenPrices[symbol] || (STABLECOINS.has(symbol) ? 1 : 0);
+    const tokenPrice = mergedPrices[symbol] || (STABLECOINS.has(symbol) ? 1 : 0);
     const usdValue = amount * tokenPrice;
 
     // Skip spam airdrops: tokens with no USD value from null address or with $ in symbol
@@ -188,8 +198,8 @@ async function fetchExplorerTxs(action: string, address: string, startBlock: str
   return all.slice(0, MAX_TRANSACTIONS);
 }
 
-export async function getEnsName(address: Address, chainId: number = 1): Promise<string | null> {
-  if (chainId !== 1) return null;
+export async function getEnsName(address: Address): Promise<string | null> {
+  // ENS only exists on mainnet — always resolve from mainnet regardless of connected chain
   try { return await getClient(1).getEnsName({ address }); } catch { return null; }
 }
 

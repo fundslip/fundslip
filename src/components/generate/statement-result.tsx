@@ -5,6 +5,7 @@ import { PdfViewer } from "@/components/shared/pdf-viewer";
 import type { StatementData } from "@/types";
 import { useState, useCallback } from "react";
 import Image from "next/image";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface StatementResultProps {
   statementData: StatementData;
@@ -27,6 +28,8 @@ export function StatementResult({
   const [shareName, setShareName] = useState(statementData.personalDetails?.fullName || "");
   const [shareMessage, setShareMessage] = useState("");
   const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSending, setEmailSending] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [hashCopied, setHashCopied] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
@@ -37,32 +40,52 @@ export function StatementResult({
     : `https://fundslip.xyz/verify?p=${encodeURIComponent(verificationHash)}`;
 
   const handleShareLink = useCallback(async () => {
-    await navigator.clipboard.writeText(verifyUrl);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
+    const ok = await copyToClipboard(verifyUrl);
+    if (ok) { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); }
   }, [verifyUrl]);
 
   const handleCopyHash = useCallback(async () => {
-    await navigator.clipboard.writeText(verificationHash);
-    setHashCopied(true);
-    setTimeout(() => setHashCopied(false), 2000);
+    const ok = await copyToClipboard(verificationHash);
+    if (ok) { setHashCopied(true); setTimeout(() => setHashCopied(false), 2000); }
   }, [verificationHash]);
 
   const handleSendEmail = useCallback(async () => {
     if (!shareEmail) return;
+    setEmailError(null);
+    setEmailSending(true);
     try {
-      await fetch("/api/send-statement", {
+      // Convert PDF blob to base64 for attachment (cap at 5MB to avoid oversized payloads)
+      let pdfBase64 = "";
+      if (pdfBlob && pdfBlob.size <= 5 * 1024 * 1024) {
+        const buf = await pdfBlob.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        pdfBase64 = btoa(binary);
+      }
+
+      const res = await fetch("/api/send-statement", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: shareEmail, pdfBase64: "", statementId,
+          email: shareEmail, pdfBase64, statementId,
           walletAddress: statementData.walletAddress, verificationHash,
           senderName: shareName, message: shareMessage,
         }),
       });
-      setEmailSent(true);
-    } catch { /* email service may not be configured */ }
-  }, [shareEmail, shareName, shareMessage, statementId, statementData.walletAddress, verificationHash]);
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to send email" }));
+        setEmailError(data.error || `Error ${res.status}`);
+      } else {
+        setEmailSent(true);
+      }
+    } catch {
+      setEmailError("Network error. Please try again.");
+    } finally {
+      setEmailSending(false);
+    }
+  }, [shareEmail, shareName, shareMessage, statementId, statementData.walletAddress, verificationHash, pdfBlob]);
 
   const periodLabel = `${statementData.periodStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${statementData.periodEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   const typeLabel = statementData.statementType === "full-history" ? "Full History" : statementData.statementType === "balance-snapshot" ? "Snapshot" : "Income";
@@ -137,16 +160,21 @@ export function StatementResult({
             {emailSent ? (
               <p className="text-tertiary text-sm flex items-center gap-2"><Check className="w-4 h-4" /> Sent to {shareEmail}</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <input type="email" value={shareEmail} onChange={(e) => setShareEmail(e.target.value)}
-                  placeholder="Recipient email" className="bg-surface border-0 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-brand-navy/20 outline-none" />
-                <input type="text" value={shareName} onChange={(e) => setShareName(e.target.value)}
-                  placeholder="Your name (optional)" className="bg-surface border-0 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-brand-navy/20 outline-none" />
-                <button onClick={handleSendEmail} disabled={!shareEmail}
-                  className="bg-brand-navy text-white py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-brand-navy/90 transition-colors disabled:opacity-50">
-                  <Send className="w-4 h-4" /> Send
-                </button>
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <input type="email" value={shareEmail} onChange={(e) => setShareEmail(e.target.value)}
+                    placeholder="Recipient email" className="bg-surface border-0 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-brand-navy/20 outline-none" />
+                  <input type="text" value={shareName} onChange={(e) => setShareName(e.target.value)}
+                    placeholder="Your name (optional)" className="bg-surface border-0 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-brand-navy/20 outline-none" />
+                  <button onClick={handleSendEmail} disabled={!shareEmail || emailSending}
+                    className="bg-brand-navy text-white py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-brand-navy/90 transition-colors disabled:opacity-50">
+                    <Send className="w-4 h-4" /> {emailSending ? "Sending..." : "Send"}
+                  </button>
+                </div>
+                {emailError && (
+                  <p className="mt-2 text-error text-sm">{emailError}</p>
+                )}
+              </>
             )}
           </div>
         )}

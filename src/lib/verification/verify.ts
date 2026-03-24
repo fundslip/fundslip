@@ -126,7 +126,7 @@ export async function verifyPayload(
   }
 
   let ensName: string | null = null;
-  try { ensName = await getEnsName(checksumWallet, decoded.chainId); } catch { /* */ }
+  try { ensName = await getEnsName(checksumWallet); } catch { /* */ }
 
   onProgress?.(4, "Building preview...");
 

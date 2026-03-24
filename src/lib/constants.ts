@@ -22,7 +22,7 @@ export const TRACKED_TOKENS = [
   { symbol: "OP", name: "Optimism", address: "0x4200000000000000000000000000000000000042" as const, decimals: 18 },
   { symbol: "stETH", name: "Lido Staked Ether", address: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" as const, decimals: 18 },
   { symbol: "rETH", name: "Rocket Pool ETH", address: "0xae78736Cd615f374D3085123A210448E74Fc6393" as const, decimals: 18 },
-  { symbol: "cbETH", name: "Coinbase Wrapped Staked ETH", address: "0xBe9895146f7AF43049ca1c1AE358B0541Ea49BBea" as const, decimals: 18 },
+  { symbol: "cbETH", name: "Coinbase Wrapped Staked ETH", address: "0xBe9895146f7AF43049ca1c1AE358B0541Ea49BBe" as const, decimals: 18 },
   { symbol: "PEPE", name: "Pepe", address: "0x6982508145454Ce325dDbE47a25d4ec3d2311933" as const, decimals: 18 },
   { symbol: "ENS", name: "Ethereum Name Service", address: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72" as const, decimals: 18 },
   { symbol: "RPL", name: "Rocket Pool", address: "0xD33526068D116cE69F19A9ee46F0bd304F21A51f" as const, decimals: 18 },

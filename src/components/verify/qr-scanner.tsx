@@ -16,10 +16,12 @@ export function QrScanner({ onScan }: QrScannerProps) {
       const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode("qr-reader-element");
       setScannerInstance(scanner);
-      await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+      await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 220, height: 220 } },
         (decodedText) => {
-          try { const url = new URL(decodedText); const hash = url.searchParams.get("hash"); if (hash) { onScan(hash); scanner.stop().then(() => setIsActive(false)); return; } } catch { /* */ }
-          if (decodedText.startsWith("0x") && decodedText.length >= 10) { onScan(decodedText); scanner.stop().then(() => setIsActive(false)); return; }
+          // Try to extract the payload param from a verification URL (?p=...)
+          try { const url = new URL(decodedText); const p = url.searchParams.get("p"); if (p) { onScan(p); scanner.stop().then(() => setIsActive(false)); return; } } catch { /* not a URL */ }
+          // Pass raw text — extractPayloadFromUrl in the verify flow handles raw Base58 strings
+          if (decodedText.length > 80) { onScan(decodedText); scanner.stop().then(() => setIsActive(false)); return; }
           setError("Not a Fundslip QR code.");
         }, () => {});
     } catch { setError("Camera access denied."); setIsActive(false); }
@@ -31,22 +33,22 @@ export function QrScanner({ onScan }: QrScannerProps) {
   }, [scannerInstance]);
 
   return (
-    <section className="rounded-xl border border-outline-variant p-6 h-full">
-      <div className="flex items-center gap-2 mb-4">
+    <section className="rounded-xl border border-outline-variant p-4 sm:p-6 h-full flex flex-col">
+      <div className="flex items-center gap-2 mb-3">
         <Camera className="w-4 h-4 text-on-surface-variant" />
         <h2 className="font-headline text-base font-medium text-brand-black">Scan QR Code</h2>
       </div>
-      <p className="text-on-surface-variant mb-4 text-sm">Point your camera at the QR code on the statement.</p>
-      <div className="aspect-video min-h-[180px] bg-surface rounded-lg flex items-center justify-center relative overflow-hidden">
+      <p className="text-on-surface-variant mb-3 text-sm">Point your camera at the QR code on the statement.</p>
+      <div className="w-full min-h-[240px] sm:min-h-[280px] bg-surface rounded-lg flex items-center justify-center relative overflow-hidden flex-1">
         {isActive ? (
           <>
-            <div id="qr-reader-element" className="w-full h-full" />
-            <button onClick={stopCamera} className="absolute top-2 right-2 z-20 bg-white rounded-full p-1.5"><X className="w-4 h-4" /></button>
+            <div id="qr-reader-element" className="absolute inset-0 w-full h-full [&_video]:!w-full [&_video]:!h-full [&_video]:object-cover" />
+            <button onClick={stopCamera} className="absolute top-2 right-2 z-20 bg-white rounded-full p-1.5 shadow-sm"><X className="w-4 h-4" /></button>
           </>
         ) : (
-          <div className="text-center">
+          <div className="text-center p-4">
             <Camera className="w-8 h-8 text-outline mx-auto mb-3" />
-            <button onClick={startCamera} className="bg-brand-navy text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-brand-navy/90 transition-colors">
+            <button onClick={startCamera} className="bg-brand-navy text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-brand-navy/90 transition-colors">
               Enable Camera
             </button>
           </div>

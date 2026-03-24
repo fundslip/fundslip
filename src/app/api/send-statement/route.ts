@@ -13,13 +13,25 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length < 254 && !email.includes("\n") && !email.includes("\r");
 }
 
-// Simple in-memory rate limiter: max 5 emails per IP per minute
+// In-memory rate limiter with TTL eviction.
+// NOTE: On serverless (Vercel), each cold start gets a fresh Map, so this is
+// best-effort protection — not a substitute for a persistent store like Redis.
+// It still protects against burst abuse within a single warm instance.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
 const RATE_WINDOW = 60_000;
+const MAX_TRACKED_IPS = 10_000;
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
+
+  // Evict expired entries periodically to prevent unbounded growth
+  if (rateLimitMap.size > MAX_TRACKED_IPS) {
+    for (const [key, entry] of rateLimitMap) {
+      if (now > entry.resetAt) rateLimitMap.delete(key);
+    }
+  }
+
   const entry = rateLimitMap.get(ip);
   if (!entry || now > entry.resetAt) {
     rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
@@ -30,8 +42,17 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
+// 10 MB max body size — enough for a PDF base64 + metadata, blocks abuse
+const MAX_BODY_SIZE = 10 * 1024 * 1024;
+
 export async function POST(request: Request) {
   try {
+    // Reject oversized payloads before parsing (ISSUE-009)
+    const contentLength = request.headers.get("content-length");
+    if (contentLength && parseInt(contentLength) > MAX_BODY_SIZE) {
+      return NextResponse.json({ error: "Request too large" }, { status: 413 });
+    }
+
     // Rate limit by IP
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     if (!checkRateLimit(ip)) {
@@ -44,6 +65,11 @@ export async function POST(request: Request) {
     // Validate email
     if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: "Valid email address is required" }, { status: 400 });
+    }
+
+    // Validate pdfBase64 size if present (defense-in-depth beyond Content-Length)
+    if (pdfBase64 && typeof pdfBase64 === "string" && pdfBase64.length > MAX_BODY_SIZE) {
+      return NextResponse.json({ error: "PDF attachment too large" }, { status: 413 });
     }
 
     const resendKey = process.env.RESEND_API_KEY;

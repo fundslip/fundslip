@@ -2,9 +2,6 @@
 
 import { useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Providers } from "@/components/providers";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
 import { QrScanner } from "@/components/verify/qr-scanner";
 import { PdfUpload } from "@/components/verify/pdf-upload";
 import { HashInput } from "@/components/verify/hash-input";
@@ -92,52 +89,44 @@ function VerifyContent() {
     if (p) handleCodeVerify(p);
   }, [searchParams, handleCodeVerify]);
 
-  if (isVerifying) return <><Navbar /><VerifyingProgress currentStep={verifyStep} statusLabel={verifyLabel} /><Footer /></>;
+  if (isVerifying) return <VerifyingProgress currentStep={verifyStep} statusLabel={verifyLabel} />;
 
   if (result) {
     return (
-      <>
-        <Navbar />
-        <main className="pt-20 pb-24 px-5 md:px-6">
-          <div className="container-page">
-            <button type="button" onClick={() => setResult(null)}
-              className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-brand-black transition-colors mb-8">
-              <ArrowLeft className="w-4 h-4" /> Verify another
-            </button>
-            <VerifyResult result={result} fingerprint={lastFingerprint} />
-          </div>
-        </main>
-        <Footer />
-      </>
+      <main className="pt-20 pb-24 px-5 md:px-6">
+        <div className="container-page">
+          <button type="button" onClick={() => setResult(null)}
+            className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-brand-black transition-colors mb-8">
+            <ArrowLeft className="w-4 h-4" /> Verify another
+          </button>
+          <VerifyResult result={result} fingerprint={lastFingerprint} />
+        </div>
+      </main>
     );
   }
 
   return (
-    <>
-      <Navbar />
-      <main className="pt-20 pb-24 px-5 md:px-6">
-        <div className="container-page">
-          <header className="mb-10">
-            <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-2">Verification</p>
-            <h1 className="font-headline text-2xl md:text-3xl font-semibold text-brand-black mb-3">
-              Verify a Statement
-            </h1>
-            <p className="text-on-surface-variant text-[15px] max-w-xl">
-              Upload the PDF, scan the QR code, or paste the verification code. We re-fetch on-chain data and verify the signature.
-            </p>
-          </header>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <QrScanner onScan={handleCodeVerify} />
-            <PdfUpload onFileSelected={handlePdfUpload} />
-            <div className="md:col-span-2"><HashInput onVerify={handleCodeVerify} isVerifying={isVerifying} /></div>
-          </div>
+    <main className="pt-20 pb-24 px-5 md:px-6">
+      <div className="container-page">
+        <header className="mb-10">
+          <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-2">Verification</p>
+          <h1 className="font-headline text-2xl md:text-3xl font-semibold text-brand-black mb-3">
+            Verify a Statement
+          </h1>
+          <p className="text-on-surface-variant text-[15px] max-w-xl">
+            Upload the PDF, scan the QR code, or paste the verification code. We re-fetch on-chain data and verify the signature.
+          </p>
+        </header>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <QrScanner onScan={handleCodeVerify} />
+          <PdfUpload onFileSelected={handlePdfUpload} />
+          <div className="md:col-span-2"><HashInput onVerify={handleCodeVerify} isVerifying={isVerifying} /></div>
         </div>
-      </main>
-      <Footer />
-    </>
+      </div>
+    </main>
   );
 }
 
 export default function VerifyPage() {
-  return <Providers><Suspense><VerifyContent /></Suspense></Providers>;
+  return <Suspense><VerifyContent /></Suspense>;
 }

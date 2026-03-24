@@ -2,15 +2,15 @@
 
 import { useState, useCallback } from "react";
 import { Copy, Check } from "lucide-react";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface CopyButtonProps { text: string; className?: string; }
 
 export function CopyButton({ text, className = "" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    const ok = await copyToClipboard(text);
+    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
   }, [text]);
 
   return (

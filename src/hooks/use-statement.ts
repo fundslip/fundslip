@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useAccount, useSignTypedData, useChainId } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
+import { signTypedData as coreSignTypedData, reconnect as coreReconnect } from "@wagmi/core";
+import { wagmiConfig } from "@/lib/wagmi-config";
 import type {
-  StatementPeriod, StatementType, Network, StatementData,
+  StatementPeriod, StatementType, StatementData,
   GenerateStep, PersonalDetails, Transaction,
 } from "@/types";
 import {
@@ -17,13 +19,25 @@ import {
 } from "@/lib/verification";
 import type { Address } from "viem";
 
+const BAL_KEY = "fundslip:bal:";
+
+function readBalanceCache(address: string, chainId: number): number {
+  try {
+    const v = localStorage.getItem(`${BAL_KEY}${address.toLowerCase()}:${chainId}`);
+    return v ? parseFloat(v) : 0;
+  } catch { return 0; }
+}
+
+function writeBalanceCache(address: string, chainId: number, balance: number) {
+  try { localStorage.setItem(`${BAL_KEY}${address.toLowerCase()}:${chainId}`, String(balance)); } catch { /* */ }
+}
+
 function makeStatementId(): string {
   return `FS-${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
 export function useStatement() {
   const { address, chain } = useAccount();
-  const { signTypedData } = useSignTypedData();
   const fallbackChainId = useChainId();
   // Use the wallet's connected chain — this is what the wallet will actually sign with
   const chainId = chain?.id || fallbackChainId;
@@ -32,7 +46,6 @@ export function useStatement() {
   const [currentProgress, setCurrentProgress] = useState(0);
   const [period, setPeriod] = useState<StatementPeriod>("7d");
   const [statementType, setStatementType] = useState<StatementType>("full-history");
-  const [networks, setNetworks] = useState<Network[]>(["ethereum"]);
   const [statementData, setStatementData] = useState<StatementData | null>(null);
   const [verificationHash, setVerificationHash] = useState("");
   const [statementId, setStatementId] = useState("");
@@ -48,41 +61,56 @@ export function useStatement() {
   const [customEnd, setCustomEnd] = useState(() => new Date().toISOString().split("T")[0]);
   const [personalDetails, setPersonalDetails] = useState<PersonalDetails>({ fullName: "", address: "" });
 
-  // Pending state for the signing step
-  // (signing state managed via signTypedData callbacks — no explicit pending state needed)
+  // Revoke blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    };
+  }, [pdfBlobUrl]);
 
-  // Fetch balance on connect
+  // Fetch balance — cache-first, refresh in background
   useEffect(() => {
     if (!address) { setTotalBalance(0); return; }
+
+    // Instantly show cached balance for this address+chain (no network wait)
+    const cached = readBalanceCache(address, chainId);
+    if (cached > 0) setTotalBalance(cached);
+
+    // Fetch fresh in background
     let cancelled = false;
     (async () => {
       try {
-        const { balance } = await getEthBalance(address as Address, chainId);
-        const prices = await fetchPrices(["ETH"]);
+        const [ethResult, tokens, prices] = await Promise.all([
+          getEthBalance(address as Address, chainId),
+          getTokenBalances(address as Address, chainId),
+          fetchPrices(["ETH"]).catch(() => ({} as Record<string, number>)),
+        ]);
+
         const ethPrice = prices.ETH || 0;
-        if (!cancelled) setTotalBalance(balance * ethPrice);
-        const tokens = await getTokenBalances(address as Address, chainId);
-        const syms = tokens.map(t => t.symbol);
-        const tp = syms.length > 0 ? await fetchPrices(syms) : {};
-        const tv = tokens.reduce((s, t) => s + t.balanceFormatted * (tp[t.symbol] || 0), 0);
-        if (!cancelled) setTotalBalance(balance * ethPrice + tv);
+        let total = ethResult.balance * ethPrice;
+
+        if (tokens.length > 0) {
+          const syms = tokens.map(t => t.symbol);
+          const tp = await fetchPrices(syms).catch(() => ({} as Record<string, number>));
+          total += tokens.reduce((s, t) => s + t.balanceFormatted * (tp[t.symbol] || 0), 0);
+        }
+
+        if (!cancelled) {
+          setTotalBalance(total);
+          writeBalanceCache(address, chainId, total);
+        }
       } catch { /* silent */ }
     })();
     return () => { cancelled = true; };
   }, [address, chainId]);
 
-  const toggleNetwork = useCallback((network: Network) => {
-    setNetworks(prev => prev.includes(network) ? prev.filter(n => n !== network) : [...prev, network]);
-  }, []);
-
   /**
    * Flow:
    * 1. Fetch on-chain data at pinned block
    * 2. Serialize → compute dataHash
-   * 3. Generate unsigned PDF
-   * 4. Prompt EIP-712 signature
-   * 5. Build Base58 payload → embed in PDF metadata
-   * 6. Return signed PDF
+   * 3. Prompt EIP-712 signature (using @wagmi/core to handle chain mismatch)
+   * 4. Build Base58 payload → embed in PDF metadata
+   * 5. Return signed PDF
    */
   const generate = useCallback(() => {
     if (!address) return;
@@ -161,8 +189,9 @@ export function useStatement() {
           } catch (e) { console.error("Transactions:", e); }
         }
 
+        // ENS always resolves from mainnet (it's identity, not chain-specific)
         let ensName: string | null = null;
-        try { ensName = await getEnsName(addr as Address, cid); } catch { /* */ }
+        try { ensName = await getEnsName(addr as Address); } catch { /* */ }
 
         const totalValueUsd = ethValueUsd + pricedTokens.reduce((sum, t) => sum + t.valueUsd, 0);
         setTotalBalance(totalValueUsd);
@@ -187,65 +216,66 @@ export function useStatement() {
           networkName: getNetworkName(cid), totalTransactionCount,
         };
 
-        // 4. Prompt EIP-712 signature first
+        // 4. Prompt EIP-712 signature (using @wagmi/core for chain mismatch handling)
         setStep("signing");
 
         const sigRequest = buildSigningRequest(addr, blockNumber, stypeCode, dataHash);
+        const signPayload = {
+          domain: sigRequest.domain,
+          types: sigRequest.types,
+          primaryType: sigRequest.primaryType,
+          message: sigRequest.message,
+        };
 
-        signTypedData(
-          {
-            domain: sigRequest.domain,
-            types: sigRequest.types,
-            primaryType: sigRequest.primaryType,
-            message: sigRequest.message,
-          },
-          {
-            onSuccess: async (signature) => {
-              try {
-                // 5. Build compact payload (the "fingerprint")
-                const payload = buildPayload(
-                  addr, cid, blockNumber, stypeCode, dataHash, signature
-                );
-
-                // 6. Generate PDF with the fingerprint + verify URL baked in
-                const { generatePdfBlob } = await import("@/lib/pdf");
-                const verifyUrl = `${window.location.origin}/verify?p=${encodeURIComponent(payload)}`;
-                const pdfBlob = await generatePdfBlob(data, payload, sid, verifyUrl);
-                const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
-
-                // 7. Embed payload in PDF metadata too (for drag-and-drop verification)
-                const signedPdfBytes = await embedPayloadInPdf(pdfBytes, payload);
-                const signedBlob = new Blob([signedPdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
-
-                setStatementData(data);
-                setVerificationHash(payload);
-                setStatementId(sid);
-                setPdfBlob(signedBlob);
-                setPdfBlobUrl(URL.createObjectURL(signedBlob));
-                setStep("ready");
-
-              } catch (e) {
-                console.error("PDF finalization:", e);
-                setError("Failed to finalize the statement. Please try again.");
-                setStep("config");
-
-              }
-            },
-            onError: (err) => {
-              console.error("EIP-712 sign error:", err);
-              setError("Signature was rejected. Please try again.");
+        let signature: `0x${string}`;
+        try {
+          signature = await coreSignTypedData(wagmiConfig, signPayload);
+        } catch (signErr: unknown) {
+          // Handle wagmi ConnectorChainMismatchError by reconnecting and retrying
+          if (signErr instanceof Error && signErr.name === "ConnectorChainMismatchError") {
+            try {
+              await coreReconnect(wagmiConfig);
+              signature = await coreSignTypedData(wagmiConfig, signPayload);
+            } catch {
+              setError("Chain mismatch. Please refresh the page and try again.");
               setStep("config");
-
-            },
+              return;
+            }
+          } else {
+            console.error("EIP-712 sign error:", signErr);
+            setError("Signature was rejected. Please try again.");
+            setStep("config");
+            return;
           }
-        );
+        }
+
+        // 5. Build compact payload (the "fingerprint")
+        const payload = buildPayload(addr, cid, blockNumber, stypeCode, dataHash, signature);
+
+        // 6. Generate PDF with the fingerprint + verify URL baked in
+        const { generatePdfBlob } = await import("@/lib/pdf");
+        const verifyUrl = `${window.location.origin}/verify?p=${encodeURIComponent(payload)}`;
+        const genPdfBlob = await generatePdfBlob(data, payload, sid, verifyUrl);
+        const pdfBytes = new Uint8Array(await genPdfBlob.arrayBuffer());
+
+        // 7. Embed payload in PDF metadata too (for drag-and-drop verification)
+        const signedPdfBytes = await embedPayloadInPdf(pdfBytes, payload);
+        const signedBlob = new Blob([signedPdfBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+
+        setStatementData(data);
+        setVerificationHash(payload);
+        setStatementId(sid);
+        setPdfBlob(signedBlob);
+        setPdfBlobUrl(URL.createObjectURL(signedBlob));
+        setStep("ready");
+
       } catch (err) {
         console.error("Generation failed:", err);
         setError("Something went wrong. Please try again.");
         setStep("config");
       }
     })();
-  }, [address, chainId, statementType, period, customStart, customEnd, personalDetails, signTypedData]);
+  }, [address, chainId, statementType, period, customStart, customEnd, personalDetails]);
 
   const reset = useCallback(() => {
     setStep("config");
@@ -262,7 +292,7 @@ export function useStatement() {
 
   return {
     step, currentProgress, period, setPeriod, statementType, setStatementType,
-    networks, toggleNetwork, statementData, verificationHash, statementId,
+    chainId, statementData, verificationHash, statementId,
     totalBalance, generate, reset, customStart, setCustomStart, customEnd,
     setCustomEnd, personalDetails, setPersonalDetails, error, pdfBlobUrl, pdfBlob,
   };
