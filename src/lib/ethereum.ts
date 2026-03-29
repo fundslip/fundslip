@@ -68,7 +68,21 @@ const KNOWN_SELECTORS: Record<string, string> = {
   // Governance
   "0x56781388": "Vote",
   "0x15373e3d": "Vote",
+  // More ENS registration variants (different ABI encodings)
+  "0xf7a16963": "ENS Registration",
+  "0x8a95b09f": "ENS Registration",
+  "0xcc9656fb": "ENS Registration", // registerWithConfig
+  "0xfca247ac": "ENS Registration", // register (NameWrapper v3)
 };
+
+// Resolve token symbol from contract address
+function resolveTokenSymbol(address: string): string | null {
+  const toLower = address.toLowerCase();
+  const tracked = TRACKED_TOKENS.find(t => t.address.toLowerCase() === toLower);
+  if (tracked) return tracked.symbol;
+  if (KNOWN_CONTRACTS[toLower] === "WETH") return "WETH";
+  return null;
+}
 
 function labelTransaction(
   to: string | null,
@@ -83,23 +97,42 @@ function labelTransaction(
     return { type: "send", label: `Sent ${fmtAmount(value)} ${asset}` };
   }
 
-  const contractName = KNOWN_CONTRACTS[to.toLowerCase()];
+  const toLower = to.toLowerCase();
+  const contractName = KNOWN_CONTRACTS[toLower];
   const selector = input.slice(0, 10).toLowerCase();
   const selectorLabel = KNOWN_SELECTORS[selector];
 
-  // Build the best label from what we know
-  let label: string;
-  if (contractName && selectorLabel) {
-    label = `${contractName} — ${selectorLabel}`;
-  } else if (contractName) {
-    label = contractName;
-  } else if (selectorLabel) {
-    label = selectorLabel;
-  } else {
-    label = "Contract Call";
+  // Token operations: resolve the specific token being approved/transferred
+  if (selectorLabel === "Token Approval") {
+    const sym = resolveTokenSymbol(toLower);
+    return { type: "contract", label: sym ? `Approve ${sym}` : "Token Approval" };
+  }
+  if (selectorLabel === "Token Transfer") {
+    const sym = resolveTokenSymbol(toLower);
+    return { type: "contract", label: sym ? `Transfer ${sym}` : "Token Transfer" };
   }
 
-  return { type: "contract", label };
+  // NFT operations with context
+  if (selectorLabel === "NFT Approval") {
+    return { type: "contract", label: contractName ? `NFT Approval — ${contractName}` : "NFT Approval" };
+  }
+
+  // Known contract + known action
+  if (contractName && selectorLabel) {
+    return { type: "contract", label: `${contractName} — ${selectorLabel}` };
+  }
+  // Known contract, unknown action
+  if (contractName) {
+    return { type: "contract", label: contractName };
+  }
+  // Unknown contract, known action (e.g. ENS selector to new registrar address)
+  if (selectorLabel) {
+    return { type: "contract", label: selectorLabel };
+  }
+
+  // Truly unknown — try to give some context from address
+  const shortTo = `${to.slice(0, 6)}...${to.slice(-4)}`;
+  return { type: "contract", label: `Call to ${shortTo}` };
 }
 
 // Cache public clients — reuse connections instead of creating fresh on every call
@@ -428,17 +461,20 @@ async function buildFromBlockscout(
 
     if (isReceive) {
       type = "receive";
-      description = `Received ${ethAmount.toFixed(4)} ETH`;
+      const fromContract = KNOWN_CONTRACTS[tx.from?.toLowerCase()];
+      description = fromContract
+        ? `Received ${fmtAmount(ethAmount)} ETH from ${fromContract}`
+        : `Received ${fmtAmount(ethAmount)} ETH`;
     } else if (hasCalldata) {
       // Contract interaction — decode it
       const labeled = labelTransaction(tx.to, tx.input, ethAmount, "ETH");
       type = labeled.type;
       description = hasValue
-        ? `${labeled.label} (${ethAmount.toFixed(4)} ETH)`
+        ? `${labeled.label} (${fmtAmount(ethAmount)} ETH)`
         : labeled.label;
     } else {
       type = "send";
-      description = `Sent ${ethAmount.toFixed(4)} ETH`;
+      description = `Sent ${fmtAmount(ethAmount)} ETH`;
     }
 
     transactions.push({
