@@ -31,7 +31,6 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
   const wcCleanupRef = useRef<(() => void) | null>(null);
 
   const isCompact = layout === "dropdown";
-  const isMobile = typeof window !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   const { installed, others } = useMemo(() => {
     const installed: (typeof connectors)[number][] = [];
@@ -71,16 +70,12 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
         const onUri = async (uri: string) => {
           setWcUri(uri);
           setWcLoading(false);
-          if (!isMobile) {
-            const dataUrl = await QRCode.toDataURL(uri, {
-              width: isCompact ? 220 : 280,
-              margin: 2,
-              color: { dark: "#1d1d1f", light: "#ffffff" },
-            });
-            setWcQrDataUrl(dataUrl);
-          } else {
-            window.location.href = uri;
-          }
+          const dataUrl = await QRCode.toDataURL(uri, {
+            width: isCompact ? 220 : 280,
+            margin: 2,
+            color: { dark: "#1d1d1f", light: "#ffffff" },
+          });
+          setWcQrDataUrl(dataUrl);
         };
 
         provider.on("display_uri", onUri);
@@ -102,49 +97,53 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
       onSuccess: () => { setPendingId(null); onConnected?.(); },
       onError: () => setPendingId(null),
     });
-  }, [connect, connectAsync, isCompact, isMobile, onConnected, resetWc]);
+  }, [connect, connectAsync, isCompact, onConnected, resetWc]);
 
   useEffect(() => { return () => resetWc(); }, [resetWc]);
 
-  // Use local pendingId for disabled — NOT wagmi's isPending which stays true
-  // after WC cancel because the promise is still hanging
   const isBusy = pendingId !== null;
 
   // ── WalletConnect Loading / QR View ──
   if (wcLoading || wcQrDataUrl) {
     return (
-      <div className={`flex flex-col items-center ${isCompact ? "px-2 py-1" : ""}`}>
+      <div className="flex flex-col items-center py-2">
         <button onClick={resetWc}
-          className="flex items-center gap-1.5 text-[13px] text-on-surface-variant hover:text-brand-black transition-colors mb-4 self-start">
+          className="flex items-center gap-1.5 text-[13px] text-on-surface-variant hover:text-brand-black transition-colors mb-4 self-start px-1">
           <ArrowLeft className="w-3.5 h-3.5" /> Back
         </button>
 
         {wcQrDataUrl ? (
           <>
-            <div className="rounded-2xl border border-outline-variant p-4 bg-white">
+            <div className="rounded-2xl border border-outline-variant/80 p-4 bg-surface/50">
               <img src={wcQrDataUrl} alt="Scan to connect"
                 className={isCompact ? "w-[220px] h-[220px]" : "w-[280px] h-[280px]"} />
             </div>
             <p className={`text-on-surface-variant mt-4 text-center ${isCompact ? "text-[12px]" : "text-[14px]"}`}>
               Scan with your mobile wallet
             </p>
-            {wcUri && (
-              <button onClick={async () => {
-                const ok = await copyToClipboard(wcUri);
-                if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
-              }}
-                className={`mt-2 mb-1 flex items-center gap-1.5 text-on-surface-variant hover:text-brand-black transition-colors ${isCompact ? "text-[12px]" : "text-[13px]"}`}>
-                {copied ? <Check className="w-3.5 h-3.5 text-tertiary" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? "Copied" : "Copy link"}
-              </button>
-            )}
+            <div className="flex items-center gap-4 mt-3 mb-1">
+              {wcUri && (
+                <>
+                  <button onClick={async () => {
+                    const ok = await copyToClipboard(wcUri);
+                    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
+                  }}
+                    className="flex items-center gap-1.5 text-[12px] text-on-surface-variant hover:text-brand-black transition-colors">
+                    {copied ? <Check className="w-3.5 h-3.5 text-tertiary" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied ? "Copied" : "Copy link"}
+                  </button>
+                  <a href={wcUri}
+                    className="flex items-center gap-1.5 text-[12px] text-brand-navy hover:text-brand-navy/80 transition-colors">
+                    <Smartphone className="w-3.5 h-3.5" /> Open in app
+                  </a>
+                </>
+              )}
+            </div>
           </>
         ) : (
           <div className="flex flex-col items-center py-8">
             <Loader2 className="w-6 h-6 text-on-surface-variant animate-spin mb-3" />
-            <p className={`text-on-surface-variant ${isCompact ? "text-[12px]" : "text-[14px]"}`}>
-              Preparing connection...
-            </p>
+            <p className="text-on-surface-variant text-[13px]">Preparing connection...</p>
           </div>
         )}
       </div>
@@ -162,7 +161,7 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
             {i === installed.length && installed.length > 0 && (
               <div className={`border-t border-outline-variant ${isCompact ? "my-1.5" : "my-2"}`} />
             )}
-            <WalletRow connector={connector} isCompact={isCompact} isMobile={isMobile}
+            <WalletRow connector={connector} isCompact={isCompact}
               isBusy={isBusy} pendingId={pendingId} onSelect={handleSelect} />
           </div>
         ))}
@@ -191,10 +190,9 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
 
 type AnyConnector = ReturnType<typeof useConnect>["connectors"][number];
 
-function WalletRow({ connector, isCompact, isMobile, isBusy, pendingId, onSelect }: {
+function WalletRow({ connector, isCompact, isBusy, pendingId, onSelect }: {
   connector: AnyConnector;
   isCompact: boolean;
-  isMobile?: boolean;
   isBusy: boolean;
   pendingId: string | null;
   onSelect: (c: AnyConnector) => void;
@@ -224,7 +222,7 @@ function WalletRow({ connector, isCompact, isMobile, isBusy, pendingId, onSelect
         <span className="text-brand-black font-medium">{connector.name}</span>
         {connector.id === "walletConnect" && (
           <span className={`block text-on-surface-variant ${isCompact ? "text-[11px]" : "text-[12px]"}`}>
-            {isMobile ? "Open in wallet app" : "Scan QR code"}
+            Scan QR code
           </span>
         )}
       </div>
