@@ -2,112 +2,170 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useDisconnect } from "wagmi";
+import { useAccount, useDisconnect, useSwitchChain, useChainId } from "wagmi";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, LogOut, Copy, Check, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { copyToClipboard } from "@/lib/clipboard";
+import { useCachedEnsName } from "@/hooks/use-cached-ens";
+import { WalletOptions } from "@/components/shared/wallet-options";
+
+function WalletAvatar({ address, size }: { address: string; size: number }) {
+  return (
+    <Image
+      src={`https://api.dicebear.com/9.x/bottts-neutral/svg?scale=110&seed=${address}`}
+      alt=""
+      width={size}
+      height={size}
+      className="rounded-md"
+      unoptimized
+    />
+  );
+}
 
 function WalletButton() {
+  const { address, isConnected, isReconnecting } = useAccount();
   const { disconnect } = useDisconnect();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { switchChain, chains } = useSwitchChain();
+  const chainId = useChainId();
+  const ensName = useCachedEnsName(address);
+
+  const showWallet = isConnected || (isReconnecting && !!address);
+
+  const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [networkExpanded, setNetworkExpanded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setDropdownOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setNetworkExpanded(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  return (
-    <ConnectButton.Custom>
-      {({ account, chain, openConnectModal, openChainModal, mounted }) => {
-        const connected = mounted && account && chain;
+  // Close dropdown on route change or disconnect
+  useEffect(() => { if (!isConnected) { setOpen(false); setNetworkExpanded(false); } }, [isConnected]);
 
-        if (!mounted) return null;
+  const currentChain = chains.find((c) => c.id === chainId);
+  const displayName = ensName || (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "");
 
-        if (!connected) {
-          return (
-            <button onClick={openConnectModal}
-              className="text-[14px] font-medium text-white bg-brand-navy px-5 py-2 rounded-lg hover:bg-brand-navy/90 transition-colors">
-              Connect Wallet
-            </button>
-          );
-        }
+  // ── Connected State ──
+  if (showWallet && address) {
+    return (
+      <div className="relative" ref={ref}>
+        <button onClick={() => { setOpen(!open); setNetworkExpanded(false); }}
+          className="flex items-center gap-2.5 text-[14px] text-brand-black hover:text-brand-black/80 transition-colors">
+          <WalletAvatar address={address} size={24} />
+          {displayName}
+          <ChevronDown className={`w-3.5 h-3.5 text-on-surface-variant transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
 
-        const displayName = account.ensName || `${account.address.slice(0, 6)}...${account.address.slice(-4)}`;
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.12 }}
+              className="absolute right-0 mt-2 w-60 bg-white rounded-xl border border-outline-variant shadow-sm p-1.5 z-[110]"
+            >
+              {/* Address */}
+              <div className="px-3 py-2.5">
+                <p className="text-[11px] uppercase tracking-wide text-on-surface-variant">Wallet</p>
+                <p className="text-[12px] font-mono text-brand-black mt-1 truncate">{address}</p>
+              </div>
 
-        return (
-          <div className="relative" ref={ref}>
-            <button onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2.5 text-[14px] text-brand-black hover:text-brand-black/80 transition-colors">
-              {account.ensAvatar ? (
-                <img src={account.ensAvatar} alt="" className="w-6 h-6 rounded-md" />
-              ) : (
-                <div className="w-6 h-6 rounded-md bg-brand-navy/10 flex items-center justify-center">
-                  <span className="text-[10px] font-medium text-brand-navy">
-                    {account.address.slice(2, 4).toUpperCase()}
-                  </span>
-                </div>
-              )}
-              {displayName}
-              <ChevronDown className={`w-3.5 h-3.5 text-on-surface-variant transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
-            </button>
+              <div className="h-px bg-outline-variant mx-1.5" />
 
-            <AnimatePresence>
-              {dropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.1 }}
-                  className="absolute right-0 mt-2 w-60 bg-white rounded-xl border border-outline-variant shadow-sm p-1.5 z-[110]"
-                >
-                  {/* Address */}
-                  <div className="px-3 py-2.5">
-                    <p className="text-[11px] uppercase tracking-wide text-on-surface-variant">Wallet</p>
-                    <p className="text-[12px] font-mono text-brand-black mt-1 truncate">{account.address}</p>
+              {/* Network — collapsible */}
+              <div className="mt-0.5">
+                <button onClick={() => setNetworkExpanded(!networkExpanded)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-brand-black hover:bg-surface rounded-lg transition-colors">
+                  <div className="w-4 h-4 rounded-full bg-brand-navy/10 flex items-center justify-center flex-shrink-0">
+                    <div className={`w-2 h-2 rounded-full ${currentChain ? "bg-tertiary" : "bg-on-surface-variant"}`} />
                   </div>
+                  <span className="flex-1 text-left">{currentChain?.name ?? "Unknown"}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-on-surface-variant transition-transform ${networkExpanded ? "rotate-180" : ""}`} />
+                </button>
 
-                  <div className="h-px bg-outline-variant mx-1.5" />
+                <AnimatePresence>
+                  {networkExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-1.5 pb-1">
+                        {chains.map((chain) => (
+                          <button
+                            key={chain.id}
+                            onClick={() => { switchChain({ chainId: chain.id }); setNetworkExpanded(false); }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-lg transition-colors
+                              ${chain.id === chainId
+                                ? "text-brand-navy bg-brand-navy/5 font-medium"
+                                : "text-on-surface-variant hover:bg-surface hover:text-brand-black"
+                              }`}
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full ${chain.id === chainId ? "bg-brand-navy" : "bg-outline"}`} />
+                            {chain.name}
+                            {chain.id === chainId && <Check className="w-3.5 h-3.5 ml-auto text-brand-navy" />}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-                  {/* Network */}
-                  <button onClick={() => { openChainModal(); setDropdownOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-brand-black hover:bg-surface rounded-lg transition-colors mt-0.5">
-                    {chain.iconUrl && (
-                      <img src={chain.iconUrl} alt={chain.name ?? ""} className="w-4 h-4 rounded-full" />
-                    )}
-                    {chain.name}
-                    <ChevronDown className="w-3 h-3 text-on-surface-variant ml-auto" />
-                  </button>
+              {/* Copy address */}
+              <button onClick={async () => {
+                const ok = await copyToClipboard(address);
+                if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
+              }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-brand-black hover:bg-surface rounded-lg transition-colors">
+                {copied ? <Check className="w-4 h-4 text-tertiary" /> : <Copy className="w-4 h-4 text-on-surface-variant" />}
+                {copied ? "Copied" : "Copy address"}
+              </button>
 
-                  {/* Copy address */}
-                  <button onClick={async () => {
-                    const ok = await copyToClipboard(account.address);
-                    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
-                  }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-brand-black hover:bg-surface rounded-lg transition-colors">
-                    {copied ? <Check className="w-4 h-4 text-tertiary" /> : <Copy className="w-4 h-4 text-on-surface-variant" />}
-                    {copied ? "Copied" : "Copy address"}
-                  </button>
+              <div className="h-px bg-outline-variant mx-1.5" />
 
-                  <div className="h-px bg-outline-variant mx-1.5" />
+              {/* Disconnect */}
+              <button onClick={() => { disconnect(); setOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-error hover:bg-error-container/30 rounded-lg transition-colors">
+                <LogOut className="w-4 h-4" /> Disconnect
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
-                  {/* Disconnect */}
-                  <button onClick={() => { disconnect(); setDropdownOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-error hover:bg-error-container/30 rounded-lg transition-colors">
-                    <LogOut className="w-4 h-4" /> Disconnect
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        );
-      }}
-    </ConnectButton.Custom>
+  // ── Disconnected State ──
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(!open)}
+        className="text-[14px] font-medium text-white bg-brand-navy px-5 py-2 rounded-lg hover:bg-brand-navy/90 transition-colors">
+        Connect Wallet
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12 }}
+            className="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-outline-variant shadow-sm p-2 z-[110]"
+          >
+            <p className="px-3 py-2 text-[11px] uppercase tracking-wide text-on-surface-variant">Connect a wallet</p>
+            <WalletOptions layout="dropdown" onConnected={() => setOpen(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -150,12 +208,11 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Desktop */}
           <div className="hidden md:block">
             <WalletButton />
           </div>
 
-          {/* Mobile — wallet + hamburger */}
+          {/* Mobile */}
           <div className="md:hidden flex items-center gap-2">
             <WalletButton />
             <button onClick={() => setMenuOpen(!menuOpen)} className="w-9 h-9 flex items-center justify-center">

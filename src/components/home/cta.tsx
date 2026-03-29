@@ -1,7 +1,5 @@
 "use client";
 
-import { useAccount } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
 import Link from "next/link";
@@ -10,16 +8,10 @@ import { ArrowRight } from "lucide-react";
 import { useRef, useCallback } from "react";
 
 export function CTA() {
-  const { isConnected } = useAccount();
-  const { openConnectModal } = useConnectModal();
   const router = useRouter();
 
   const handleGenerate = () => {
-    if (isConnected) {
-      router.push("/generate");
-    } else {
-      openConnectModal?.();
-    }
+    router.push("/generate");
   };
 
   // 3D tilt tracking for the slip

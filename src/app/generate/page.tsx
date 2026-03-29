@@ -2,7 +2,6 @@
 
 import { useStatement } from "@/hooks/use-statement";
 import { useAccount } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useCachedEnsName } from "@/hooks/use-cached-ens";
 import { Wallet, AlertCircle } from "lucide-react";
 import { Suspense } from "react";
@@ -15,11 +14,11 @@ import { PersonalDetailsForm } from "@/components/generate/personal-details";
 import { SummaryCard } from "@/components/generate/summary-card";
 import { GeneratingProgress } from "@/components/generate/generating-progress";
 import { StatementResult } from "@/components/generate/statement-result";
+import { WalletOptions } from "@/components/shared/wallet-options";
 import { downloadPdf } from "@/lib/pdf";
 import { getNetworkName } from "@/lib/ethereum";
 
 function ConnectWalletGate() {
-  const { openConnectModal } = useConnectModal();
   return (
     <div className="pt-24 pb-20 px-5">
       <div className="container-page flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -30,10 +29,7 @@ function ConnectWalletGate() {
         <p className="text-on-surface-variant text-[15px] mb-8 max-w-sm">
           It takes less than 30 seconds. No sign-up required.
         </p>
-        <button onClick={() => openConnectModal?.()}
-          className="bg-brand-navy text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-brand-navy/90 transition-colors">
-          Connect Wallet
-        </button>
+        <WalletOptions layout="page" />
       </div>
     </div>
   );

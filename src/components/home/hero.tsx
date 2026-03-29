@@ -1,7 +1,5 @@
 "use client";
 
-import { useAccount } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
@@ -21,16 +19,10 @@ const TRANSACTIONS = [
 ];
 
 export function Hero() {
-  const { isConnected } = useAccount();
-  const { openConnectModal } = useConnectModal();
   const router = useRouter();
 
   const handleGenerate = () => {
-    if (isConnected) {
-      router.push("/generate");
-    } else {
-      openConnectModal?.();
-    }
+    router.push("/generate");
   };
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
