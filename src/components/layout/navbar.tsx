@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useAccount, useConnect, useDisconnect, useSwitchChain, useChainId } from "wagmi";
+import { useAccount, useDisconnect, useSwitchChain, useChainId } from "wagmi";
 import { usePathname } from "next/navigation";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronDown, LogOut, Copy, Check, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -24,7 +24,7 @@ function WalletAvatar({ address, size }: { address: string; size: number }) {
   );
 }
 
-function WalletButton() {
+function WalletButton({ compact }: { compact?: boolean }) {
   const { address, isConnected, isReconnecting } = useAccount();
   const { disconnect } = useDisconnect();
   const { switchChain, chains } = useSwitchChain();
@@ -49,7 +49,6 @@ function WalletButton() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Close dropdown on route change or disconnect
   useEffect(() => { if (!isConnected) { setOpen(false); setNetworkExpanded(false); } }, [isConnected]);
 
   const currentChain = chains.find((c) => c.id === chainId);
@@ -60,10 +59,15 @@ function WalletButton() {
     return (
       <div className="relative" ref={ref}>
         <button onClick={() => { setOpen(!open); setNetworkExpanded(false); }}
-          className="flex items-center gap-2.5 text-[14px] text-brand-black hover:text-brand-black/80 transition-colors">
-          <WalletAvatar address={address} size={24} />
-          {displayName}
-          <ChevronDown className={`w-3.5 h-3.5 text-on-surface-variant transition-transform ${open ? "rotate-180" : ""}`} />
+          className={`flex items-center gap-2 text-brand-black hover:text-brand-black/80 transition-colors
+            ${compact ? "p-1 rounded-lg bg-surface" : "gap-2.5 text-[14px]"}`}>
+          <WalletAvatar address={address} size={compact ? 26 : 24} />
+          {!compact && (
+            <>
+              {displayName}
+              <ChevronDown className={`w-3.5 h-3.5 text-on-surface-variant transition-transform ${open ? "rotate-180" : ""}`} />
+            </>
+          )}
         </button>
 
         <AnimatePresence>
@@ -138,19 +142,12 @@ function WalletButton() {
   }
 
   // ── Disconnected State ──
-
-  // Check if user has any browser wallets installed (EIP-6963)
-  const { connectors } = useConnect();
-  const hasInstalledWallets = useMemo(
-    () => connectors.some((c) => c.type === "injected" && c.id !== "injected"),
-    [connectors],
-  );
-
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(!open)}
-        className="text-[14px] font-medium text-white bg-brand-navy px-5 py-2 rounded-lg hover:bg-brand-navy/90 transition-colors">
-        Connect Wallet
+        className={`font-medium text-white bg-brand-navy rounded-lg hover:bg-brand-navy/90 transition-colors
+          ${compact ? "text-[13px] px-4 py-2" : "text-[14px] px-5 py-2"}`}>
+        {compact ? "Connect" : "Connect Wallet"}
       </button>
 
       <AnimatePresence>
@@ -160,9 +157,6 @@ function WalletButton() {
             transition={{ duration: 0.12 }}
             className="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-outline-variant shadow-sm p-2 z-[110]"
           >
-            <p className="px-3 py-2 text-[12px] text-on-surface-variant">
-              {hasInstalledWallets ? "Choose a wallet" : "Connect with"}
-            </p>
             <WalletOptions layout="dropdown" onConnected={() => setOpen(false)} />
           </motion.div>
         )}
@@ -210,14 +204,16 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Desktop — full button with name */}
           <div className="hidden md:block">
             <WalletButton />
           </div>
 
-          {/* Mobile */}
-          <div className="md:hidden flex items-center gap-2">
-            <WalletButton />
-            <button onClick={() => setMenuOpen(!menuOpen)} className="w-9 h-9 flex items-center justify-center">
+          {/* Mobile — compact avatar or short "Connect", plus hamburger */}
+          <div className="md:hidden flex items-center gap-1.5">
+            <WalletButton compact />
+            <button onClick={() => setMenuOpen(!menuOpen)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface transition-colors">
               {menuOpen ? <X className="w-[18px] h-[18px]" /> : <Menu className="w-[18px] h-[18px]" />}
             </button>
           </div>
