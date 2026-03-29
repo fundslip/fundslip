@@ -2,6 +2,7 @@ import { createPublicClient, http, formatEther, formatUnits, type Address, type 
 import { mainnet, sepolia } from "viem/chains";
 import { TRACKED_TOKENS, ERC20_ABI } from "./constants";
 import { MAINNET_RPC, SEPOLIA_RPC } from "./wagmi-config";
+import { discoverTokens } from "./alchemy";
 import type { TokenBalance, Transaction } from "@/types";
 
 // Cache public clients — reuse connections instead of creating fresh on every call
@@ -39,17 +40,114 @@ export async function getEthBalance(address: Address, chainId: number = 1): Prom
   return { balance: parseFloat(formatEther(raw)), raw };
 }
 
-export async function getTokenBalances(address: Address, chainId: number = 1): Promise<TokenBalance[]> {
-  // TRACKED_TOKENS are mainnet contracts — skip on other chains to avoid wasted RPC calls
+/**
+ * Detect and fetch all ERC-20 token balances for a wallet.
+ *
+ * Primary: Alchemy token discovery (finds every token the wallet holds)
+ * Fallback: hardcoded TRACKED_TOKENS list (26 major tokens)
+ *
+ * Balances are fetched at the given blockNumber for deterministic signing.
+ * If no blockNumber is provided, fetches at the latest block.
+ */
+export async function getTokenBalances(
+  address: Address,
+  chainId: number = 1,
+  blockNumber?: number
+): Promise<TokenBalance[]> {
   if (chainId !== mainnet.id) return [];
+
+  // Try Alchemy-based discovery first
+  const discovered = await discoverTokens(address, chainId);
+  if (discovered && discovered.length > 0) {
+    return fetchBalancesForDiscoveredTokens(address, discovered, chainId, blockNumber);
+  }
+
+  // Alchemy unavailable or returned nothing — fall back to hardcoded list
+  if (discovered === null) {
+    console.info("Alchemy unavailable, falling back to hardcoded token list");
+  }
+  return fetchHardcodedTokenBalances(address, chainId, blockNumber);
+}
+
+/**
+ * Fetch balances for Alchemy-discovered tokens via multicall at a specific block.
+ */
+async function fetchBalancesForDiscoveredTokens(
+  address: Address,
+  discovered: { contractAddress: string; name: string; symbol: string; decimals: number }[],
+  chainId: number,
+  blockNumber?: number
+): Promise<TokenBalance[]> {
   const client = getClient(chainId);
+
+  const contracts = discovered.map((t) => ({
+    address: t.contractAddress as Address,
+    abi: ERC20_ABI,
+    functionName: "balanceOf" as const,
+    args: [address],
+  }));
+
   let results;
   try {
     results = await client.multicall({
-      contracts: TRACKED_TOKENS.map((token) => ({
-        address: token.address as Address, abi: ERC20_ABI,
-        functionName: "balanceOf", args: [address],
-      })),
+      contracts,
+      ...(blockNumber ? { blockNumber: BigInt(blockNumber) } : {}),
+    });
+  } catch {
+    // If multicall fails at the specific block, try without blockNumber
+    try {
+      results = await client.multicall({ contracts });
+    } catch {
+      return [];
+    }
+  }
+
+  const tokens: TokenBalance[] = [];
+  for (let i = 0; i < discovered.length; i++) {
+    const result = results[i];
+    const token = discovered[i];
+    if (result.status === "success" && result.result) {
+      const rawBalance = result.result as bigint;
+      if (rawBalance > BigInt(0)) {
+        const balanceFormatted = parseFloat(formatUnits(rawBalance, token.decimals));
+        tokens.push({
+          name: token.name,
+          symbol: token.symbol,
+          balance: rawBalance.toString(),
+          balanceFormatted,
+          decimals: token.decimals,
+          contractAddress: token.contractAddress.toLowerCase(),
+          priceUsd: 0,
+          valueUsd: 0,
+        });
+      }
+    }
+  }
+  return tokens;
+}
+
+/**
+ * Original hardcoded token balance fetching — used as fallback.
+ */
+async function fetchHardcodedTokenBalances(
+  address: Address,
+  chainId: number,
+  blockNumber?: number
+): Promise<TokenBalance[]> {
+  const client = getClient(chainId);
+
+  const contracts = TRACKED_TOKENS.map((token) => ({
+    address: token.address as Address,
+    abi: ERC20_ABI,
+    functionName: "balanceOf" as const,
+    args: [address],
+  }));
+
+  let results;
+  try {
+    results = await client.multicall({
+      contracts,
+      ...(blockNumber ? { blockNumber: BigInt(blockNumber) } : {}),
     });
   } catch { return []; }
 
