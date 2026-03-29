@@ -21,7 +21,7 @@ import { getNetworkName } from "@/lib/ethereum";
 function ConnectWalletGate() {
   return (
     <div className="pt-24 pb-20 px-5">
-      <div className="container-page flex flex-col items-center justify-center min-h-[60vh] text-center">
+      <div className="container-page flex flex-col items-center pt-16 text-center">
         <Wallet className="w-8 h-8 text-on-surface-variant mb-6" />
         <h1 className="font-headline text-2xl md:text-3xl font-semibold text-brand-black mb-3">
           Connect your wallet

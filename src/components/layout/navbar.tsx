@@ -183,7 +183,7 @@ function MobileMenu({ pathname, NAV, isActive }: {
   const currentChain = chains.find((c) => c.id === chainId);
   const displayName = ensName || (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "");
 
-  const panelClasses = "absolute left-0 right-0 top-full bg-white border-t border-outline-variant/60 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.12)] z-[109]";
+  const panelClasses = "absolute left-0 right-0 top-full bg-white border-t border-outline-variant/60 rounded-b-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.12)] z-[109]";
 
   // ── Connected: unified pill ──
   if (showWallet && address) {
