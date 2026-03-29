@@ -154,8 +154,6 @@ function labelTransaction(
     return { type: "contract", label };
   }
 
-  // Contract name + action: "Uniswap V3 — Swap"
-  if (contractName && action) return { type: "contract", label: `${contractName} — ${action}` };
   if (contractName) return { type: "contract", label: contractName };
   if (action) return { type: "contract", label: action };
 
