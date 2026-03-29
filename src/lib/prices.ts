@@ -33,6 +33,9 @@ const COINGECKO_IDS: Record<string, string> = {
 let priceCache: { prices: Record<string, number>; timestamp: number } | null = null;
 const CACHE_TTL = 60_000; // 1 minute
 
+// Contract address → USD price cache (separate from symbol cache)
+let contractPriceCache: { prices: Map<string, number>; timestamp: number } | null = null;
+
 export async function fetchPrices(
   symbols: string[]
 ): Promise<Record<string, number>> {
@@ -122,4 +125,91 @@ async function fetchFromFallback(symbols: string[]): Promise<Record<string, numb
 export async function fetchAllPrices(): Promise<Record<string, number>> {
   const symbols = ["ETH", ...TRACKED_TOKENS.map((t) => t.symbol)];
   return fetchPrices(symbols);
+}
+
+/**
+ * Fetch prices by contract address via CoinGecko's token_price endpoint.
+ * Returns a Map of lowercase contract address → USD price.
+ * Tokens without CoinGecko data are simply absent from the map.
+ */
+export async function fetchPricesByContract(
+  contractAddresses: string[],
+  platform: string = "ethereum"
+): Promise<Map<string, number>> {
+  if (contractAddresses.length === 0) return new Map();
+
+  // Check cache
+  if (contractPriceCache && Date.now() - contractPriceCache.timestamp < CACHE_TTL) {
+    const cached = new Map<string, number>();
+    let allFound = true;
+    for (const addr of contractAddresses) {
+      const key = addr.toLowerCase();
+      if (contractPriceCache.prices.has(key)) {
+        cached.set(key, contractPriceCache.prices.get(key)!);
+      } else {
+        allFound = false;
+      }
+    }
+    if (allFound) return cached;
+  }
+
+  const prices = new Map<string, number>();
+  const BATCH_SIZE = 25; // safe limit for CoinGecko free tier
+
+  for (let i = 0; i < contractAddresses.length; i += BATCH_SIZE) {
+    const batch = contractAddresses.slice(i, i + BATCH_SIZE);
+    const addresses = batch.map((a) => a.toLowerCase()).join(",");
+    const url = `https://api.coingecko.com/api/v3/simple/token_price/${platform}?contract_addresses=${addresses}&vs_currencies=usd`;
+
+    try {
+      const res = await fetchWithRetry(url);
+      if (!res) continue;
+
+      const data = await res.json();
+      for (const [addr, priceData] of Object.entries(data)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const usd = (priceData as any)?.usd;
+        if (typeof usd === "number" && usd > 0) {
+          prices.set(addr.toLowerCase(), usd);
+        }
+      }
+    } catch {
+      // Continue with what we have
+    }
+
+    // Small delay between batches to respect rate limits
+    if (i + BATCH_SIZE < contractAddresses.length) {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+
+  // Update cache
+  contractPriceCache = {
+    prices: new Map([...(contractPriceCache?.prices || new Map()), ...prices]),
+    timestamp: Date.now(),
+  };
+
+  return prices;
+}
+
+/**
+ * Fetch with exponential backoff on 429 rate limit.
+ */
+async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response | null> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 429) {
+        if (attempt === maxRetries) return null;
+        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+        console.warn(`CoinGecko 429, retrying in ${Math.round(delay)}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      return res;
+    } catch {
+      if (attempt === maxRetries) return null;
+    }
+  }
+  return null;
 }
