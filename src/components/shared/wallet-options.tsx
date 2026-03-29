@@ -1,7 +1,7 @@
 "use client";
 
 import { useConnect } from "wagmi";
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from "react";
 import { ArrowLeft, Loader2, Copy, Check, Smartphone, HelpCircle } from "lucide-react";
 import QRCode from "qrcode";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -29,6 +29,10 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
   const [copied, setCopied] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const wcCleanupRef = useRef<(() => void) | null>(null);
+
+  // Defer connector list rendering until client to avoid hydration mismatch
+  // (EIP-6963 discovers wallets on client only, changing the list)
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   const isCompact = layout === "dropdown";
 
@@ -152,6 +156,14 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
 
   // ── Wallet List ──
   const allWallets = [...installed, ...others];
+
+  if (!mounted) {
+    return (
+      <div className={`flex justify-center ${isCompact ? "py-6" : "py-10"}`}>
+        <Loader2 className="w-5 h-5 text-on-surface-variant animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className={isCompact ? "" : "w-full max-w-sm"}>
