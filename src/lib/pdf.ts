@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import type { StatementData } from "@/types";
 import QRCode from "qrcode";
 import { getLogoDataUrl } from "./logo";
+import { processForDisplay } from "./ethereum";
 
 // ── Helpers ──
 
@@ -252,8 +253,9 @@ export async function generatePdfBlob(
   // ════════════════════════════════════════════
 
   if (!isBs) {
-    const allTxs = data.transactions.filter(t => t.valueUsd > 0 || t.type === "send" || t.type === "contract");
-    const txs = isIs ? allTxs.filter(t => t.type === "receive") : allTxs;
+    const displayTxs = processForDisplay(data.transactions);
+    const allTxs = displayTxs.filter(t => t.valueUsd > 0 || t.type === "send" || t.type === "contract");
+    const txs = isIs ? displayTxs.filter(t => t.type === "receive") : allTxs;
 
     if (txs.length > 0) {
       const recv = allTxs.filter(t => t.type === "receive").reduce((s, t) => s + t.valueUsd, 0);
@@ -296,13 +298,18 @@ export async function generatePdfBlob(
         startY: y,
         margin: { left: L, right: 24 },
         head: [["Date", "Description", isIs ? "From" : "Counterparty", "Type", "Value"]],
-        body: txs.slice(0, 100).map(tx => [
-          new Date(tx.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }),
-          tx.description,
-          tx.type === "receive" ? shortAddr(tx.from) : shortAddr(tx.to),
-          tx.type === "contract" ? "Interact" : tx.type.charAt(0).toUpperCase() + tx.type.slice(1),
-          tx.valueUsd > 0 ? `$${fmt(tx.valueUsd)}` : "—",
-        ]),
+        body: txs.slice(0, 100).map(tx => {
+          const typeLabel = tx.type === "contract"
+            ? (tx.description.toLowerCase().includes("swap") ? "Swap" : "Action")
+            : tx.type === "receive" ? "In" : "Out";
+          return [
+            new Date(tx.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }),
+            tx.description,
+            tx.type === "receive" ? shortAddr(tx.from) : shortAddr(tx.to),
+            typeLabel,
+            tx.valueUsd > 0 ? `$${fmt(tx.valueUsd)}` : "—",
+          ];
+        }),
         styles: {
           fontSize: 6.5, cellPadding: 2.2,
           textColor: BLACK, lineColor: RULE, lineWidth: 0.08,

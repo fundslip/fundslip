@@ -588,3 +588,84 @@ export async function getEnsName(address: Address): Promise<string | null> {
 export async function getBlockNumber(chainId: number = 1): Promise<number> {
   return Number(await getClient(chainId).getBlockNumber());
 }
+
+// ─── Display processing: turn raw transactions into clean statement entries ───
+
+/**
+ * Process raw transactions into clean, statement-ready entries:
+ * - Merges swap pairs (send + receive in same tx) into "Swapped X → Y"
+ * - Hides intermediate steps (ENS Commit, zero-value unknown calls)
+ * - Keeps meaningful actions (Approve USDT, ENS Registration, etc.)
+ */
+export function processForDisplay(raw: Transaction[]): Transaction[] {
+  // Group by tx hash
+  const byHash = new Map<string, Transaction[]>();
+  for (const tx of raw) {
+    const key = tx.hash.toLowerCase();
+    if (!byHash.has(key)) byHash.set(key, []);
+    byHash.get(key)!.push(tx);
+  }
+
+  const result: Transaction[] = [];
+
+  for (const group of byHash.values()) {
+    if (group.length === 1) {
+      const tx = group[0];
+      if (!shouldHideFromStatement(tx)) result.push(tx);
+      continue;
+    }
+
+    // Multiple entries for same tx hash — check for swap pattern
+    const outgoing = group.filter(t => t.type === "send" || t.type === "contract");
+    const incoming = group.filter(t => t.type === "receive");
+
+    if (outgoing.length > 0 && incoming.length > 0) {
+      // Swap: something went out, something came in
+      const out = outgoing[0];
+      const recv = incoming[0];
+      const outAsset = out.tokenSymbol || "ETH";
+      const inAsset = recv.tokenSymbol || "ETH";
+      const outAmt = extractAmount(out.description, outAsset);
+      const inAmt = extractAmount(recv.description, inAsset);
+
+      result.push({
+        ...out,
+        type: "contract",
+        description: `Swapped ${outAmt} ${outAsset} → ${inAmt} ${inAsset}`,
+        valueUsd: Math.max(out.valueUsd, recv.valueUsd),
+      });
+
+      // If there are additional receives beyond the first (multi-output swap), keep them
+      for (let i = 1; i < incoming.length; i++) {
+        if (!shouldHideFromStatement(incoming[i])) result.push(incoming[i]);
+      }
+      continue;
+    }
+
+    // Not a swap — keep non-hidden entries, skip duplicates
+    for (const tx of group) {
+      if (!shouldHideFromStatement(tx)) result.push(tx);
+    }
+  }
+
+  return result.sort((a, b) => b.timestamp - a.timestamp);
+}
+
+function shouldHideFromStatement(tx: Transaction): boolean {
+  const desc = tx.description.toLowerCase();
+  // ENS Commit is a preparatory step — always followed by registration
+  if (desc.includes("ens commit")) return true;
+  // Zero-value calls to unknown addresses — noise
+  if (tx.type === "contract" && tx.valueUsd === 0 && desc.startsWith("call to")) return true;
+  return false;
+}
+
+function extractAmount(description: string, fallbackAsset: string): string {
+  // Extract amount from descriptions like "Sent 6.0000 USDT", "Received 0.0029 ETH",
+  // "Metamask Swap", "ENS Registration (0.0047 ETH)"
+  const parenMatch = description.match(/\(([0-9,.]+)\s+\w+\)/);
+  if (parenMatch) return parenMatch[1];
+  const directMatch = description.match(/(?:Sent|Received)\s+([0-9,.]+)\s+/);
+  if (directMatch) return directMatch[1];
+  return "";
+}
