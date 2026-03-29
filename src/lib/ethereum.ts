@@ -5,24 +5,55 @@ import { MAINNET_RPC, SEPOLIA_RPC } from "./wagmi-config";
 import { discoverTokens, fetchAssetTransfers, type AlchemyTransfer } from "./alchemy";
 import type { TokenBalance, Transaction } from "@/types";
 
-// ─── Known contracts and function selectors for labeling ───
+// ─── Dynamic contract name resolution ───
 
-const KNOWN_CONTRACTS: Record<string, string> = {
-  "0x283af0b28c62c092c9727f1ee09c02ca627eb7f5": "ENS: Registrar",
-  "0x253553366da8546fc250f225fe3d25d0c782303b": "ENS: Registrar",
-  "0x59e16c94e4d5a0a63be46e5a5e04f0e75594dd2f": "ENS: Registrar",
-  "0x59e16c94e4d5a0a63be46e5a5e04f0e75594e547": "ENS: Registrar",
-  "0x4ccb0720c1ba15fb91532a09350e1e7195e44477": "ENS: Registrar",
-  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "WETH",
-  "0x7a250d5630b4cf539739df2c5dacb4c659f2488d": "Uniswap V2",
-  "0xe592427a0aece92de3edee1f18e0157c05861564": "Uniswap V3",
-  "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45": "Uniswap",
-  "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad": "Uniswap",
-  "0xae7ab96520de3a18e5e111b5eaab095312d7fe84": "Lido: stETH",
-  "0xdef1c0ded9bec7f1a1670819833240f027b25eff": "0x Exchange",
-  "0x1111111254eeb25477b68fb85ed929f73a960582": "1inch",
-  "0x881d40237659c251811cec9c364ef91dc08d300c": "Metamask Swap",
-};
+// Session cache: address → name
+const contractNameCache = new Map<string, string | null>();
+
+/**
+ * Resolve contract names dynamically via Blockscout V2 API.
+ * Returns verified contract names like "Lido Staked Ether", "UniswapV2Router02", etc.
+ * Caches results for the session. Returns null for EOAs and unverified contracts.
+ */
+async function lookupContractNames(addresses: string[], chainId: number): Promise<Map<string, string>> {
+  const base = chainId === sepolia.id
+    ? "https://eth-sepolia.blockscout.com/api/v2/addresses"
+    : "https://eth.blockscout.com/api/v2/addresses";
+
+  const toLookup = addresses.filter(a => !contractNameCache.has(a.toLowerCase()));
+
+  // Fetch in parallel, max 10 concurrent to stay within rate limits
+  const BATCH = 10;
+  for (let i = 0; i < toLookup.length; i += BATCH) {
+    const batch = toLookup.slice(i, i + BATCH);
+    const results = await Promise.allSettled(
+      batch.map(async (addr) => {
+        try {
+          const res = await fetch(`${base}/${addr}`);
+          if (!res.ok) return { addr, name: null };
+          const data = await res.json();
+          // Use token name if available (better for ERC-20s), else contract name
+          const name: string | null = data.token?.name || data.name || null;
+          return { addr, name: name && data.is_contract ? name : null };
+        } catch {
+          return { addr, name: null };
+        }
+      })
+    );
+    for (const r of results) {
+      if (r.status === "fulfilled") {
+        contractNameCache.set(r.value.addr.toLowerCase(), r.value.name);
+      }
+    }
+  }
+
+  const result = new Map<string, string>();
+  for (const addr of addresses) {
+    const name = contractNameCache.get(addr.toLowerCase());
+    if (name) result.set(addr.toLowerCase(), name);
+  }
+  return result;
+}
 
 // ─── Dynamic function selector resolution ───
 
@@ -94,12 +125,14 @@ function parseAction(signature: string): string {
   return name.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
 }
 
-// Resolve token symbol from contract address
+// Resolve token symbol from contract address (uses TRACKED_TOKENS + dynamic cache)
 function resolveTokenSymbol(address: string): string | null {
   const toLower = address.toLowerCase();
   const tracked = TRACKED_TOKENS.find(t => t.address.toLowerCase() === toLower);
   if (tracked) return tracked.symbol;
-  if (KNOWN_CONTRACTS[toLower] === "WETH") return "WETH";
+  // Check the dynamic contract name cache (populated by lookupContractNames)
+  const cached = contractNameCache.get(toLower);
+  if (cached) return cached;
   return null;
 }
 
@@ -433,14 +466,21 @@ async function buildFromBlockscout(
     fetchExplorerTxs("tokentx", address, startBlock, endBlock, chainId),
   ]);
 
-  // Dynamically resolve ALL function selectors from calldata in one batch
+  // Dynamically resolve function selectors AND contract names in parallel
   const selectors = new Set<string>();
+  const contractAddrs = new Set<string>();
   for (const tx of ethTxs) {
     if (tx.input && tx.input.length >= 10 && tx.input !== "0x") {
       selectors.add(tx.input.slice(0, 10).toLowerCase());
+      if (tx.to) contractAddrs.add(tx.to);
     }
+    if (tx.from) contractAddrs.add(tx.from); // for "Received from [name]"
   }
-  const selectorMap = await lookupSelectors([...selectors]);
+
+  const [selectorMap, contractNames] = await Promise.all([
+    lookupSelectors([...selectors]),
+    lookupContractNames([...contractAddrs], chainId),
+  ]);
 
   const transactions: Transaction[] = [];
   const addrLower = address.toLowerCase();
@@ -462,15 +502,15 @@ async function buildFromBlockscout(
 
     if (isReceive) {
       type = "receive";
-      const fromContract = KNOWN_CONTRACTS[tx.from?.toLowerCase()];
-      description = fromContract
-        ? `Received ${fmtAmount(ethAmount)} ETH from ${fromContract}`
+      const fromName = contractNames.get(tx.from?.toLowerCase());
+      description = fromName
+        ? `Received ${fmtAmount(ethAmount)} ETH from ${fromName}`
         : `Received ${fmtAmount(ethAmount)} ETH`;
     } else if (hasCalldata) {
       const selector = tx.input.slice(0, 10).toLowerCase();
       const sig = selectorMap.get(selector);
       const action = sig ? parseAction(sig) : null;
-      const contractName = KNOWN_CONTRACTS[tx.to?.toLowerCase()] || null;
+      const contractName = contractNames.get(tx.to?.toLowerCase()) || null;
       const labeled = labelTransaction(tx.to, tx.input, action, contractName);
       type = labeled.type;
       description = hasValue && labeled.label
