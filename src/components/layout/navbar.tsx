@@ -87,11 +87,11 @@ function DesktopWalletButton() {
                   {networkExpanded && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.15 }} className="overflow-hidden">
-                      <div className="px-1 pb-1">
+                      <div className="px-1 pb-1 space-y-0.5">
                         {chains.map((chain) => (
                           <button key={chain.id}
                             onClick={() => { switchChain({ chainId: chain.id }); setNetworkExpanded(false); }}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-xl transition-colors
+                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] rounded-xl transition-colors
                               ${chain.id === chainId ? "text-brand-navy bg-brand-navy/5 font-medium" : "text-on-surface-variant hover:bg-surface hover:text-brand-black"}`}>
                             <Image src="/eth.svg" alt="" width={14} height={14} className="w-3.5 h-3.5 flex-shrink-0" />
                             {chain.name}
@@ -226,11 +226,11 @@ function MobileMenu({ pathname, NAV, isActive }: {
                     {networkExpanded && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.15 }} className="overflow-hidden">
-                        <div className="pl-4 pb-1">
+                        <div className="pl-4 pb-1 space-y-0.5">
                           {chains.map((chain) => (
                             <button key={chain.id}
                               onClick={() => { switchChain({ chainId: chain.id }); setNetworkExpanded(false); }}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] rounded-xl transition-colors
+                              className={`w-full flex items-center gap-2.5 px-3 py-3 text-[14px] rounded-xl transition-colors
                                 ${chain.id === chainId ? "text-brand-navy bg-brand-navy/5 font-medium" : "text-on-surface-variant hover:bg-surface hover:text-brand-black"}`}>
                               <Image src="/eth.svg" alt="" width={14} height={14} className="w-3.5 h-3.5 flex-shrink-0" />
                               {chain.name}
