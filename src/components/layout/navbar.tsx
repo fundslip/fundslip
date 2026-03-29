@@ -73,21 +73,11 @@ function WalletButton() {
               transition={{ duration: 0.12 }}
               className="absolute right-0 mt-2 w-60 bg-white rounded-xl border border-outline-variant shadow-sm p-1.5 z-[110]"
             >
-              {/* Address */}
-              <div className="px-3 py-2.5">
-                <p className="text-[11px] uppercase tracking-wide text-on-surface-variant">Wallet</p>
-                <p className="text-[12px] font-mono text-brand-black mt-1 truncate">{address}</p>
-              </div>
-
-              <div className="h-px bg-outline-variant mx-1.5" />
-
               {/* Network — collapsible */}
-              <div className="mt-0.5">
+              <div>
                 <button onClick={() => setNetworkExpanded(!networkExpanded)}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-brand-black hover:bg-surface rounded-lg transition-colors">
-                  <div className="w-4 h-4 rounded-full bg-brand-navy/10 flex items-center justify-center flex-shrink-0">
-                    <div className={`w-2 h-2 rounded-full ${currentChain ? "bg-tertiary" : "bg-on-surface-variant"}`} />
-                  </div>
+                  <Image src="/eth.svg" alt="" width={16} height={16} className="w-4 h-4 flex-shrink-0" />
                   <span className="flex-1 text-left">{currentChain?.name ?? "Unknown"}</span>
                   <ChevronDown className={`w-3.5 h-3.5 text-on-surface-variant transition-transform ${networkExpanded ? "rotate-180" : ""}`} />
                 </button>
@@ -110,7 +100,7 @@ function WalletButton() {
                                 : "text-on-surface-variant hover:bg-surface hover:text-brand-black"
                               }`}
                           >
-                            <div className={`w-1.5 h-1.5 rounded-full ${chain.id === chainId ? "bg-brand-navy" : "bg-outline"}`} />
+                            <Image src="/eth.svg" alt="" width={14} height={14} className="w-3.5 h-3.5 flex-shrink-0" />
                             {chain.name}
                             {chain.id === chainId && <Check className="w-3.5 h-3.5 ml-auto text-brand-navy" />}
                           </button>
@@ -120,6 +110,8 @@ function WalletButton() {
                   )}
                 </AnimatePresence>
               </div>
+
+              <div className="h-px bg-outline-variant mx-1.5" />
 
               {/* Copy address */}
               <button onClick={async () => {
