@@ -24,56 +24,75 @@ const KNOWN_CONTRACTS: Record<string, string> = {
   "0x881d40237659c251811cec9c364ef91dc08d300c": "Metamask Swap",
 };
 
-const KNOWN_SELECTORS: Record<string, string> = {
-  // Token operations
-  "0x095ea7b3": "Token Approval",
-  "0xa9059cbb": "Token Transfer",
-  "0x23b872dd": "Token Transfer",
-  // Swaps
-  "0x3593564c": "Swap",
-  "0x7ff36ab5": "Swap",
-  "0x38ed1739": "Swap",
-  "0x414bf389": "Swap",
-  "0xfb3bdb41": "Swap",
-  "0x5ae401dc": "Swap",
-  "0x04e45aaf": "Swap",
-  "0xe449022e": "Swap",       // 1inch
-  "0x0502b1c5": "Swap",       // 1inch
-  "0x12aa3caf": "Swap",       // 1inch
-  // NFTs
-  "0xa22cb465": "NFT Approval",
-  "0x42842e0e": "NFT Transfer",
-  "0xb88d4fde": "NFT Transfer",
-  // WETH
-  "0xd0e30db0": "WETH Wrap",
-  "0x2e1a7d4d": "WETH Unwrap",
-  // ENS — multiple registrar versions use different selectors
-  "0xa6f9dae1": "ENS Registration",
-  "0xf14fcbc8": "ENS Commit",
-  "0x85f6d155": "ENS Registration",
-  "0xacf1a841": "ENS Renewal",
-  "0x1aa86dda": "ENS Registration",
-  "0x74694a2b": "ENS Registration", // register(string,address,uint256,bytes32,address,bytes[],bool,uint16)
-  "0xc475abff": "ENS Renewal",      // renew(string,uint256)
-  "0xddf7fcb0": "ENS Set Resolver",
-  "0x77372213": "ENS Set Text",
-  "0xd5fa2b00": "ENS Set Address",
-  "0x8b95dd71": "ENS Set Content",
-  "0x1e83409a": "Claim",
-  "0x2f2ff15d": "Grant Role",
-  // Staking
-  "0xa694fc3a": "Stake",
-  "0x2e17de78": "Unstake",
-  "0x3ccfd60b": "Withdraw",
-  // Governance
-  "0x56781388": "Vote",
-  "0x15373e3d": "Vote",
-  // More ENS registration variants (different ABI encodings)
-  "0xf7a16963": "ENS Registration",
-  "0x8a95b09f": "ENS Registration",
-  "0xcc9656fb": "ENS Registration", // registerWithConfig
-  "0xfca247ac": "ENS Registration", // register (NameWrapper v3)
-};
+// ─── Dynamic function selector resolution ───
+
+// Session cache for looked-up selectors
+const selectorCache = new Map<string, string>();
+
+/**
+ * Batch-lookup function selectors from Openchain 4byte signature database.
+ * Resolves ANY selector dynamically — no hardcoded list needed.
+ */
+async function lookupSelectors(selectors: string[]): Promise<Map<string, string>> {
+  const unknown = selectors.filter(s => !selectorCache.has(s));
+  if (unknown.length === 0) return selectorCache;
+
+  const BATCH = 50;
+  for (let i = 0; i < unknown.length; i += BATCH) {
+    const batch = unknown.slice(i, i + BATCH).join(",");
+    try {
+      const res = await fetch(`https://api.openchain.xyz/signature-database/v1/lookup?function=${batch}&filter=true`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data.ok && data.result?.function) {
+        for (const [sel, sigs] of Object.entries(data.result.function)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const arr = sigs as any[];
+          if (arr?.length > 0) selectorCache.set(sel.toLowerCase(), arr[0].name);
+        }
+      }
+    } catch { /* continue with what we have */ }
+  }
+  return selectorCache;
+}
+
+/**
+ * Parse a Solidity function signature into a clean human-readable action.
+ * "swapExactETHForTokens(uint256,address[],address,uint256)" → "Swap"
+ * "commit(bytes32)" → "Commit"
+ * "setApprovalForAll(address,bool)" → "Set Approval For All"
+ */
+function parseAction(signature: string): string {
+  const name = signature.split("(")[0];
+  const lower = name.toLowerCase();
+
+  // Common action categories — short, clean labels
+  if (lower.includes("swap") || lower.includes("exactinput") || lower.includes("exactoutput")) return "Swap";
+  if (lower === "approve" || lower === "increaseallowance") return "Approve";
+  if (lower === "setapprovalforall") return "Approve All";
+  if (lower === "transfer" || lower === "transferfrom" || lower === "safetransferfrom") return "Transfer";
+  if (lower.includes("register")) return "Register";
+  if (lower.includes("commit")) return "Commit";
+  if (lower.includes("renew")) return "Renew";
+  if (lower.includes("claim") || lower.includes("harvest")) return "Claim";
+  if (lower.includes("stake") || lower.includes("deposit")) return "Deposit";
+  if (lower.includes("unstake") || lower.includes("withdraw") || lower.includes("redeem")) return "Withdraw";
+  if (lower.includes("mint")) return "Mint";
+  if (lower.includes("burn")) return "Burn";
+  if (lower.includes("vote") || lower.includes("castvote")) return "Vote";
+  if (lower === "wrap" || lower === "deposit") return "Wrap";
+  if (lower === "unwrap") return "Unwrap";
+  if (lower.includes("multicall") || lower === "execute") return "Execute";
+  if (lower.includes("bridge")) return "Bridge";
+  if (lower.includes("borrow")) return "Borrow";
+  if (lower.includes("repay")) return "Repay";
+  if (lower.includes("liquidat")) return "Liquidation";
+  if (lower.includes("supply")) return "Supply";
+  if (lower.includes("delegate")) return "Delegate";
+
+  // Convert camelCase → Title Case: "setResolver" → "Set Resolver"
+  return name.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
+}
 
 // Resolve token symbol from contract address
 function resolveTokenSymbol(address: string): string | null {
@@ -87,52 +106,27 @@ function resolveTokenSymbol(address: string): string | null {
 function labelTransaction(
   to: string | null,
   input: string | undefined,
-  value: number,
-  asset: string
+  action: string | null, // resolved action from dynamic lookup
+  contractName: string | null,
 ): { type: Transaction["type"]; label: string } {
   if (!to) return { type: "contract", label: "Contract Deployment" };
 
   const hasCalldata = input && input !== "0x" && input.length > 2;
-  if (!hasCalldata) {
-    return { type: "send", label: `Sent ${fmtAmount(value)} ${asset}` };
+  if (!hasCalldata) return { type: "send", label: "" }; // caller adds amount
+
+  // Token-specific labels: "Approve USDT", "Transfer USDC"
+  if (action === "Approve" || action === "Approve All" || action === "Transfer") {
+    const sym = resolveTokenSymbol(to);
+    const label = sym ? `${action} ${sym}` : action;
+    return { type: "contract", label };
   }
 
-  const toLower = to.toLowerCase();
-  const contractName = KNOWN_CONTRACTS[toLower];
-  const selector = input.slice(0, 10).toLowerCase();
-  const selectorLabel = KNOWN_SELECTORS[selector];
+  // Contract name + action: "Uniswap V3 — Swap"
+  if (contractName && action) return { type: "contract", label: `${contractName} — ${action}` };
+  if (contractName) return { type: "contract", label: contractName };
+  if (action) return { type: "contract", label: action };
 
-  // Token operations: resolve the specific token being approved/transferred
-  if (selectorLabel === "Token Approval") {
-    const sym = resolveTokenSymbol(toLower);
-    return { type: "contract", label: sym ? `Approve ${sym}` : "Token Approval" };
-  }
-  if (selectorLabel === "Token Transfer") {
-    const sym = resolveTokenSymbol(toLower);
-    return { type: "contract", label: sym ? `Transfer ${sym}` : "Token Transfer" };
-  }
-
-  // NFT operations with context
-  if (selectorLabel === "NFT Approval") {
-    return { type: "contract", label: contractName ? `NFT Approval — ${contractName}` : "NFT Approval" };
-  }
-
-  // Known contract + known action
-  if (contractName && selectorLabel) {
-    return { type: "contract", label: `${contractName} — ${selectorLabel}` };
-  }
-  // Known contract, unknown action
-  if (contractName) {
-    return { type: "contract", label: contractName };
-  }
-  // Unknown contract, known action (e.g. ENS selector to new registrar address)
-  if (selectorLabel) {
-    return { type: "contract", label: selectorLabel };
-  }
-
-  // Truly unknown — try to give some context from address
-  const shortTo = `${to.slice(0, 6)}...${to.slice(-4)}`;
-  return { type: "contract", label: `Call to ${shortTo}` };
+  return { type: "contract", label: "Contract Call" };
 }
 
 // Cache public clients — reuse connections instead of creating fresh on every call
@@ -439,10 +433,18 @@ async function buildFromBlockscout(
     fetchExplorerTxs("tokentx", address, startBlock, endBlock, chainId),
   ]);
 
+  // Dynamically resolve ALL function selectors from calldata in one batch
+  const selectors = new Set<string>();
+  for (const tx of ethTxs) {
+    if (tx.input && tx.input.length >= 10 && tx.input !== "0x") {
+      selectors.add(tx.input.slice(0, 10).toLowerCase());
+    }
+  }
+  const selectorMap = await lookupSelectors([...selectors]);
+
   const transactions: Transaction[] = [];
   const addrLower = address.toLowerCase();
 
-  // Process ETH transactions — now includes zero-value contract calls
   for (const tx of ethTxs) {
     const ts = parseInt(tx.timeStamp);
     if (ts < startTs || ts > endTs) continue;
@@ -453,7 +455,6 @@ async function buildFromBlockscout(
     const hasValue = ethValue > BigInt(0);
     const hasCalldata = tx.input && tx.input !== "0x" && tx.input.length > 2;
 
-    // Skip zero-value simple transfers (not contract calls)
     if (!hasValue && !hasCalldata) continue;
 
     let type: Transaction["type"];
@@ -466,12 +467,15 @@ async function buildFromBlockscout(
         ? `Received ${fmtAmount(ethAmount)} ETH from ${fromContract}`
         : `Received ${fmtAmount(ethAmount)} ETH`;
     } else if (hasCalldata) {
-      // Contract interaction — decode it
-      const labeled = labelTransaction(tx.to, tx.input, ethAmount, "ETH");
+      const selector = tx.input.slice(0, 10).toLowerCase();
+      const sig = selectorMap.get(selector);
+      const action = sig ? parseAction(sig) : null;
+      const contractName = KNOWN_CONTRACTS[tx.to?.toLowerCase()] || null;
+      const labeled = labelTransaction(tx.to, tx.input, action, contractName);
       type = labeled.type;
-      description = hasValue
+      description = hasValue && labeled.label
         ? `${labeled.label} (${fmtAmount(ethAmount)} ETH)`
-        : labeled.label;
+        : labeled.label || "Contract Call";
     } else {
       type = "send";
       description = `Sent ${fmtAmount(ethAmount)} ETH`;
@@ -604,7 +608,7 @@ export function processForDisplay(raw: Transaction[]): Transaction[] {
   for (const tx of raw) {
     const desc = tx.description.toLowerCase();
     if (desc.includes("ens commit")) ensCommitTargets.add(tx.to.toLowerCase());
-    if (isKnownSwapContract(tx)) swapContractHashes.add(tx.hash.toLowerCase());
+    if (isSwapDescription(tx)) swapContractHashes.add(tx.hash.toLowerCase());
   }
 
   // 2. Group by tx hash
@@ -677,12 +681,9 @@ export function processForDisplay(raw: Transaction[]): Transaction[] {
   return result.sort((a, b) => b.timestamp - a.timestamp);
 }
 
-function isKnownSwapContract(tx: Transaction): boolean {
-  const desc = tx.description.toLowerCase();
-  return tx.type === "contract" && (
-    desc.includes("swap") || desc.includes("uniswap") || desc.includes("1inch") ||
-    desc.includes("0x exchange") || desc.includes("metamask swap")
-  );
+function isSwapDescription(tx: Transaction): boolean {
+  const d = tx.description.toLowerCase();
+  return tx.type === "contract" && (d.includes("swap") || d.includes("exchange"));
 }
 
 function findNearbyReceive(
@@ -690,50 +691,45 @@ function findNearbyReceive(
   swapTx: Transaction,
   byHash: Map<string, Transaction[]>
 ): Transaction | null {
-  // Look for a token receive close to the swap — try tight match first, then widen
-  const candidates: { tx: Transaction; distance: number }[] = [];
   for (const tx of all) {
     if (tx.type !== "receive") continue;
     if (tx.hash.toLowerCase() === swapTx.hash.toLowerCase()) continue;
-    if (!tx.tokenSymbol && tx.valueUsd === 0) continue;
-    // Must be close in time (within 60 seconds)
-    const timeDiff = Math.abs(tx.timestamp - swapTx.timestamp);
-    if (timeDiff > 60) continue;
-    // Prefer unpaired receives
+    if (Math.abs(tx.blockNumber - swapTx.blockNumber) > 2) continue;
+    if (!tx.tokenSymbol) continue;
     const group = byHash.get(tx.hash.toLowerCase());
-    const paired = group && group.length > 1;
-    candidates.push({ tx, distance: timeDiff + (paired ? 1000 : 0) });
+    if (group && group.length > 1) continue;
+    return tx;
   }
-  // Return the closest unpaired receive
-  candidates.sort((a, b) => a.distance - b.distance);
-  return candidates[0]?.tx ?? null;
+  return null;
 }
 
-function enrichSingle(tx: Transaction, ensCommitTargets: Set<string>): Transaction | null {
+function enrichSingle(tx: Transaction, commitTargets: Set<string>): Transaction | null {
   const desc = tx.description.toLowerCase();
 
-  // Hide: ENS Commit (prep step)
-  if (desc.includes("ens commit")) return null;
+  // Hide preparatory steps: Commit (any protocol), Approve (permissions)
+  if (desc === "commit" || desc.startsWith("commit ")) return null;
+  if (desc.startsWith("approve") || desc.startsWith("approve all")) return null;
 
-  // Hide: Token approvals (permission, not a money movement)
-  if (desc.includes("approve ") || desc === "token approval") return null;
+  // Hide zero-value unknown contract calls
+  if (tx.type === "contract" && tx.valueUsd === 0 && desc === "contract call") return null;
 
-  // Hide: Zero-value calls to unknown addresses
-  if (tx.type === "contract" && tx.valueUsd === 0 && desc.startsWith("call to")) return null;
-
-  // Enrich: ETH sent to an address we saw an ENS Commit to → ENS Domain Registration
-  if (tx.type === "contract" && tx.valueUsd > 0 && ensCommitTargets.has(tx.to.toLowerCase())) {
+  // Enrich: ETH sent to a commit target → "[action] (X ETH)" or "Registration (X ETH)"
+  if (tx.type === "contract" && tx.valueUsd > 0 && commitTargets.has(tx.to.toLowerCase())) {
     const amt = extractAmount(tx.description);
-    return {
-      ...tx,
-      description: amt ? `ENS Domain Registration (${amt} ETH)` : "ENS Domain Registration",
-    };
+    // The action from dynamic lookup is already in the description (e.g. "Register (0.0047 ETH)")
+    // But if it still says something generic, upgrade it
+    if (desc.includes("contract call") || desc.startsWith("call to")) {
+      return {
+        ...tx,
+        description: amt ? `Registration (${amt} ETH)` : "Registration",
+      };
+    }
   }
 
-  // Enrich: Known swap with zero value — shouldn't reach here if pairing worked,
-  // but as last resort just hide it since the paired token transfer will show
-  if (isKnownSwapContract(tx) && tx.valueUsd === 0) {
-    return null;
+  // Enrich: Swap with zero value → "Token Swap via [contract]"
+  if (isSwapDescription(tx) && tx.valueUsd === 0) {
+    const name = tx.description.replace(/\s*\(.*\)/, "");
+    return { ...tx, description: `Token Swap via ${name}` };
   }
 
   return tx;
