@@ -1,7 +1,8 @@
 "use client";
 
 import { useStatement } from "@/hooks/use-statement";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useCachedEnsName } from "@/hooks/use-cached-ens";
 import { Wallet, AlertCircle } from "lucide-react";
 import { Suspense } from "react";
@@ -18,7 +19,6 @@ import { downloadPdf } from "@/lib/pdf";
 import { getNetworkName } from "@/lib/ethereum";
 
 function ConnectWalletGate() {
-  const { connect, connectors } = useConnect();
   return (
     <div className="pt-24 pb-20 px-5">
       <div className="container-page flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -29,10 +29,7 @@ function ConnectWalletGate() {
         <p className="text-on-surface-variant text-[15px] mb-8 max-w-sm">
           It takes less than 30 seconds. No sign-up required.
         </p>
-        <button onClick={() => connect({ connector: connectors[0] })}
-          className="bg-brand-navy text-white px-6 py-3 rounded-xl text-[14px] font-medium hover:bg-brand-navy/90 transition-colors">
-          Connect Wallet
-        </button>
+        <ConnectButton />
       </div>
     </div>
   );
