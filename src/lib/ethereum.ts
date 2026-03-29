@@ -592,13 +592,22 @@ export async function getBlockNumber(chainId: number = 1): Promise<number> {
 // ─── Display processing: turn raw transactions into clean statement entries ───
 
 /**
- * Process raw transactions into clean, statement-ready entries:
- * - Merges swap pairs (send + receive in same tx) into "Swapped X → Y"
- * - Hides intermediate steps (ENS Commit, zero-value unknown calls)
- * - Keeps meaningful actions (Approve USDT, ENS Registration, etc.)
+ * Process raw transactions into clean, statement-ready entries.
+ * This is display-only — raw transactions are preserved for signing.
  */
 export function processForDisplay(raw: Transaction[]): Transaction[] {
-  // Group by tx hash
+  // 1. Collect ENS commit target addresses — used to detect registrations
+  const ensCommitTargets = new Set<string>();
+  // Collect known swap contract hashes — used to find their token transfers
+  const swapContractHashes = new Set<string>();
+
+  for (const tx of raw) {
+    const desc = tx.description.toLowerCase();
+    if (desc.includes("ens commit")) ensCommitTargets.add(tx.to.toLowerCase());
+    if (isKnownSwapContract(tx)) swapContractHashes.add(tx.hash.toLowerCase());
+  }
+
+  // 2. Group by tx hash
   const byHash = new Map<string, Transaction[]>();
   for (const tx of raw) {
     const key = tx.hash.toLowerCase();
@@ -606,66 +615,129 @@ export function processForDisplay(raw: Transaction[]): Transaction[] {
     byHash.get(key)!.push(tx);
   }
 
+  // 3. Process each group
   const result: Transaction[] = [];
 
-  for (const group of byHash.values()) {
-    if (group.length === 1) {
-      const tx = group[0];
-      if (!shouldHideFromStatement(tx)) result.push(tx);
-      continue;
-    }
-
-    // Multiple entries for same tx hash — check for swap pattern
+  for (const [hash, group] of byHash) {
+    // Swap pattern: same hash has outgoing + incoming transfers
     const outgoing = group.filter(t => t.type === "send" || t.type === "contract");
     const incoming = group.filter(t => t.type === "receive");
 
     if (outgoing.length > 0 && incoming.length > 0) {
-      // Swap: something went out, something came in
       const out = outgoing[0];
       const recv = incoming[0];
       const outAsset = out.tokenSymbol || "ETH";
       const inAsset = recv.tokenSymbol || "ETH";
-      const outAmt = extractAmount(out.description, outAsset);
-      const inAmt = extractAmount(recv.description, inAsset);
+      const outAmt = extractAmount(out.description);
+      const inAmt = extractAmount(recv.description);
+      const label = outAmt && inAmt
+        ? `Swapped ${outAmt} ${outAsset} → ${inAmt} ${inAsset}`
+        : `Swapped ${outAsset} → ${inAsset}`;
 
       result.push({
         ...out,
         type: "contract",
-        description: `Swapped ${outAmt} ${outAsset} → ${inAmt} ${inAsset}`,
+        description: label,
         valueUsd: Math.max(out.valueUsd, recv.valueUsd),
       });
-
-      // If there are additional receives beyond the first (multi-output swap), keep them
-      for (let i = 1; i < incoming.length; i++) {
-        if (!shouldHideFromStatement(incoming[i])) result.push(incoming[i]);
-      }
+      // Additional receives from multi-output swaps
+      for (let i = 1; i < incoming.length; i++) result.push(incoming[i]);
       continue;
     }
 
-    // Not a swap — keep non-hidden entries, skip duplicates
+    // Known swap contract call with NO paired token transfer in same hash —
+    // look for a token receive nearby (within ~2 blocks) as the swap output
+    if (group.length === 1 && swapContractHashes.has(hash)) {
+      const swapTx = group[0];
+      const nearby = findNearbyReceive(raw, swapTx, byHash);
+      if (nearby) {
+        const inAsset = nearby.tokenSymbol || "ETH";
+        const inAmt = extractAmount(nearby.description);
+        const outAmt = extractAmount(swapTx.description);
+        const outAsset = swapTx.tokenSymbol || "ETH";
+        result.push({
+          ...swapTx,
+          type: "contract",
+          description: inAmt
+            ? `Swapped ${outAmt || ""} ${outAsset} → ${inAmt} ${inAsset}`.replace(/\s+/g, " ").trim()
+            : `Swapped ${outAsset} → ${inAsset}`,
+          valueUsd: Math.max(swapTx.valueUsd, nearby.valueUsd),
+        });
+        continue;
+      }
+    }
+
+    // Single transactions — enrich and filter
     for (const tx of group) {
-      if (!shouldHideFromStatement(tx)) result.push(tx);
+      const enriched = enrichSingle(tx, ensCommitTargets);
+      if (enriched) result.push(enriched);
     }
   }
 
   return result.sort((a, b) => b.timestamp - a.timestamp);
 }
 
-function shouldHideFromStatement(tx: Transaction): boolean {
+function isKnownSwapContract(tx: Transaction): boolean {
   const desc = tx.description.toLowerCase();
-  // ENS Commit is a preparatory step — always followed by registration
-  if (desc.includes("ens commit")) return true;
-  // Zero-value calls to unknown addresses — noise
-  if (tx.type === "contract" && tx.valueUsd === 0 && desc.startsWith("call to")) return true;
-  return false;
+  return tx.type === "contract" && (
+    desc.includes("swap") || desc.includes("uniswap") || desc.includes("1inch") ||
+    desc.includes("0x exchange") || desc.includes("metamask swap")
+  );
 }
 
-function extractAmount(description: string, fallbackAsset: string): string {
-  // Extract amount from descriptions like "Sent 6.0000 USDT", "Received 0.0029 ETH",
-  // "Metamask Swap", "ENS Registration (0.0047 ETH)"
+function findNearbyReceive(
+  all: Transaction[],
+  swapTx: Transaction,
+  byHash: Map<string, Transaction[]>
+): Transaction | null {
+  // Look for a token receive within 2 blocks of the swap, not already part of a group
+  for (const tx of all) {
+    if (tx.type !== "receive") continue;
+    if (tx.hash.toLowerCase() === swapTx.hash.toLowerCase()) continue;
+    if (Math.abs(tx.blockNumber - swapTx.blockNumber) > 2) continue;
+    if (!tx.tokenSymbol) continue;
+    // Make sure this receive isn't already paired with something else
+    const group = byHash.get(tx.hash.toLowerCase());
+    if (group && group.length > 1) continue;
+    return tx;
+  }
+  return null;
+}
+
+function enrichSingle(tx: Transaction, ensCommitTargets: Set<string>): Transaction | null {
+  const desc = tx.description.toLowerCase();
+
+  // Hide: ENS Commit (prep step)
+  if (desc.includes("ens commit")) return null;
+
+  // Hide: Token approvals (permission, not a money movement)
+  if (desc.includes("approve ") || desc === "token approval") return null;
+
+  // Hide: Zero-value calls to unknown addresses
+  if (tx.type === "contract" && tx.valueUsd === 0 && desc.startsWith("call to")) return null;
+
+  // Enrich: ETH sent to an address we saw an ENS Commit to → ENS Domain Registration
+  if (tx.type === "contract" && tx.valueUsd > 0 && ensCommitTargets.has(tx.to.toLowerCase())) {
+    const amt = extractAmount(tx.description);
+    return {
+      ...tx,
+      description: amt ? `ENS Domain Registration (${amt} ETH)` : "ENS Domain Registration",
+    };
+  }
+
+  // Enrich: Known swap with zero value → "Token Swap via [name]"
+  if (isKnownSwapContract(tx) && tx.valueUsd === 0) {
+    const name = tx.description.replace(/\s*\(.*\)/, "");
+    return { ...tx, description: `Token Swap via ${name}` };
+  }
+
+  return tx;
+}
+
+function extractAmount(description: string): string {
   const parenMatch = description.match(/\(([0-9,.]+)\s+\w+\)/);
   if (parenMatch) return parenMatch[1];
-  const directMatch = description.match(/(?:Sent|Received)\s+([0-9,.]+)\s+/);
+  const directMatch = description.match(/(?:Sent|Received|Swapped)\s+([0-9,.]+)\s+/);
   if (directMatch) return directMatch[1];
   return "";
 }
