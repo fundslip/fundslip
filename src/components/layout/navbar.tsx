@@ -2,65 +2,33 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
-
-function WalletAvatar({ address, size }: { address: string; size: number }) {
-  return (
-    <Image
-      src={`https://api.dicebear.com/9.x/bottts-neutral/svg?scale=110&seed=${address}`}
-      alt=""
-      width={size}
-      height={size}
-      className="rounded-md"
-      unoptimized
-    />
-  );
-}
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, LogOut, Copy, Check, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { copyToClipboard } from "@/lib/clipboard";
-import { useCachedEnsName } from "@/hooks/use-cached-ens";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { address, isConnected, isReconnecting } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { disconnect } = useDisconnect();
-  const ensName = useCachedEnsName(address);
-
-  // Treat reconnecting (wagmi restoring session) as "connected" to avoid flash
-  const showWallet = isConnected || (isReconnecting && !!address);
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [walletOpen, setWalletOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const walletRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (walletRef.current && !walletRef.current.contains(e.target as Node)) setWalletOpen(false);
       if (menuOpen && headerRef.current && !headerRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [menuOpen]);
-  useEffect(() => { setMenuOpen(false); setWalletOpen(false); }, [pathname]);
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
 
-  const displayName = ensName || (address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "");
   const NAV = [
     { href: "/", label: "How it works", exact: true },
     { href: "/generate", label: "Generate" },
     { href: "/verify", label: "Verify" },
   ];
   const isActive = (l: typeof NAV[0]) => l.exact ? pathname === l.href : pathname.startsWith(l.href);
-
-  const handleConnect = () => {
-    const connector = connectors[0];
-    if (connector) connect({ connector });
-  };
 
   return (
     <header ref={headerRef} className="fixed top-0 w-full z-[100] bg-white/95 backdrop-blur-md border-b border-outline-variant/60">
@@ -80,64 +48,18 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Desktop wallet / connect */}
-          {showWallet ? (
-            <div className="relative hidden md:block" ref={walletRef}>
-              <button onClick={() => setWalletOpen(!walletOpen)}
-                className="flex items-center gap-2.5 text-[14px] text-brand-black">
-                {address && <WalletAvatar address={address} size={24} />}
-                {displayName}
-                <ChevronDown className={`w-3.5 h-3.5 text-on-surface-variant transition-transform ${walletOpen ? "rotate-180" : ""}`} />
-              </button>
-              <AnimatePresence>
-                {walletOpen && (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.1 }}
-                    className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-outline-variant shadow-sm p-1.5 z-[110]">
-                    <div className="px-3 py-2.5">
-                      <p className="text-[11px] uppercase tracking-wide text-on-surface-variant">Wallet</p>
-                      <p className="text-[12px] font-mono text-brand-black mt-1 truncate">{address}</p>
-                    </div>
-                    <div className="h-px bg-outline-variant mx-1.5" />
-                    <button onClick={async () => { if (address) { const ok = await copyToClipboard(address); if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); } } }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-brand-black hover:bg-surface rounded-lg transition-colors mt-0.5">
-                      {copied ? <Check className="w-4 h-4 text-tertiary" /> : <Copy className="w-4 h-4 text-on-surface-variant" />}
-                      {copied ? "Copied" : "Copy address"}
-                    </button>
-                    <button onClick={() => { disconnect(); setWalletOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-error hover:bg-error-container/30 rounded-lg transition-colors">
-                      <LogOut className="w-4 h-4" /> Disconnect
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <button onClick={handleConnect}
-              className="hidden md:block text-[14px] font-medium text-white bg-brand-navy px-5 py-2 rounded-lg hover:bg-brand-navy/90 transition-colors">
-              Connect Wallet
-            </button>
-          )}
+          {/* Desktop wallet — RainbowKit handles connect/disconnect/chain switching */}
+          <div className="hidden md:block">
+            <ConnectButton showBalance={false} chainStatus="icon" accountStatus="avatar" />
+          </div>
 
           {/* Mobile */}
-          {showWallet ? (
-            <button onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden flex items-center gap-2 p-1 rounded-lg bg-surface max-w-[220px]">
-              {address && <WalletAvatar address={address} size={26} />}
-              <span className="text-[12px] text-brand-black truncate">{displayName}</span>
-              {menuOpen ? <X className="w-4 h-4 text-on-surface-variant flex-shrink-0" /> : <Menu className="w-4 h-4 text-on-surface-variant flex-shrink-0" />}
+          <div className="md:hidden flex items-center gap-2">
+            <ConnectButton showBalance={false} chainStatus="none" accountStatus="avatar" label="Connect" />
+            <button onClick={() => setMenuOpen(!menuOpen)} className="w-9 h-9 flex items-center justify-center">
+              {menuOpen ? <X className="w-[18px] h-[18px]" /> : <Menu className="w-[18px] h-[18px]" />}
             </button>
-          ) : (
-            <div className="md:hidden flex items-center gap-2">
-              <button onClick={handleConnect}
-                className="text-[13px] font-medium text-white bg-brand-navy px-4 py-2 rounded-lg">
-                Connect
-              </button>
-              <button onClick={() => setMenuOpen(!menuOpen)} className="w-9 h-9 flex items-center justify-center">
-                {menuOpen ? <X className="w-[18px] h-[18px]" /> : <Menu className="w-[18px] h-[18px]" />}
-              </button>
-            </div>
-          )}
+          </div>
         </div>
       </nav>
 
@@ -152,17 +74,6 @@ export function Navbar() {
                   {l.label}
                 </Link>
               ))}
-              {showWallet && (
-                <div className="pt-3 border-t border-outline-variant/60 mt-3 space-y-2">
-                  <div className="flex items-center gap-2 px-3">
-                    <span className="text-[14px] text-brand-black font-mono truncate">{displayName}</span>
-                  </div>
-                  <button onClick={() => { disconnect(); setMenuOpen(false); }}
-                    className="w-full py-2.5 text-[14px] text-error flex items-center justify-center gap-2">
-                    <LogOut className="w-4 h-4" /> Disconnect
-                  </button>
-                </div>
-              )}
             </div>
           </motion.div>
         )}
