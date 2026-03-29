@@ -640,15 +640,10 @@ export async function getBlockNumber(chainId: number = 1): Promise<number> {
  * This is display-only — raw transactions are preserved for signing.
  */
 export function processForDisplay(raw: Transaction[]): Transaction[] {
-  // 1. Collect ENS commit target addresses — used to detect registrations
-  const ensCommitTargets = new Set<string>();
-  // Collect known swap contract hashes — used to find their token transfers
+  // Collect swap contract hashes — used to find their paired token transfers
   const swapContractHashes = new Set<string>();
-
   for (const tx of raw) {
-    const desc = tx.description.toLowerCase();
-    if (desc.includes("ens commit")) ensCommitTargets.add(tx.to.toLowerCase());
-    if (isSwapDescription(tx)) swapContractHashes.add(tx.hash.toLowerCase());
+    if (isSwapDescription(tx) && tx.valueUsd > 0) swapContractHashes.add(tx.hash.toLowerCase());
   }
 
   // 2. Group by tx hash
@@ -713,7 +708,7 @@ export function processForDisplay(raw: Transaction[]): Transaction[] {
 
     // Single transactions — enrich and filter
     for (const tx of group) {
-      const enriched = enrichSingle(tx, ensCommitTargets);
+      const enriched = enrichSingle(tx);
       if (enriched) result.push(enriched);
     }
   }
@@ -743,34 +738,11 @@ function findNearbyReceive(
   return null;
 }
 
-function enrichSingle(tx: Transaction, commitTargets: Set<string>): Transaction | null {
-  const desc = tx.description.toLowerCase();
-
-  // Hide preparatory steps: Commit (any protocol), Approve (permissions)
-  if (desc === "commit" || desc.startsWith("commit ")) return null;
-  if (desc.startsWith("approve") || desc.startsWith("approve all")) return null;
-
-  // Hide zero-value unknown contract calls
-  if (tx.type === "contract" && tx.valueUsd === 0 && desc === "contract call") return null;
-
-  // Enrich: ETH sent to a commit target → "[action] (X ETH)" or "Registration (X ETH)"
-  if (tx.type === "contract" && tx.valueUsd > 0 && commitTargets.has(tx.to.toLowerCase())) {
-    const amt = extractAmount(tx.description);
-    // The action from dynamic lookup is already in the description (e.g. "Register (0.0047 ETH)")
-    // But if it still says something generic, upgrade it
-    if (desc.includes("contract call") || desc.startsWith("call to")) {
-      return {
-        ...tx,
-        description: amt ? `Registration (${amt} ETH)` : "Registration",
-      };
-    }
-  }
-
-  // Enrich: Swap with zero value → "Token Swap via [contract]"
-  if (isSwapDescription(tx) && tx.valueUsd === 0) {
-    const name = tx.description.replace(/\s*\(.*\)/, "");
-    return { ...tx, description: `Token Swap via ${name}` };
-  }
+function enrichSingle(tx: Transaction): Transaction | null {
+  // A financial statement shows money movements, not blockchain mechanics.
+  // Hide all zero-value contract interactions — commits, approvals, config
+  // changes, governance votes, etc. are not financial events.
+  if (tx.type === "contract" && tx.valueUsd === 0) return null;
 
   return tx;
 }
