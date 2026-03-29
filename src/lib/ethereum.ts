@@ -88,40 +88,13 @@ async function lookupSelectors(selectors: string[]): Promise<Map<string, string>
 }
 
 /**
- * Parse a Solidity function signature into a clean human-readable action.
- * "swapExactETHForTokens(uint256,address[],address,uint256)" → "Swap"
+ * Parse a Solidity function signature into a clean human-readable label.
+ * Just extracts the function name and converts camelCase to Title Case.
+ * "swapExactETHForTokens(uint256,...)" → "Swap Exact ETH For Tokens"
  * "commit(bytes32)" → "Commit"
- * "setApprovalForAll(address,bool)" → "Set Approval For All"
  */
 function parseAction(signature: string): string {
   const name = signature.split("(")[0];
-  const lower = name.toLowerCase();
-
-  // Common action categories — short, clean labels
-  if (lower.includes("swap") || lower.includes("exactinput") || lower.includes("exactoutput")) return "Swap";
-  if (lower === "approve" || lower === "increaseallowance") return "Approve";
-  if (lower === "setapprovalforall") return "Approve All";
-  if (lower === "transfer" || lower === "transferfrom" || lower === "safetransferfrom") return "Transfer";
-  if (lower.includes("register")) return "Register";
-  if (lower.includes("commit")) return "Commit";
-  if (lower.includes("renew")) return "Renew";
-  if (lower.includes("claim") || lower.includes("harvest")) return "Claim";
-  if (lower.includes("stake") || lower.includes("deposit")) return "Deposit";
-  if (lower.includes("unstake") || lower.includes("withdraw") || lower.includes("redeem")) return "Withdraw";
-  if (lower.includes("mint")) return "Mint";
-  if (lower.includes("burn")) return "Burn";
-  if (lower.includes("vote") || lower.includes("castvote")) return "Vote";
-  if (lower === "wrap" || lower === "deposit") return "Wrap";
-  if (lower === "unwrap") return "Unwrap";
-  if (lower.includes("multicall") || lower === "execute") return "Execute";
-  if (lower.includes("bridge")) return "Bridge";
-  if (lower.includes("borrow")) return "Borrow";
-  if (lower.includes("repay")) return "Repay";
-  if (lower.includes("liquidat")) return "Liquidation";
-  if (lower.includes("supply")) return "Supply";
-  if (lower.includes("delegate")) return "Delegate";
-
-  // Convert camelCase → Title Case: "setResolver" → "Set Resolver"
   return name.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
 }
 
