@@ -690,18 +690,23 @@ function findNearbyReceive(
   swapTx: Transaction,
   byHash: Map<string, Transaction[]>
 ): Transaction | null {
-  // Look for a token receive within 2 blocks of the swap, not already part of a group
+  // Look for a token receive close to the swap — try tight match first, then widen
+  const candidates: { tx: Transaction; distance: number }[] = [];
   for (const tx of all) {
     if (tx.type !== "receive") continue;
     if (tx.hash.toLowerCase() === swapTx.hash.toLowerCase()) continue;
-    if (Math.abs(tx.blockNumber - swapTx.blockNumber) > 2) continue;
-    if (!tx.tokenSymbol) continue;
-    // Make sure this receive isn't already paired with something else
+    if (!tx.tokenSymbol && tx.valueUsd === 0) continue;
+    // Must be close in time (within 60 seconds)
+    const timeDiff = Math.abs(tx.timestamp - swapTx.timestamp);
+    if (timeDiff > 60) continue;
+    // Prefer unpaired receives
     const group = byHash.get(tx.hash.toLowerCase());
-    if (group && group.length > 1) continue;
-    return tx;
+    const paired = group && group.length > 1;
+    candidates.push({ tx, distance: timeDiff + (paired ? 1000 : 0) });
   }
-  return null;
+  // Return the closest unpaired receive
+  candidates.sort((a, b) => a.distance - b.distance);
+  return candidates[0]?.tx ?? null;
 }
 
 function enrichSingle(tx: Transaction, ensCommitTargets: Set<string>): Transaction | null {
@@ -725,10 +730,10 @@ function enrichSingle(tx: Transaction, ensCommitTargets: Set<string>): Transacti
     };
   }
 
-  // Enrich: Known swap with zero value → "Token Swap via [name]"
+  // Enrich: Known swap with zero value — shouldn't reach here if pairing worked,
+  // but as last resort just hide it since the paired token transfer will show
   if (isKnownSwapContract(tx) && tx.valueUsd === 0) {
-    const name = tx.description.replace(/\s*\(.*\)/, "");
-    return { ...tx, description: `Token Swap via ${name}` };
+    return null;
   }
 
   return tx;
