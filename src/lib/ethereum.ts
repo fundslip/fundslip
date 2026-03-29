@@ -10,6 +10,9 @@ import type { TokenBalance, Transaction } from "@/types";
 const KNOWN_CONTRACTS: Record<string, string> = {
   "0x283af0b28c62c092c9727f1ee09c02ca627eb7f5": "ENS: Registrar",
   "0x253553366da8546fc250f225fe3d25d0c782303b": "ENS: Registrar",
+  "0x59e16c94e4d5a0a63be46e5a5e04f0e75594dd2f": "ENS: Registrar",
+  "0x59e16c94e4d5a0a63be46e5a5e04f0e75594e547": "ENS: Registrar",
+  "0x4ccb0720c1ba15fb91532a09350e1e7195e44477": "ENS: Registrar",
   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "WETH",
   "0x7a250d5630b4cf539739df2c5dacb4c659f2488d": "Uniswap V2",
   "0xe592427a0aece92de3edee1f18e0157c05861564": "Uniswap V3",
@@ -22,9 +25,11 @@ const KNOWN_CONTRACTS: Record<string, string> = {
 };
 
 const KNOWN_SELECTORS: Record<string, string> = {
+  // Token operations
   "0x095ea7b3": "Token Approval",
   "0xa9059cbb": "Token Transfer",
   "0x23b872dd": "Token Transfer",
+  // Swaps
   "0x3593564c": "Swap",
   "0x7ff36ab5": "Swap",
   "0x38ed1739": "Swap",
@@ -32,19 +37,37 @@ const KNOWN_SELECTORS: Record<string, string> = {
   "0xfb3bdb41": "Swap",
   "0x5ae401dc": "Swap",
   "0x04e45aaf": "Swap",
+  "0xe449022e": "Swap",       // 1inch
+  "0x0502b1c5": "Swap",       // 1inch
+  "0x12aa3caf": "Swap",       // 1inch
+  // NFTs
   "0xa22cb465": "NFT Approval",
   "0x42842e0e": "NFT Transfer",
   "0xb88d4fde": "NFT Transfer",
+  // WETH
   "0xd0e30db0": "WETH Wrap",
   "0x2e1a7d4d": "WETH Unwrap",
+  // ENS — multiple registrar versions use different selectors
   "0xa6f9dae1": "ENS Registration",
   "0xf14fcbc8": "ENS Commit",
   "0x85f6d155": "ENS Registration",
   "0xacf1a841": "ENS Renewal",
   "0x1aa86dda": "ENS Registration",
+  "0x74694a2b": "ENS Registration", // register(string,address,uint256,bytes32,address,bytes[],bool,uint16)
+  "0xc475abff": "ENS Renewal",      // renew(string,uint256)
+  "0xddf7fcb0": "ENS Set Resolver",
+  "0x77372213": "ENS Set Text",
+  "0xd5fa2b00": "ENS Set Address",
+  "0x8b95dd71": "ENS Set Content",
+  "0x1e83409a": "Claim",
+  "0x2f2ff15d": "Grant Role",
+  // Staking
   "0xa694fc3a": "Stake",
   "0x2e17de78": "Unstake",
   "0x3ccfd60b": "Withdraw",
+  // Governance
+  "0x56781388": "Vote",
+  "0x15373e3d": "Vote",
 };
 
 function labelTransaction(
@@ -57,23 +80,26 @@ function labelTransaction(
 
   const hasCalldata = input && input !== "0x" && input.length > 2;
   if (!hasCalldata) {
-    return { type: "send", label: `Sent ${value.toFixed(4)} ${asset}` };
+    return { type: "send", label: `Sent ${fmtAmount(value)} ${asset}` };
   }
 
   const contractName = KNOWN_CONTRACTS[to.toLowerCase()];
   const selector = input.slice(0, 10).toLowerCase();
   const selectorLabel = KNOWN_SELECTORS[selector];
 
+  // Build the best label from what we know
+  let label: string;
   if (contractName && selectorLabel) {
-    return { type: "contract", label: `${contractName} — ${selectorLabel}` };
+    label = `${contractName} — ${selectorLabel}`;
+  } else if (contractName) {
+    label = contractName;
+  } else if (selectorLabel) {
+    label = selectorLabel;
+  } else {
+    label = "Contract Call";
   }
-  if (contractName) {
-    return { type: "contract", label: contractName };
-  }
-  if (selectorLabel) {
-    return { type: "contract", label: selectorLabel };
-  }
-  return { type: "contract", label: "Contract Interaction" };
+
+  return { type: "contract", label };
 }
 
 // Cache public clients — reuse connections instead of creating fresh on every call
@@ -496,13 +522,16 @@ async function getBlockByTimestamp(timestamp: number, closest: "before" | "after
   try {
     const res = await fetch(url);
     const data = await res.json();
-    if (data.status === "1" && data.result && data.result !== "0") return data.result;
+    // Blockscout returns { status: "1", result: "21366284" } — validate it's numeric
+    if (data.status === "1" && data.result && data.result !== "0" && !isNaN(Number(data.result))) {
+      return data.result;
+    }
   } catch { /* continue to fallback */ }
   // Fallback: use latest block for "before" or earliest reasonable for "after"
   if (closest === "before") {
     try { return String(await getClient(chainId).getBlockNumber()); } catch { /* */ }
   }
-  return "1"; // Block 1, not 0 (genesis) — avoids fetching entire chain history
+  return "1";
 }
 
 const PAGE_SIZE = 1000;

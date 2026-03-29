@@ -197,8 +197,21 @@ export async function fetchAssetTransfers(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rpc = client.request as (args: { method: string; params: unknown[] }) => Promise<any>;
   const categories = ["external", "erc20", "erc721", "erc1155"];
-  const fromBlockHex = `0x${parseInt(fromBlock).toString(16)}`;
-  const toBlockHex = `0x${parseInt(toBlock).toString(16)}`;
+
+  // Validate block numbers — parseInt can return NaN if Blockscout returns non-numeric
+  const fromNum = Number(fromBlock);
+  const toNum = Number(toBlock);
+  let fromBlockHex: string;
+  let toBlockHex: string;
+
+  if (isNaN(fromNum) || isNaN(toNum) || fromNum <= 0 || toNum <= 0) {
+    console.warn(`Invalid block range for asset transfers: from="${fromBlock}" to="${toBlock}", using fallback`);
+    fromBlockHex = "0x0";
+    toBlockHex = "latest";
+  } else {
+    fromBlockHex = `0x${fromNum.toString(16)}`;
+    toBlockHex = `0x${toNum.toString(16)}`;
+  }
 
   try {
     const [sentResult, receivedResult]: [AssetTransfersResult, AssetTransfersResult] = await Promise.all([
