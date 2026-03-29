@@ -12,7 +12,7 @@ import {
   getEthBalance, getTokenBalances, getTransactionHistory,
   getEnsName, getBlockNumber, getNetworkName,
 } from "@/lib/ethereum";
-import { fetchPrices } from "@/lib/prices";
+import { fetchPrices, fetchPricesByContract } from "@/lib/prices";
 import {
   computeDataHash, buildSigningRequest, buildPayload,
   statementTypeToCode, embedPayloadInPdf,
@@ -80,19 +80,31 @@ export function useStatement() {
     let cancelled = false;
     (async () => {
       try {
-        const [ethResult, tokens, prices] = await Promise.all([
+        const [ethResult, tokens, ethPrice] = await Promise.all([
           getEthBalance(address as Address, chainId),
           getTokenBalances(address as Address, chainId),
-          fetchPrices(["ETH"]).catch(() => ({} as Record<string, number>)),
+          fetchPrices(["ETH"]).then(p => p.ETH || 0).catch(() => 0),
         ]);
 
-        const ethPrice = prices.ETH || 0;
         let total = ethResult.balance * ethPrice;
 
         if (tokens.length > 0) {
-          const syms = tokens.map(t => t.symbol);
-          const tp = await fetchPrices(syms).catch(() => ({} as Record<string, number>));
-          total += tokens.reduce((s, t) => s + t.balanceFormatted * (tp[t.symbol] || 0), 0);
+          // Use contract-based pricing for dynamically detected tokens
+          const contractAddrs = tokens.map(t => t.contractAddress);
+          const contractPrices = await fetchPricesByContract(contractAddrs).catch(() => new Map<string, number>());
+
+          // Also try symbol-based as fallback for known tokens
+          const unpricedSymbols = tokens
+            .filter(t => !contractPrices.has(t.contractAddress.toLowerCase()))
+            .map(t => t.symbol);
+          const symbolPrices = unpricedSymbols.length > 0
+            ? await fetchPrices(unpricedSymbols).catch(() => ({} as Record<string, number>))
+            : {};
+
+          for (const t of tokens) {
+            const price = contractPrices.get(t.contractAddress.toLowerCase()) || symbolPrices[t.symbol] || 0;
+            total += t.balanceFormatted * price;
+          }
         }
 
         if (!cancelled) {
@@ -132,7 +144,7 @@ export function useStatement() {
         let blockNumber = 0;
         try { blockNumber = await getBlockNumber(cid); } catch { /* */ }
 
-        // 2. Fetch on-chain data
+        // 2. Fetch on-chain data (balances at pinned block)
         let ethBalanceRaw = BigInt(0);
         let ethBalanceNum = 0;
         try {
@@ -142,17 +154,55 @@ export function useStatement() {
         } catch (e) { console.error("ETH:", e); }
 
         let tokens: Awaited<ReturnType<typeof getTokenBalances>> = [];
-        try { tokens = await getTokenBalances(addr as Address, cid); } catch (e) { console.error("Tokens:", e); }
+        try { tokens = await getTokenBalances(addr as Address, cid, blockNumber); } catch (e) { console.error("Tokens:", e); }
         setCurrentProgress(1);
 
-        let prices: Record<string, number> = {};
-        try { prices = await fetchPrices(["ETH", ...tokens.map(t => t.symbol)]); } catch (e) { console.error("Prices:", e); }
+        // 3. Fetch prices — contract-based for all detected tokens, symbol-based as fallback
+        let ethPriceUsd = 0;
+        const contractPrices = new Map<string, number>();
 
-        const ethPriceUsd = prices.ETH || 0;
+        try {
+          // ETH price via symbol lookup
+          const ethPrices = await fetchPrices(["ETH"]);
+          ethPriceUsd = ethPrices.ETH || 0;
+
+          // Token prices via contract address
+          if (tokens.length > 0) {
+            const contractAddrs = tokens.map(t => t.contractAddress);
+            const fetched = await fetchPricesByContract(contractAddrs);
+            for (const [addr, price] of fetched) contractPrices.set(addr, price);
+
+            // Fallback: try symbol-based for any tokens CoinGecko didn't recognize by address
+            const unpricedSymbols = tokens
+              .filter(t => !contractPrices.has(t.contractAddress.toLowerCase()))
+              .map(t => t.symbol);
+            if (unpricedSymbols.length > 0) {
+              const symbolPrices = await fetchPrices(unpricedSymbols).catch(() => ({} as Record<string, number>));
+              for (const t of tokens) {
+                if (!contractPrices.has(t.contractAddress.toLowerCase()) && symbolPrices[t.symbol]) {
+                  contractPrices.set(t.contractAddress.toLowerCase(), symbolPrices[t.symbol]);
+                }
+              }
+            }
+          }
+        } catch (e) { console.error("Prices:", e); }
+
         const ethValueUsd = ethBalanceNum * ethPriceUsd;
-        const pricedTokens = tokens.map(t => ({
-          ...t, priceUsd: prices[t.symbol] || 0, valueUsd: t.balanceFormatted * (prices[t.symbol] || 0),
-        }));
+
+        // Build priced token list — split into priced and unpriced
+        const pricedTokens = tokens.map(t => {
+          const price = contractPrices.get(t.contractAddress.toLowerCase()) || 0;
+          return { ...t, priceUsd: price, valueUsd: t.balanceFormatted * price };
+        });
+
+        // Sort: priced assets by USD value descending, then unpriced alphabetically
+        pricedTokens.sort((a, b) => {
+          if (a.valueUsd > 0 && b.valueUsd > 0) return b.valueUsd - a.valueUsd;
+          if (a.valueUsd > 0) return -1;
+          if (b.valueUsd > 0) return 1;
+          return a.symbol.localeCompare(b.symbol);
+        });
+
         setCurrentProgress(2);
 
         // Period dates
@@ -176,13 +226,19 @@ export function useStatement() {
         const periodStartTs = Math.floor(start.getTime() / 1000);
         const periodEndTs = Math.floor(end.getTime() / 1000);
 
+        // Build symbol prices map for transaction history
+        const symbolPricesForTxs: Record<string, number> = {};
+        for (const t of pricedTokens) {
+          if (t.priceUsd > 0) symbolPricesForTxs[t.symbol] = t.priceUsd;
+        }
+
         // Transactions
         let transactions: Transaction[] = [];
         let totalTransactionCount = 0;
         let txHashes: string[] = [];
         if (sType !== "balance-snapshot") {
           try {
-            const result = await getTransactionHistory(addr, periodStartTs, periodEndTs, cid, ethPriceUsd, prices);
+            const result = await getTransactionHistory(addr, periodStartTs, periodEndTs, cid, ethPriceUsd, symbolPricesForTxs);
             transactions = result.transactions;
             totalTransactionCount = result.totalCount;
             txHashes = transactions.map(tx => tx.hash).sort();
@@ -198,6 +254,7 @@ export function useStatement() {
         setCurrentProgress(3);
 
         // 3. Deterministic serialization → dataHash
+        // ALL tokens (priced and unpriced) go into the hash for completeness
         const stypeCode = statementTypeToCode(sType);
         const tokenBalancesForHash = tokens.map(t => ({ address: t.contractAddress, balance: t.balance }));
 
