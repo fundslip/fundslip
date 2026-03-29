@@ -29,19 +29,17 @@ function typeTitle(type: string): string {
   return "Full Transaction History";
 }
 
-// ── Colors — matches globals.css ──
+// ── Colors — 7-color brand palette ──
 
 type C3 = [number, number, number];
-const NAVY: C3 = [0, 52, 153];       // brand-navy #003499
-const BLACK: C3 = [29, 29, 31];      // brand-black #1d1d1f
-const GRAY: C3 = [110, 110, 115];    // on-surface-variant #6e6e73
-const LIGHT: C3 = [162, 162, 167];   // lighter gray
-const RULE: C3 = [229, 229, 234];    // outline-variant #e5e5ea
-const SURFACE: C3 = [245, 245, 247]; // surface #f5f5f7
-const WHITE: C3 = [255, 255, 255];
-const GREEN: C3 = [5, 150, 105];     // tertiary
-const EMERALD_BG: C3 = [133, 248, 196]; // brand-emerald
-const RED: C3 = [220, 38, 38];       // error
+const NAVY: C3 = [0, 52, 153];         // #003499 — brand accent
+const BLACK: C3 = [29, 29, 31];        // #1d1d1f — primary text
+const GRAY: C3 = [134, 134, 139];      // #86868b — secondary text
+const LIGHT: C3 = [162, 162, 167];     // lighter gray for captions
+const RULE: C3 = [229, 229, 234];      // #e5e5ea — borders
+const SURFACE: C3 = [245, 245, 247];   // #f5f5f7 — surface wells
+const WHITE: C3 = [255, 255, 255];     // #ffffff
+const EMERALD: C3 = [133, 248, 196];   // #85f8c4 — verified accent
 
 // ── Drawing helpers ──
 
@@ -56,7 +54,7 @@ function value(doc: jsPDF, text: string, x: number, y: number, size = 9, bold = 
 }
 
 function rule(doc: jsPDF, x1: number, y: number, x2: number) {
-  doc.setDrawColor(...RULE); doc.setLineWidth(0.2); doc.line(x1, y, x2, y);
+  doc.setDrawColor(...RULE); doc.setLineWidth(0.15); doc.line(x1, y, x2, y);
 }
 
 export async function generatePdfBlob(
@@ -78,7 +76,7 @@ export async function generatePdfBlob(
   const dateTime = `${fmtDate(data.generatedAt)} at ${data.generatedAt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}`;
 
   // ════════════════════════════════════════════
-  // HEADER — Logo · Title · Badge
+  // HEADER — Logo · Wordmark · Verified badge
   // ════════════════════════════════════════════
 
   try {
@@ -89,18 +87,22 @@ export async function generatePdfBlob(
   doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(...BLACK);
   doc.text("Fundslip", L + 9.5, y + 3.5);
 
-  // "VERIFIED" pill — right aligned
+  // Subtitle next to wordmark
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...GRAY);
+  doc.text("Asset Verification Report", L + 34, y + 3.5);
+
+  // "VERIFIED" pill — right aligned, emerald bg + navy text
   doc.setFontSize(5); doc.setFont("helvetica", "bold");
   const badge = "VERIFIED";
-  const bw = doc.getTextWidth(badge) + 4.5;
-  doc.setFillColor(...EMERALD_BG);
-  doc.roundedRect(R - bw, y, bw, 4.5, 2.25, 2.25, "F");
-  doc.setTextColor(5, 80, 55);
-  doc.text(badge, R - bw + 2.25, y + 3.2);
+  const bw = doc.getTextWidth(badge) + 5;
+  doc.setFillColor(...EMERALD);
+  doc.roundedRect(R - bw, y + 0.5, bw, 4.5, 2.25, 2.25, "F");
+  doc.setTextColor(...NAVY);
+  doc.text(badge, R - bw + 2.5, y + 3.5);
 
   y += 12;
   rule(doc, L, y, R);
-  y += 6;
+  y += 8;
 
   // ════════════════════════════════════════════
   // DOCUMENT TITLE
@@ -111,10 +113,10 @@ export async function generatePdfBlob(
   y += 5;
   doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
   doc.text(dateTime, L, y);
-  y += 10;
+  y += 12;
 
   // ════════════════════════════════════════════
-  // ACCOUNT DETAILS — clean grid
+  // ACCOUNT DETAILS — clean label/value grid
   // ════════════════════════════════════════════
 
   const details: { l: string; v: string }[] = [
@@ -130,25 +132,25 @@ export async function generatePdfBlob(
     const row = Math.floor(i / 4);
     const col = i % 4;
     const x = L + col * detailColW;
-    const dy = y + row * 10;
+    const dy = y + row * 11;
     label(doc, d.l, x, dy);
-    value(doc, d.v, x, dy + 4);
+    value(doc, d.v, x, dy + 4.5);
   });
-  y += Math.ceil(details.length / 4) * 10 + 2;
+  y += Math.ceil(details.length / 4) * 11 + 2;
 
   if (addr) {
     label(doc, "Address", L, y);
-    value(doc, addr, L, y + 4, 8);
-    y += 10;
+    value(doc, addr, L, y + 4.5, 8);
+    y += 12;
   }
 
   // ════════════════════════════════════════════
-  // NET WORTH — large, prominent
+  // NET WORTH — prominent surface well
   // ════════════════════════════════════════════
 
   doc.setFillColor(...SURFACE);
   doc.roundedRect(L, y, CW, 18, 3, 3, "F");
-  label(doc, "Total Net Worth (USD)", L + 5, y + 5.5);
+  label(doc, "Total Net Worth (USD)", L + 5, y + 6);
   doc.setFontSize(18); doc.setFont("helvetica", "bold"); doc.setTextColor(...NAVY);
   doc.text(`$${fmt(data.totalValueUsd)}`, L + 5, y + 13.5);
   y += 24;
@@ -186,8 +188,8 @@ export async function generatePdfBlob(
     body: holdings,
     foot: [["", "", "Total", `$${fmt(data.totalValueUsd)}`]],
     styles: {
-      fontSize: 7.5, cellPadding: 2.5,
-      textColor: BLACK, lineColor: RULE, lineWidth: 0.12,
+      fontSize: 7.5, cellPadding: 2.8,
+      textColor: BLACK, lineColor: RULE, lineWidth: 0.1,
     },
     headStyles: {
       fillColor: WHITE, textColor: GRAY,
@@ -223,16 +225,16 @@ export async function generatePdfBlob(
       // Summary boxes
       if (isIs) {
         label(doc, "Total Income", L, y);
-        y += 4;
-        value(doc, `$${fmt(recv)}`, L, y, 14, true, GREEN);
+        y += 4.5;
+        value(doc, `$${fmt(recv)}`, L, y, 14, true, NAVY);
         value(doc, `${txs.length} transaction${txs.length !== 1 ? "s" : ""}`, L + 48, y, 7, false, GRAY);
         y += 10;
       } else {
         const boxW = (CW - 4) / 3;
         const boxes: { l: string; v: string; c: C3 }[] = [
-          { l: "Received", v: `$${fmt(recv)}`, c: GREEN },
-          { l: "Sent", v: `$${fmt(sent)}`, c: RED },
-          { l: "Net", v: `$${fmt(recv - sent)}`, c: BLACK },
+          { l: "Received", v: `$${fmt(recv)}`, c: NAVY },
+          { l: "Sent", v: `$${fmt(sent)}`, c: BLACK },
+          { l: "Net", v: `$${fmt(recv - sent)}`, c: NAVY },
         ];
         boxes.forEach((b, i) => {
           const x = L + i * (boxW + 2);
@@ -265,7 +267,7 @@ export async function generatePdfBlob(
           tx.valueUsd > 0 ? `$${fmt(tx.valueUsd)}` : "—",
         ]),
         styles: {
-          fontSize: 6.5, cellPadding: 2,
+          fontSize: 6.5, cellPadding: 2.2,
           textColor: BLACK, lineColor: RULE, lineWidth: 0.08,
           overflow: "ellipsize",
         },
@@ -305,7 +307,7 @@ export async function generatePdfBlob(
   if (lastTableY > fy - 6) { doc.addPage(); fy = H - 38; }
 
   rule(doc, L, fy, R);
-  fy += 4;
+  fy += 5;
 
   // QR code
   const qrUrl = verifyUrl || "https://fundslip.xyz/verify";
@@ -319,28 +321,34 @@ export async function generatePdfBlob(
 
   const vx = L + 20;
 
-  doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(...BLACK);
-  doc.text("Verify this statement", vx, fy + 3.5);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...BLACK);
+  doc.text("Verify this statement", vx, fy + 4);
 
-  doc.setFont("helvetica", "normal"); doc.setFontSize(6); doc.setTextColor(...NAVY);
-  doc.textWithLink("fundslip.xyz/verify", vx, fy + 7.5, { url: qrUrl });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(...NAVY);
+  doc.textWithLink("fundslip.xyz/verify", vx, fy + 8.5, { url: qrUrl });
 
   doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...GRAY);
-  doc.text("Upload this PDF or scan the QR code to verify.", vx, fy + 11.5);
+  doc.text("Upload this PDF or scan the QR code to verify.", vx, fy + 12.5);
 
   // Fingerprint
-  label(doc, "Statement Fingerprint", vx, fy + 16);
+  label(doc, "Statement Fingerprint", vx, fy + 17);
   doc.setFont("courier", "normal"); doc.setFontSize(4); doc.setTextColor(...BLACK);
   const fp = hash || "";
   const maxFpW = CW - 22;
   if (doc.getTextWidth(fp) > maxFpW && fp.length > 50) {
-    doc.text(`${fp.slice(0, 30)}…${fp.slice(-30)}`, vx, fy + 19.5);
+    doc.text(`${fp.slice(0, 30)}…${fp.slice(-30)}`, vx, fy + 20.5);
   } else {
-    doc.text(fp, vx, fy + 19.5);
+    doc.text(fp, vx, fy + 20.5);
   }
 
   doc.setFont("helvetica", "normal"); doc.setFontSize(4); doc.setTextColor(...LIGHT);
-  doc.text("Cryptographically signed by the wallet owner. Independently verifiable against Ethereum.", vx, fy + 23.5);
+  doc.text("Cryptographically signed by the wallet owner. Independently verifiable against Ethereum.", vx, fy + 24);
+
+  // EIP-712 badge — small emerald dot + text
+  doc.setFillColor(...EMERALD);
+  doc.circle(R - 25, fy + 3.5, 1.2, "F");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(...GRAY);
+  doc.text("EIP-712 Signed", R - 22.5, fy + 4.5);
 
   // ── Page footer ──
   const pfY = H - 8;

@@ -1,47 +1,110 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" fill="none">
   <rect width="1200" height="300" fill="#ffffff"/>
 
-  <!-- Subtle grid dots -->
-  <pattern id="dots" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-    <circle cx="20" cy="20" r="0.6" fill="#e5e5ea"/>
-  </pattern>
-  <rect width="1200" height="300" fill="url(#dots)"/>
-
-  <!-- Logo icon -->
-  <g transform="translate(480, 80)">
-    <rect x="5" y="0" width="38" height="46" rx="4" fill="#0048cc" opacity="0.3"/>
-    <rect x="0" y="5" width="38" height="46" rx="4" fill="#003499"/>
-    <rect x="8" y="13" width="22" height="1.8" rx="0.9" fill="#ffffff" opacity="0.85"/>
-    <rect x="8" y="18.5" width="15" height="1.8" rx="0.9" fill="#ffffff" opacity="0.4"/>
-    <rect x="8" y="24" width="18" height="1.8" rx="0.9" fill="#ffffff" opacity="0.4"/>
-    <line x1="8" y1="33" x2="22" y2="33" stroke="#85f8c4" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="8" y1="37" x2="16" y2="37" stroke="#85f8c4" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
-    <circle cx="30" cy="40" r="5.5" fill="#85f8c4"/>
-    <path d="M27.2,40 L29,41.8 L32.8,37.8" stroke="#003499" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Left: brand + tagline -->
+  <g transform="translate(60, 70)">
+    <!-- Logo mark -->
+    <rect x="5" y="0" width="36" height="44" rx="6" fill="#003499" opacity="0.15"/>
+    <rect x="0" y="5" width="36" height="44" rx="6" fill="#003499"/>
+    <rect x="7" y="15" width="20" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
+    <rect x="7" y="20.5" width="13" height="1.5" rx="0.75" fill="#ffffff" opacity="0.3"/>
+    <rect x="7" y="25.5" width="17" height="1.5" rx="0.75" fill="#ffffff" opacity="0.3"/>
+    <line x1="7" y1="33" x2="18" y2="33" stroke="#85f8c4" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="7" y1="37" x2="14" y2="37" stroke="#85f8c4" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <circle cx="29" cy="41" r="6" fill="#85f8c4"/>
+    <path d="M26,41 L28,43 L32,39" stroke="#003499" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
   </g>
 
-  <!-- "Fundslip" text -->
-  <text x="536" y="108" text-anchor="start" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="32" font-weight="600" fill="#1d1d1f" letter-spacing="-0.5">Fundslip</text>
+  <!-- Wordmark -->
+  <text x="116" y="103" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="40" font-weight="600" fill="#1d1d1f" letter-spacing="-1">Fundslip</text>
 
   <!-- Tagline -->
-  <text x="600" y="170" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" fill="#86868b" letter-spacing="-0.2">Verifiable financial statements from Ethereum wallets</text>
+  <text x="60" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18" fill="#86868b" letter-spacing="-0.3">Verifiable financial statements from Ethereum wallets</text>
 
-  <!-- Three pills -->
-  <g transform="translate(370, 200)">
-    <rect x="0" y="0" width="120" height="26" rx="13" fill="none" stroke="#e5e5ea" stroke-width="1"/>
-    <circle cx="16" cy="13" r="2.5" fill="#85f8c4"/>
-    <text x="26" y="17" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#86868b">Open Source</text>
+  <!-- Trust pills -->
+  <g transform="translate(60, 175)">
+    <rect x="0" y="0" width="118" height="26" rx="13" fill="none" stroke="#e5e5ea" stroke-width="0.75"/>
+    <circle cx="14" cy="13" r="2.5" fill="#85f8c4"/>
+    <text x="23" y="17" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#86868b">Open Source</text>
 
-    <rect x="135" y="0" width="110" height="26" rx="13" fill="none" stroke="#e5e5ea" stroke-width="1"/>
-    <circle cx="151" cy="13" r="2.5" fill="#85f8c4"/>
-    <text x="161" y="17" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#86868b">No Backend</text>
+    <rect x="130" y="0" width="108" height="26" rx="13" fill="none" stroke="#e5e5ea" stroke-width="0.75"/>
+    <circle cx="144" cy="13" r="2.5" fill="#85f8c4"/>
+    <text x="153" y="17" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#86868b">No Backend</text>
 
-    <rect x="260" y="0" width="130" height="26" rx="13" fill="none" stroke="#e5e5ea" stroke-width="1"/>
-    <circle cx="276" cy="13" r="2.5" fill="#85f8c4"/>
-    <text x="286" y="17" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#86868b">Client-Side Only</text>
+    <rect x="250" y="0" width="118" height="26" rx="13" fill="none" stroke="#e5e5ea" stroke-width="0.75"/>
+    <circle cx="264" cy="13" r="2.5" fill="#85f8c4"/>
+    <text x="273" y="17" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#86868b">Free Forever</text>
+  </g>
+
+  <!-- Right: statement card preview (cropped at edge) -->
+  <g transform="translate(760, 16)">
+    <rect x="0" y="0" width="480" height="268" rx="16" fill="#ffffff" stroke="#e5e5ea" stroke-width="1"/>
+
+    <!-- Card header -->
+    <g transform="translate(24, 20)">
+      <rect x="0" y="0" width="11" height="14" rx="2.5" fill="#003499"/>
+      <rect x="2.5" y="3.5" width="6" height="1.2" rx="0.6" fill="#ffffff" opacity="0.7"/>
+      <rect x="2.5" y="6.5" width="4" height="1" rx="0.5" fill="#ffffff" opacity="0.3"/>
+      <text x="16" y="11" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#1d1d1f">Fundslip</text>
+
+      <rect x="320" y="0" width="56" height="16" rx="8" fill="#85f8c4" opacity="0.15"/>
+      <circle cx="330" cy="8" r="2.5" fill="#85f8c4"/>
+      <text x="337" y="12" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="7" font-weight="500" fill="#003499" letter-spacing="0.5">VERIFIED</text>
+    </g>
+    <line x1="24" y1="44" x2="400" y2="44" stroke="#e5e5ea" stroke-width="0.5"/>
+
+    <!-- Account -->
+    <g transform="translate(24, 54)">
+      <text x="0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="7" fill="#86868b" letter-spacing="0.5">ACCOUNT</text>
+      <text x="0" y="12" font-family="monospace" font-size="10" fill="#1d1d1f">sshdopey.eth</text>
+      <text x="150" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="7" fill="#86868b" letter-spacing="0.5">NETWORK</text>
+      <text x="150" y="12" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10" fill="#1d1d1f">Ethereum</text>
+    </g>
+
+    <!-- Net worth -->
+    <g transform="translate(24, 86)">
+      <rect x="0" y="0" width="376" height="46" rx="8" fill="#f5f5f7"/>
+      <text x="12" y="15" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="7" fill="#86868b" letter-spacing="0.5">TOTAL NET WORTH</text>
+      <text x="12" y="36" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="600" fill="#1d1d1f" letter-spacing="-0.5">$142,502<tspan fill="#86868b" opacity="0.3">.88</tspan></text>
+    </g>
+
+    <!-- Holdings -->
+    <g transform="translate(24, 148)">
+      <text x="0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="7" fill="#86868b" letter-spacing="0.5">HOLDINGS</text>
+      <line x1="0" y1="10" x2="376" y2="10" stroke="#e5e5ea" stroke-width="0.4"/>
+
+      <!-- ETH -->
+      <g transform="translate(0, 16) scale(0.5)">
+        <g fill="#000000" fill-rule="evenodd">
+          <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.994-15.781L16.498 4 9 16.22l7.498 4.353 7.496-4.354zM24 17.616l-7.502 4.351L9 17.617l7.498 10.378L24 17.616z"/>
+          <g fill-rule="nonzero">
+            <path fill-opacity=".298" d="M16.498 4v8.87l7.497 3.35zm0 17.968v6.027L24 17.616z"/>
+            <path fill-opacity=".801" d="M16.498 20.573l7.497-4.353-7.497-3.348z"/>
+            <path fill-opacity=".298" d="M9 16.22l7.498 4.353v-7.701z"/>
+          </g>
+        </g>
+      </g>
+      <text x="22" y="28" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" font-weight="500" fill="#1d1d1f">Ethereum</text>
+      <text x="355" y="28" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#1d1d1f">$84,120.00</text>
+
+      <line x1="0" y1="38" x2="376" y2="38" stroke="#e5e5ea" stroke-width="0.3"/>
+
+      <!-- USDC -->
+      <g transform="translate(0, 44) scale(0.5)">
+        <g fill="none">
+          <circle fill="#3E73C4" cx="16" cy="16" r="16"/>
+          <g fill="#FFF">
+            <path d="M20.022 18.124c0-2.124-1.28-2.852-3.84-3.156-1.828-.243-2.193-.728-2.193-1.578 0-.85.61-1.396 1.828-1.396 1.097 0 1.707.364 2.011 1.275a.458.458 0 00.427.303h.975a.416.416 0 00.427-.425v-.06a3.04 3.04 0 00-2.743-2.489V9.142c0-.243-.183-.425-.487-.486h-.915c-.243 0-.426.182-.487.486v1.396c-1.829.242-2.986 1.456-2.986 2.974 0 2.002 1.218 2.791 3.778 3.095 1.707.303 2.255.668 2.255 1.639 0 .97-.853 1.638-2.011 1.638-1.585 0-2.133-.667-2.316-1.578-.06-.242-.244-.364-.427-.364h-1.036a.416.416 0 00-.426.425v.06c.243 1.518 1.219 2.61 3.23 2.914v1.457c0 .242.183.425.487.485h.915c.243 0 .426-.182.487-.485V21.34c1.829-.303 3.047-1.578 3.047-3.217z"/>
+            <path d="M12.892 24.497c-4.754-1.7-7.192-6.98-5.424-11.653.914-2.55 2.925-4.491 5.424-5.402.244-.121.365-.303.365-.607v-.85c0-.242-.121-.424-.365-.485-.061 0-.183 0-.244.06a10.895 10.895 0 00-7.13 13.717c1.096 3.4 3.717 6.01 7.13 7.102.244.121.488 0 .548-.243.061-.06.061-.122.061-.243v-.85c0-.182-.182-.424-.365-.546zm6.46-18.936c-.244-.122-.488 0-.548.242-.061.061-.061.122-.061.243v.85c0 .243.182.485.365.607 4.754 1.7 7.192 6.98 5.424 11.653-.914 2.55-2.925 4.491-5.424 5.402-.244.121-.365.303-.365.607v.85c0 .242.121.424.365.485.061 0 .183 0 .244-.06a10.895 10.895 0 007.13-13.717c-1.096-3.46-3.778-6.07-7.13-7.162z"/>
+          </g>
+        </g>
+      </g>
+      <text x="22" y="56" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" font-weight="500" fill="#1d1d1f">USD Coin</text>
+      <text x="355" y="56" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" fill="#1d1d1f">$58,382.88</text>
+    </g>
   </g>
 
   <!-- Bottom line -->
-  <line x1="100" y1="270" x2="1100" y2="270" stroke="#e5e5ea" stroke-width="0.5"/>
-  <text x="600" y="288" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10" fill="#86868b" letter-spacing="2">EIP-712 SIGNED  ·  TRUSTLESS  ·  MIT LICENSE</text>
+  <line x1="60" y1="262" x2="1140" y2="262" stroke="#e5e5ea" stroke-width="0.5"/>
+  <text x="600" y="282" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="10" fill="#86868b" letter-spacing="1.5">EIP-712 SIGNED  ·  TRUSTLESS  ·  MIT LICENSE</text>
 </svg>
