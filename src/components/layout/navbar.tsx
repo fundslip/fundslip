@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useAccount, useDisconnect, useSwitchChain, useChainId } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useSwitchChain, useChainId } from "wagmi";
 import { usePathname } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronDown, LogOut, Copy, Check, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -138,6 +138,14 @@ function WalletButton() {
   }
 
   // ── Disconnected State ──
+
+  // Check if user has any browser wallets installed (EIP-6963)
+  const { connectors } = useConnect();
+  const hasInstalledWallets = useMemo(
+    () => connectors.some((c) => c.type === "injected" && c.id !== "injected"),
+    [connectors],
+  );
+
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(!open)}
@@ -152,7 +160,9 @@ function WalletButton() {
             transition={{ duration: 0.12 }}
             className="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-outline-variant shadow-sm p-2 z-[110]"
           >
-            <p className="px-3 py-2 text-[11px] uppercase tracking-wide text-on-surface-variant">Connect a wallet</p>
+            <p className="px-3 py-2 text-[12px] text-on-surface-variant">
+              {hasInstalledWallets ? "Choose a wallet" : "Connect with"}
+            </p>
             <WalletOptions layout="dropdown" onConnected={() => setOpen(false)} />
           </motion.div>
         )}
