@@ -252,12 +252,12 @@ export async function generatePdfBlob(
   // ════════════════════════════════════════════
 
   if (!isBs) {
-    const allTxs = data.transactions.filter(t => t.valueUsd > 0 || t.type === "send");
+    const allTxs = data.transactions.filter(t => t.valueUsd > 0 || t.type === "send" || t.type === "contract");
     const txs = isIs ? allTxs.filter(t => t.type === "receive") : allTxs;
 
     if (txs.length > 0) {
       const recv = allTxs.filter(t => t.type === "receive").reduce((s, t) => s + t.valueUsd, 0);
-      const sent = allTxs.filter(t => t.type === "send").reduce((s, t) => s + t.valueUsd, 0);
+      const sent = allTxs.filter(t => t.type === "send" || t.type === "contract").reduce((s, t) => s + t.valueUsd, 0);
 
       // Summary boxes
       if (isIs) {
@@ -300,7 +300,7 @@ export async function generatePdfBlob(
           new Date(tx.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }),
           tx.description,
           tx.type === "receive" ? shortAddr(tx.from) : shortAddr(tx.to),
-          tx.type.charAt(0).toUpperCase() + tx.type.slice(1),
+          tx.type === "contract" ? "Interact" : tx.type.charAt(0).toUpperCase() + tx.type.slice(1),
           tx.valueUsd > 0 ? `$${fmt(tx.valueUsd)}` : "—",
         ]),
         styles: {

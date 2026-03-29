@@ -2,8 +2,79 @@ import { createPublicClient, http, formatEther, formatUnits, type Address, type 
 import { mainnet, sepolia } from "viem/chains";
 import { TRACKED_TOKENS, ERC20_ABI } from "./constants";
 import { MAINNET_RPC, SEPOLIA_RPC } from "./wagmi-config";
-import { discoverTokens } from "./alchemy";
+import { discoverTokens, fetchAssetTransfers, type AlchemyTransfer } from "./alchemy";
 import type { TokenBalance, Transaction } from "@/types";
+
+// ─── Known contracts and function selectors for labeling ───
+
+const KNOWN_CONTRACTS: Record<string, string> = {
+  "0x283af0b28c62c092c9727f1ee09c02ca627eb7f5": "ENS: Registrar",
+  "0x253553366da8546fc250f225fe3d25d0c782303b": "ENS: Registrar",
+  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "WETH",
+  "0x7a250d5630b4cf539739df2c5dacb4c659f2488d": "Uniswap V2",
+  "0xe592427a0aece92de3edee1f18e0157c05861564": "Uniswap V3",
+  "0x68b3465833fb72a70ecdf485e0e4c7bd8665fc45": "Uniswap",
+  "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad": "Uniswap",
+  "0xae7ab96520de3a18e5e111b5eaab095312d7fe84": "Lido: stETH",
+  "0xdef1c0ded9bec7f1a1670819833240f027b25eff": "0x Exchange",
+  "0x1111111254eeb25477b68fb85ed929f73a960582": "1inch",
+  "0x881d40237659c251811cec9c364ef91dc08d300c": "Metamask Swap",
+};
+
+const KNOWN_SELECTORS: Record<string, string> = {
+  "0x095ea7b3": "Token Approval",
+  "0xa9059cbb": "Token Transfer",
+  "0x23b872dd": "Token Transfer",
+  "0x3593564c": "Swap",
+  "0x7ff36ab5": "Swap",
+  "0x38ed1739": "Swap",
+  "0x414bf389": "Swap",
+  "0xfb3bdb41": "Swap",
+  "0x5ae401dc": "Swap",
+  "0x04e45aaf": "Swap",
+  "0xa22cb465": "NFT Approval",
+  "0x42842e0e": "NFT Transfer",
+  "0xb88d4fde": "NFT Transfer",
+  "0xd0e30db0": "WETH Wrap",
+  "0x2e1a7d4d": "WETH Unwrap",
+  "0xa6f9dae1": "ENS Registration",
+  "0xf14fcbc8": "ENS Commit",
+  "0x85f6d155": "ENS Registration",
+  "0xacf1a841": "ENS Renewal",
+  "0x1aa86dda": "ENS Registration",
+  "0xa694fc3a": "Stake",
+  "0x2e17de78": "Unstake",
+  "0x3ccfd60b": "Withdraw",
+};
+
+function labelTransaction(
+  to: string | null,
+  input: string | undefined,
+  value: number,
+  asset: string
+): { type: Transaction["type"]; label: string } {
+  if (!to) return { type: "contract", label: "Contract Deployment" };
+
+  const hasCalldata = input && input !== "0x" && input.length > 2;
+  if (!hasCalldata) {
+    return { type: "send", label: `Sent ${value.toFixed(4)} ${asset}` };
+  }
+
+  const contractName = KNOWN_CONTRACTS[to.toLowerCase()];
+  const selector = input.slice(0, 10).toLowerCase();
+  const selectorLabel = KNOWN_SELECTORS[selector];
+
+  if (contractName && selectorLabel) {
+    return { type: "contract", label: `${contractName} — ${selectorLabel}` };
+  }
+  if (contractName) {
+    return { type: "contract", label: contractName };
+  }
+  if (selectorLabel) {
+    return { type: "contract", label: selectorLabel };
+  }
+  return { type: "contract", label: "Contract Interaction" };
+}
 
 // Cache public clients — reuse connections instead of creating fresh on every call
 const clientCache = new Map<number, ReturnType<typeof createPublicClient>>();
@@ -177,62 +248,231 @@ export async function getTransactionHistory(
   const startBlock = await getBlockByTimestamp(startTimestamp, "after", chainId);
   const endBlock = await getBlockByTimestamp(endTimestamp, "before", chainId);
 
+  // Primary: Alchemy getAssetTransfers (catches everything: zero-value calls, NFTs, internals)
+  const alchemyTransfers = await fetchAssetTransfers(address, startBlock, endBlock, chainId);
+  if (alchemyTransfers && alchemyTransfers.length > 0) {
+    return buildFromAlchemyTransfers(alchemyTransfers, address, startTimestamp, endTimestamp, ethPriceUsd, tokenPrices);
+  }
+
+  if (alchemyTransfers === null) {
+    console.info("Alchemy unavailable for transfers, falling back to Blockscout");
+  }
+
+  // Fallback: Blockscout (enhanced with calldata decoding)
+  return buildFromBlockscout(address, startBlock, endBlock, startTimestamp, endTimestamp, chainId, ethPriceUsd, tokenPrices);
+}
+
+// ─── Alchemy path ───
+
+const STABLECOINS = new Set(["USDC", "USDT", "DAI", "PYUSD", "BUSD", "TUSD", "FRAX", "LUSD", "GUSD", "EURC", "USDP", "cUSD", "USDbC"]);
+
+async function buildFromAlchemyTransfers(
+  transfers: AlchemyTransfer[],
+  address: string,
+  startTs: number, endTs: number,
+  ethPriceUsd: number,
+  tokenPrices: Record<string, number>
+): Promise<{ transactions: Transaction[]; totalCount: number }> {
+  // Fetch extra prices for tokens we don't have
+  const missingSymbols = new Set<string>();
+  for (const t of transfers) {
+    const sym = t.asset || "";
+    if (t.category === "erc20" && sym && !tokenPrices[sym] && !STABLECOINS.has(sym)) {
+      missingSymbols.add(sym);
+    }
+  }
+  let mergedPrices = tokenPrices;
+  if (missingSymbols.size > 0) {
+    try {
+      const { fetchPrices } = await import("./prices");
+      mergedPrices = { ...tokenPrices, ...(await fetchPrices([...missingSymbols])) };
+    } catch { /* continue */ }
+  }
+
+  const transactions: Transaction[] = [];
+  const addrLower = address.toLowerCase();
+
+  for (const t of transfers) {
+    const ts = t.metadata?.blockTimestamp ? Math.floor(new Date(t.metadata.blockTimestamp).getTime() / 1000) : 0;
+    if (ts < startTs || ts > endTs) continue;
+
+    const isReceive = t.to?.toLowerCase() === addrLower;
+    const isSend = t.from?.toLowerCase() === addrLower;
+    const blockNumber = parseInt(t.blockNum, 16);
+    const amount = t.value ?? 0;
+    const asset = t.asset || "ETH";
+
+    // Determine price
+    let price = 0;
+    if (t.category === "external" || t.category === "internal") {
+      price = ethPriceUsd;
+    } else if (t.category === "erc20") {
+      price = mergedPrices[asset] || (STABLECOINS.has(asset) ? 1 : 0);
+    }
+    const valueUsd = amount * price;
+
+    // Spam filter for token transfers
+    if (t.category === "erc20" && valueUsd === 0 && (
+      t.from?.toLowerCase() === "0x0000000000000000000000000000000000000000" ||
+      asset.startsWith("$") || amount > 1_000_000
+    )) continue;
+
+    // Determine type and description
+    let type: Transaction["type"];
+    let description: string;
+
+    if (t.category === "erc721" || t.category === "erc1155" || t.category === "specialnft") {
+      // NFT transfers
+      type = isReceive ? "receive" : "send";
+      const tokenIdShort = t.tokenId ? `#${parseInt(t.tokenId, 16)}` : "";
+      description = isReceive
+        ? `Received NFT ${asset || "Unknown"} ${tokenIdShort}`.trim()
+        : `Sent NFT ${asset || "Unknown"} ${tokenIdShort}`.trim();
+    } else if (t.category === "erc20") {
+      // Token transfers
+      type = isReceive ? "receive" : "send";
+      description = isReceive
+        ? `Received ${fmtAmount(amount)} ${asset}`
+        : `Sent ${fmtAmount(amount)} ${asset}`;
+    } else {
+      // External/internal ETH transfers — check if contract interaction
+      if (isSend && t.to) {
+        const contractName = KNOWN_CONTRACTS[t.to.toLowerCase()];
+        if (contractName) {
+          type = "contract";
+          description = amount > 0
+            ? `${contractName} (${fmtAmount(amount)} ETH)`
+            : contractName;
+        } else {
+          type = "send";
+          description = `Sent ${fmtAmount(amount)} ETH`;
+        }
+      } else if (isReceive) {
+        type = "receive";
+        description = `Received ${fmtAmount(amount)} ETH`;
+      } else {
+        type = "contract";
+        description = `Contract Interaction (${fmtAmount(amount)} ETH)`;
+      }
+    }
+
+    transactions.push({
+      hash: t.hash,
+      from: t.from,
+      to: t.to || "",
+      value: t.rawContract?.value || "0",
+      timestamp: ts,
+      blockNumber,
+      tokenSymbol: t.category === "erc20" ? asset : undefined,
+      tokenName: t.category === "erc20" ? asset : undefined,
+      gasUsed: "0",
+      gasPrice: "0",
+      type,
+      valueUsd,
+      description,
+    });
+  }
+
+  transactions.sort((a, b) => b.blockNumber - a.blockNumber);
+  const totalCount = transactions.length;
+  return { transactions: transactions.slice(0, 500), totalCount };
+}
+
+function fmtAmount(n: number): string {
+  if (n === 0) return "0";
+  if (n >= 1000) return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  if (n >= 1) return n.toFixed(4);
+  if (n >= 0.0001) return n.toFixed(4);
+  return n.toExponential(2);
+}
+
+// ─── Blockscout fallback path (enhanced with calldata decoding) ───
+
+async function buildFromBlockscout(
+  address: string,
+  startBlock: string, endBlock: string,
+  startTs: number, endTs: number,
+  chainId: number,
+  ethPriceUsd: number,
+  tokenPrices: Record<string, number>
+): Promise<{ transactions: Transaction[]; totalCount: number }> {
   const [ethTxs, tokenTxs] = await Promise.all([
     fetchExplorerTxs("txlist", address, startBlock, endBlock, chainId),
     fetchExplorerTxs("tokentx", address, startBlock, endBlock, chainId),
   ]);
 
   const transactions: Transaction[] = [];
+  const addrLower = address.toLowerCase();
 
+  // Process ETH transactions — now includes zero-value contract calls
   for (const tx of ethTxs) {
-    if (!tx.value || tx.value === "0") continue;
     const ts = parseInt(tx.timeStamp);
-    if (ts < startTimestamp || ts > endTimestamp) continue; // enforce date range
-    const isReceive = tx.to?.toLowerCase() === address.toLowerCase();
-    const ethAmount = parseFloat(formatEther(BigInt(tx.value)));
+    if (ts < startTs || ts > endTs) continue;
+
+    const ethValue = tx.value ? BigInt(tx.value) : BigInt(0);
+    const ethAmount = parseFloat(formatEther(ethValue));
+    const isReceive = tx.to?.toLowerCase() === addrLower;
+    const hasValue = ethValue > BigInt(0);
+    const hasCalldata = tx.input && tx.input !== "0x" && tx.input.length > 2;
+
+    // Skip zero-value simple transfers (not contract calls)
+    if (!hasValue && !hasCalldata) continue;
+
+    let type: Transaction["type"];
+    let description: string;
+
+    if (isReceive) {
+      type = "receive";
+      description = `Received ${ethAmount.toFixed(4)} ETH`;
+    } else if (hasCalldata) {
+      // Contract interaction — decode it
+      const labeled = labelTransaction(tx.to, tx.input, ethAmount, "ETH");
+      type = labeled.type;
+      description = hasValue
+        ? `${labeled.label} (${ethAmount.toFixed(4)} ETH)`
+        : labeled.label;
+    } else {
+      type = "send";
+      description = `Sent ${ethAmount.toFixed(4)} ETH`;
+    }
+
     transactions.push({
-      hash: tx.hash, from: tx.from, to: tx.to || "", value: tx.value,
+      hash: tx.hash, from: tx.from, to: tx.to || "", value: tx.value || "0",
       timestamp: ts, blockNumber: parseInt(tx.blockNumber),
       gasUsed: tx.gasUsed || "0", gasPrice: tx.gasPrice || "0",
-      type: isReceive ? "receive" : "send",
-      valueUsd: ethAmount * ethPriceUsd,
-      description: `${isReceive ? "Received" : "Sent"} ${ethAmount.toFixed(4)} ETH`,
+      type, valueUsd: ethAmount * ethPriceUsd, description,
     });
   }
 
-  // Collect unique token symbols from transactions to fetch missing prices
-  const STABLECOINS = new Set(["USDC", "USDT", "DAI", "PYUSD", "BUSD", "TUSD", "FRAX", "LUSD", "GUSD", "EURC", "USDP", "cUSD", "USDbC"]);
+  // Fetch missing token prices
   const missingSymbols = new Set<string>();
   for (const tx of tokenTxs) {
     const sym = tx.tokenSymbol || "";
     if (sym && !tokenPrices[sym] && !STABLECOINS.has(sym)) missingSymbols.add(sym);
   }
-
-  // Fetch prices for tokens we don't have yet (merged into new object to avoid mutating caller's reference)
   let mergedPrices = tokenPrices;
   if (missingSymbols.size > 0) {
     try {
       const { fetchPrices } = await import("./prices");
-      const extra = await fetchPrices([...missingSymbols]);
-      mergedPrices = { ...tokenPrices, ...extra };
-    } catch { /* continue with what we have */ }
+      mergedPrices = { ...tokenPrices, ...(await fetchPrices([...missingSymbols])) };
+    } catch { /* continue */ }
   }
 
+  // Process token transactions
   for (const tx of tokenTxs) {
     const ts = parseInt(tx.timeStamp);
-    if (ts < startTimestamp || ts > endTimestamp) continue;
-    const isReceive = tx.to?.toLowerCase() === address.toLowerCase();
+    if (ts < startTs || ts > endTs) continue;
+    const isReceive = tx.to?.toLowerCase() === addrLower;
     const decimals = parseInt(tx.tokenDecimal || "18");
     const amount = parseFloat(formatUnits(BigInt(tx.value), decimals));
     const symbol = tx.tokenSymbol || "";
     const tokenPrice = mergedPrices[symbol] || (STABLECOINS.has(symbol) ? 1 : 0);
     const usdValue = amount * tokenPrice;
 
-    // Skip spam airdrops: tokens with no USD value from null address or with $ in symbol
+    // Skip spam airdrops
     if (usdValue === 0 && (
       tx.from?.toLowerCase() === "0x0000000000000000000000000000000000000000" ||
-      symbol.startsWith("$") ||
-      amount > 1_000_000
+      symbol.startsWith("$") || amount > 1_000_000
     )) continue;
 
     transactions.push({
@@ -242,7 +482,7 @@ export async function getTransactionHistory(
       gasUsed: tx.gasUsed || "0", gasPrice: tx.gasPrice || "0",
       type: isReceive ? "receive" : "send",
       valueUsd: usdValue,
-      description: `${isReceive ? "Received" : "Sent"} ${amount.toFixed(4)} ${symbol}`,
+      description: `${isReceive ? "Received" : "Sent"} ${fmtAmount(amount)} ${symbol}`,
     });
   }
 

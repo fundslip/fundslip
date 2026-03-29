@@ -154,3 +154,94 @@ function isSpamName(value: string): boolean {
 export function isAlchemyAvailable(chainId: number): boolean {
   return getAlchemyUrl(chainId) !== null;
 }
+
+// ─── Asset Transfers ───
+
+export interface AlchemyTransfer {
+  blockNum: string;
+  hash: string;
+  from: string;
+  to: string | null;
+  value: number | null;
+  asset: string | null;
+  category: "external" | "internal" | "erc20" | "erc721" | "erc1155" | "specialnft";
+  rawContract: {
+    value: string | null;
+    address: string | null;
+    decimal: string | null;
+  };
+  tokenId: string | null;
+  metadata?: { blockTimestamp: string };
+  uniqueId: string;
+}
+
+interface AssetTransfersResult {
+  transfers: AlchemyTransfer[];
+  pageKey?: string;
+}
+
+/**
+ * Fetch all asset transfers for a wallet in a block range via Alchemy.
+ * Returns both sent and received transfers (external, erc20, erc721, erc1155).
+ * Returns null if Alchemy is unavailable.
+ */
+export async function fetchAssetTransfers(
+  address: string,
+  fromBlock: string,
+  toBlock: string,
+  chainId: number
+): Promise<AlchemyTransfer[] | null> {
+  const client = getAlchemyClient(chainId);
+  if (!client) return null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rpc = client.request as (args: { method: string; params: unknown[] }) => Promise<any>;
+  const categories = ["external", "erc20", "erc721", "erc1155"];
+  const fromBlockHex = `0x${parseInt(fromBlock).toString(16)}`;
+  const toBlockHex = `0x${parseInt(toBlock).toString(16)}`;
+
+  try {
+    const [sentResult, receivedResult]: [AssetTransfersResult, AssetTransfersResult] = await Promise.all([
+      rpc({
+        method: "alchemy_getAssetTransfers",
+        params: [{
+          fromBlock: fromBlockHex,
+          toBlock: toBlockHex,
+          fromAddress: address,
+          category: categories,
+          excludeZeroValue: false,
+          withMetadata: true,
+          order: "desc",
+          maxCount: "0x1F4", // 500
+        }],
+      }),
+      rpc({
+        method: "alchemy_getAssetTransfers",
+        params: [{
+          fromBlock: fromBlockHex,
+          toBlock: toBlockHex,
+          toAddress: address,
+          category: categories,
+          excludeZeroValue: false,
+          withMetadata: true,
+          order: "desc",
+          maxCount: "0x1F4",
+        }],
+      }),
+    ]);
+
+    // Merge and deduplicate by uniqueId
+    const seen = new Set<string>();
+    const all: AlchemyTransfer[] = [];
+    for (const t of [...sentResult.transfers, ...receivedResult.transfers]) {
+      if (!seen.has(t.uniqueId)) {
+        seen.add(t.uniqueId);
+        all.push(t);
+      }
+    }
+    return all;
+  } catch (e) {
+    console.warn("Alchemy asset transfers failed:", e);
+    return null;
+  }
+}
