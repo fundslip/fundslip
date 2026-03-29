@@ -97,18 +97,37 @@ export async function verifyPayload(
     console.warn("Failed to fetch token balances during verification:", e);
   }
 
-  let prices: Record<string, number> = {};
+  // Price tokens by contract address first, then symbol fallback
+  let ethPriceUsd = 0;
+  const contractPrices = new Map<string, number>();
   try {
-    prices = await fetchPrices(["ETH", ...tokens.map(t => t.symbol)]);
+    const ethPrices = await fetchPrices(["ETH"]);
+    ethPriceUsd = ethPrices.ETH || 0;
+
+    if (tokens.length > 0) {
+      const { fetchPricesByContract } = await import("../prices");
+      const fetched = await fetchPricesByContract(tokens.map(t => t.contractAddress));
+      for (const [addr, price] of fetched) contractPrices.set(addr, price);
+
+      // Symbol fallback for unpriced tokens
+      const unpriced = tokens.filter(t => !contractPrices.has(t.contractAddress.toLowerCase()));
+      if (unpriced.length > 0) {
+        const symbolPrices = await fetchPrices(unpriced.map(t => t.symbol)).catch(() => ({} as Record<string, number>));
+        for (const t of unpriced) {
+          if (symbolPrices[t.symbol]) contractPrices.set(t.contractAddress.toLowerCase(), symbolPrices[t.symbol]);
+        }
+      }
+    }
   } catch (e) {
     console.warn("Failed to fetch prices during verification:", e);
   }
 
-  const ethPriceUsd = prices.ETH || 0;
   const ethValueUsd = ethBalanceNum * ethPriceUsd;
-  const pricedTokens: TokenBalance[] = tokens.map(t => ({
-    ...t, priceUsd: prices[t.symbol] || 0, valueUsd: t.balanceFormatted * (prices[t.symbol] || 0),
-  }));
+  const pricedTokens: TokenBalance[] = tokens.map(t => {
+    const price = contractPrices.get(t.contractAddress.toLowerCase()) || 0;
+    return { ...t, priceUsd: price, valueUsd: t.balanceFormatted * price };
+  });
+  pricedTokens.sort((a, b) => b.valueUsd - a.valueUsd);
   const totalValueUsd = ethValueUsd + pricedTokens.reduce((s, t) => s + t.valueUsd, 0);
 
   let transactions: Transaction[] = [];
@@ -118,7 +137,9 @@ export async function verifyPayload(
     const now = Math.floor(Date.now() / 1000);
     const rangeStart = now - 90 * 86400;
     try {
-      const result = await getTransactionHistory(decoded.wallet, rangeStart, now, decoded.chainId, ethPriceUsd, prices);
+      const symbolPrices: Record<string, number> = {};
+      for (const t of pricedTokens) { if (t.priceUsd > 0) symbolPrices[t.symbol] = t.priceUsd; }
+      const result = await getTransactionHistory(decoded.wallet, rangeStart, now, decoded.chainId, ethPriceUsd, symbolPrices);
       transactions = result.transactions;
     } catch (e) {
       console.warn("Failed to fetch transactions during verification:", e);

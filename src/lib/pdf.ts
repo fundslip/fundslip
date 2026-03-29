@@ -162,6 +162,10 @@ export async function generatePdfBlob(
   label(doc, "Digital Asset Holdings", L, y);
   y += 3;
 
+  // Split tokens into priced (with USD value) and unpriced (balance only)
+  const pricedTokens = data.tokens.filter(t => t.valueUsd > 0.01);
+  const unpricedTokens = data.tokens.filter(t => t.priceUsd === 0 && t.balanceFormatted > 0);
+
   const holdings: string[][] = [];
   if (data.ethBalance > 0) {
     holdings.push([
@@ -171,7 +175,7 @@ export async function generatePdfBlob(
       `$${fmt(data.ethValueUsd)}`,
     ]);
   }
-  for (const t of data.tokens.filter(t => t.valueUsd > 0.01)) {
+  for (const t of pricedTokens) {
     holdings.push([
       `${t.name} (${t.symbol})`,
       t.balanceFormatted.toLocaleString("en-US", { maximumFractionDigits: 4 }),
@@ -209,6 +213,39 @@ export async function generatePdfBlob(
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   y = (doc as any).lastAutoTable.finalY + 8;
+
+  // Unpriced assets section (tokens without market data)
+  if (unpricedTokens.length > 0) {
+    label(doc, "Other Assets (No Market Price Available)", L, y);
+    y += 3;
+
+    const otherRows: string[][] = unpricedTokens.map(t => [
+      `${t.name} (${t.symbol})`,
+      t.balanceFormatted.toLocaleString("en-US", { maximumFractionDigits: 4 }),
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: L, right: 24 },
+      head: [["Asset", "Quantity"]],
+      body: otherRows,
+      styles: {
+        fontSize: 7, cellPadding: 2.5,
+        textColor: GRAY, lineColor: RULE, lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: WHITE, textColor: GRAY,
+        fontSize: 6, fontStyle: "normal", cellPadding: 2,
+      },
+      columnStyles: {
+        0: { cellWidth: "auto" },
+        1: { halign: "right" },
+      },
+      theme: "plain",
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    y = (doc as any).lastAutoTable.finalY + 8;
+  }
 
   // ════════════════════════════════════════════
   // TRANSACTIONS (full-history & income only)
