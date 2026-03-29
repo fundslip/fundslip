@@ -274,115 +274,96 @@ export async function getTransactionHistory(
   const startBlock = await getBlockByTimestamp(startTimestamp, "after", chainId);
   const endBlock = await getBlockByTimestamp(endTimestamp, "before", chainId);
 
-  // Primary: Alchemy getAssetTransfers (catches everything: zero-value calls, NFTs, internals)
-  const alchemyTransfers = await fetchAssetTransfers(address, startBlock, endBlock, chainId);
-  if (alchemyTransfers && alchemyTransfers.length > 0) {
-    return buildFromAlchemyTransfers(alchemyTransfers, address, startTimestamp, endTimestamp, ethPriceUsd, tokenPrices);
-  }
+  // Base: Blockscout — has calldata for contract label decoding (ENS, approvals, etc.)
+  const result = await buildFromBlockscout(address, startBlock, endBlock, startTimestamp, endTimestamp, chainId, ethPriceUsd, tokenPrices);
 
-  if (alchemyTransfers === null) {
-    console.info("Alchemy unavailable for transfers, falling back to Blockscout");
-  }
+  // Supplement: Alchemy — catches transfers Blockscout missed (NFTs, internal ETH, exotic tokens)
+  try {
+    const alchemyTransfers = await fetchAssetTransfers(address, startBlock, endBlock, chainId);
+    if (alchemyTransfers && alchemyTransfers.length > 0) {
+      const existingHashes = new Set(result.transactions.map(t => t.hash.toLowerCase()));
+      const additional = buildAlchemySupplementalTransfers(
+        alchemyTransfers, address, startTimestamp, endTimestamp, existingHashes, ethPriceUsd, tokenPrices
+      );
+      if (additional.length > 0) {
+        result.transactions.push(...additional);
+        result.transactions.sort((a, b) => b.blockNumber - a.blockNumber);
+        result.totalCount += additional.length;
+      }
+    }
+  } catch { /* Alchemy supplement is best-effort */ }
 
-  // Fallback: Blockscout (enhanced with calldata decoding)
-  return buildFromBlockscout(address, startBlock, endBlock, startTimestamp, endTimestamp, chainId, ethPriceUsd, tokenPrices);
+  return { transactions: result.transactions.slice(0, 500), totalCount: result.totalCount };
 }
 
-// ─── Alchemy path ───
+// ─── Alchemy supplemental: only adds transfers that Blockscout missed ───
 
 const STABLECOINS = new Set(["USDC", "USDT", "DAI", "PYUSD", "BUSD", "TUSD", "FRAX", "LUSD", "GUSD", "EURC", "USDP", "cUSD", "USDbC"]);
 
-async function buildFromAlchemyTransfers(
+function buildAlchemySupplementalTransfers(
   transfers: AlchemyTransfer[],
   address: string,
   startTs: number, endTs: number,
+  existingHashes: Set<string>,
   ethPriceUsd: number,
   tokenPrices: Record<string, number>
-): Promise<{ transactions: Transaction[]; totalCount: number }> {
-  // Fetch extra prices for tokens we don't have
-  const missingSymbols = new Set<string>();
-  for (const t of transfers) {
-    const sym = t.asset || "";
-    if (t.category === "erc20" && sym && !tokenPrices[sym] && !STABLECOINS.has(sym)) {
-      missingSymbols.add(sym);
-    }
-  }
-  let mergedPrices = tokenPrices;
-  if (missingSymbols.size > 0) {
-    try {
-      const { fetchPrices } = await import("./prices");
-      mergedPrices = { ...tokenPrices, ...(await fetchPrices([...missingSymbols])) };
-    } catch { /* continue */ }
-  }
-
-  const transactions: Transaction[] = [];
+): Transaction[] {
+  const additional: Transaction[] = [];
   const addrLower = address.toLowerCase();
 
   for (const t of transfers) {
+    // Skip transfers already covered by Blockscout
+    if (existingHashes.has(t.hash.toLowerCase())) continue;
+
     const ts = t.metadata?.blockTimestamp ? Math.floor(new Date(t.metadata.blockTimestamp).getTime() / 1000) : 0;
     if (ts < startTs || ts > endTs) continue;
 
     const isReceive = t.to?.toLowerCase() === addrLower;
-    const isSend = t.from?.toLowerCase() === addrLower;
     const blockNumber = parseInt(t.blockNum, 16);
     const amount = t.value ?? 0;
     const asset = t.asset || "ETH";
 
-    // Determine price
     let price = 0;
     if (t.category === "external" || t.category === "internal") {
       price = ethPriceUsd;
     } else if (t.category === "erc20") {
-      price = mergedPrices[asset] || (STABLECOINS.has(asset) ? 1 : 0);
+      price = tokenPrices[asset] || (STABLECOINS.has(asset) ? 1 : 0);
     }
     const valueUsd = amount * price;
 
-    // Spam filter for token transfers
+    // Spam filter
     if (t.category === "erc20" && valueUsd === 0 && (
       t.from?.toLowerCase() === "0x0000000000000000000000000000000000000000" ||
       asset.startsWith("$") || amount > 1_000_000
     )) continue;
 
-    // Determine type and description
     let type: Transaction["type"];
     let description: string;
 
     if (t.category === "erc721" || t.category === "erc1155" || t.category === "specialnft") {
-      // NFT transfers
       type = isReceive ? "receive" : "send";
       const tokenIdShort = t.tokenId ? `#${parseInt(t.tokenId, 16)}` : "";
       description = isReceive
         ? `Received NFT ${asset || "Unknown"} ${tokenIdShort}`.trim()
         : `Sent NFT ${asset || "Unknown"} ${tokenIdShort}`.trim();
     } else if (t.category === "erc20") {
-      // Token transfers
       type = isReceive ? "receive" : "send";
       description = isReceive
         ? `Received ${fmtAmount(amount)} ${asset}`
         : `Sent ${fmtAmount(amount)} ${asset}`;
+    } else if (t.category === "internal") {
+      type = isReceive ? "receive" : "contract";
+      description = isReceive
+        ? `Received ${fmtAmount(amount)} ETH (internal)`
+        : `Internal Transfer (${fmtAmount(amount)} ETH)`;
     } else {
-      // External/internal ETH transfers — check if contract interaction
-      if (isSend && t.to) {
-        const contractName = KNOWN_CONTRACTS[t.to.toLowerCase()];
-        if (contractName) {
-          type = "contract";
-          description = amount > 0
-            ? `${contractName} (${fmtAmount(amount)} ETH)`
-            : contractName;
-        } else {
-          type = "send";
-          description = `Sent ${fmtAmount(amount)} ETH`;
-        }
-      } else if (isReceive) {
-        type = "receive";
-        description = `Received ${fmtAmount(amount)} ETH`;
-      } else {
-        type = "contract";
-        description = `Contract Interaction (${fmtAmount(amount)} ETH)`;
-      }
+      type = isReceive ? "receive" : "send";
+      description = isReceive
+        ? `Received ${fmtAmount(amount)} ETH`
+        : `Sent ${fmtAmount(amount)} ETH`;
     }
 
-    transactions.push({
+    additional.push({
       hash: t.hash,
       from: t.from,
       to: t.to || "",
@@ -399,9 +380,7 @@ async function buildFromAlchemyTransfers(
     });
   }
 
-  transactions.sort((a, b) => b.blockNumber - a.blockNumber);
-  const totalCount = transactions.length;
-  return { transactions: transactions.slice(0, 500), totalCount };
+  return additional;
 }
 
 function fmtAmount(n: number): string {
