@@ -89,19 +89,15 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
     <div className="relative">
       {/* Scrollable frame */}
       <div className="rounded-xl border border-outline-variant overflow-auto bg-[#e8e8ed]" style={{ maxHeight: "80vh" }}>
-        {/* Scale wrapper — uses transform for uniform scaling, centered */}
-        <div style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "top center",
-          width: 760,
-          margin: "0 auto",
-          height: "fit-content",
-        }}>
-          {/* ═══ The document page ═══ */}
+          {/* The document page — CSS zoom scales everything uniformly */}
           <div style={{
-            backgroundColor: "#fff", width: 760,
-            padding: "44px 52px", fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+            backgroundColor: "#fff",
+            width: 760,
+            margin: "0 auto",
+            padding: "44px 52px",
+            fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif",
+            zoom: scale,
+            boxShadow: scale < 1 ? "0 1px 4px rgba(0,0,0,0.08)" : undefined,
           }}>
 
             {/* ── HEADER ── */}
@@ -253,7 +249,6 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
             </div>
 
           </div>
-        </div>
       </div>
 
       {/* Zoom controls */}
