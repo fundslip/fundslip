@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { ZoomIn, ZoomOut } from "lucide-react";
+import QRCode from "qrcode";
 import type { StatementData } from "@/types";
 import { processForDisplay } from "@/lib/ethereum";
 
@@ -51,14 +52,21 @@ interface Props {
 
 export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: Props) {
   const [zoom, setZoom] = useState(100);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const zoomIn = useCallback(() => setZoom(z => Math.min(200, z + 25)), []);
   const zoomOut = useCallback(() => setZoom(z => Math.max(50, z - 25)), []);
   const scale = zoom / 100;
 
+  // Generate QR code for verify URL
+  useEffect(() => {
+    if (!verifyUrl) return;
+    QRCode.toDataURL(verifyUrl, { width: 200, margin: 1, color: { dark: "#1d1d1f", light: "#ffffff" } })
+      .then(setQrDataUrl).catch(() => {});
+  }, [verifyUrl]);
+
   const isBs = data.statementType === "balance-snapshot";
   const isIs = data.statementType === "income-summary";
   const pricedTokens = data.tokens.filter(t => t.valueUsd > 0.01);
-  const unpricedTokens = data.tokens.filter(t => t.priceUsd === 0 && t.balanceFormatted > 0);
   const displayTxs = processForDisplay(data.transactions);
   const txs = isIs ? displayTxs.filter(t => t.type === "receive") : displayTxs.filter(t => t.valueUsd > 0 || t.type === "send" || t.type === "contract");
 
@@ -165,24 +173,6 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
               </tfoot>
             </table>
 
-            {/* ── UNPRICED ── */}
-            {unpricedTokens.length > 0 && (
-              <>
-                <div style={{ ...labelStyle, marginBottom: 3 }}>Other Assets (No Market Price Available)</div>
-                <table style={{ width: "100%", fontSize: 8, borderCollapse: "collapse", color: C.gray, marginBottom: 16 }}>
-                  <thead><tr style={{ borderBottom: `1px solid ${C.rule}` }}><th style={thStyle}>Asset</th><th style={thRight}>Quantity</th></tr></thead>
-                  <tbody>
-                    {unpricedTokens.map(t => (
-                      <tr key={t.contractAddress} style={{ borderBottom: `1px solid ${C.rule}30` }}>
-                        <td style={{ padding: "4px 0" }}>{t.name} ({t.symbol})</td>
-                        <td style={{ textAlign: "right", padding: "4px 0", fontVariantNumeric: "tabular-nums" }}>{t.balanceFormatted.toLocaleString("en-US", { maximumFractionDigits: 4 })}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
-
             {/* ── TRANSACTIONS ── */}
             {!isBs && txs.length > 0 && (
               <>
@@ -237,33 +227,27 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
             )}
 
             {/* ── VERIFICATION FOOTER ── */}
-            <div style={{ borderTop: `1px solid ${C.rule}`, marginTop: 22, paddingTop: 12, display: "flex", gap: 14 }}>
-              {/* QR code placeholder — matches PDF QR position */}
-              <div style={{ width: 48, height: 48, border: `1px solid ${C.rule}`, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 6, color: C.light, textAlign: "center", lineHeight: 1.2 }}>QR in<br/>PDF</span>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.black, marginBottom: 3 }}>Verify this statement</div>
-                <a href={verifyUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 7.5, color: C.navy, textDecoration: "none" }}>
-                  fundslip.xyz/verify
-                </a>
+            <div style={{ borderTop: `1px solid ${C.rule}`, marginTop: 20, paddingTop: 10, display: "flex", gap: 10, alignItems: "flex-start" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {qrDataUrl && <img src={qrDataUrl} alt="Verify" style={{ width: 48, height: 48, flexShrink: 0 }} />}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 8.5, fontWeight: 700, color: C.black, lineHeight: 1 }}>Verify this statement</div>
+                <a href={verifyUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 7, color: C.navy, textDecoration: "none", lineHeight: 1, display: "block", marginTop: 3 }}>fundslip.xyz/verify</a>
                 {fingerprint && (
-                  <div style={{ marginTop: 6 }}>
-                    <div style={{ fontSize: 6, color: C.gray, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Fingerprint</div>
-                    <div style={{ fontSize: 5, fontFamily: "'SF Mono', ui-monospace, monospace", color: C.black, wordBreak: "break-all", lineHeight: 1.4 }}>
+                  <div style={{ marginTop: 3, lineHeight: 1 }}>
+                    <span style={{ fontSize: 5.5, color: C.gray }}>Fingerprint </span>
+                    <span style={{ fontSize: 4.5, fontFamily: "'SF Mono', ui-monospace, monospace", color: C.black }}>
                       {fingerprint.length > 60 ? `${fingerprint.slice(0, 28)}…${fingerprint.slice(-28)}` : fingerprint}
-                    </div>
+                    </span>
                   </div>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 4, flexShrink: 0 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: C.emerald, marginTop: 1 }} />
-                <span style={{ fontSize: 6.5, color: C.gray }}>EIP-712 Signed</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                <div style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: C.emerald }} />
+                <span style={{ fontSize: 6, color: C.gray }}>EIP-712 Signed</span>
               </div>
             </div>
-
-            {/* Page footer */}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 6, color: C.light, marginTop: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 5.5, color: C.light, marginTop: 6 }}>
               <span>{statementId} · {dateTime}</span>
               <span>fundslip.xyz</span>
             </div>
