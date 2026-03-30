@@ -354,54 +354,37 @@ export async function generatePdfBlob(
   if (lastTableY > fy - 6) { doc.addPage(); fy = H - 38; }
 
   rule(doc, L, fy, R);
-  fy += 5;
+  fy += 6;
 
-  // QR code
+  // QR code — left side
   const qrUrl = verifyUrl || "https://fundslip.xyz/verify";
   try {
     const qr = await QRCode.toDataURL(qrUrl, {
       width: 200, margin: 1,
       color: { dark: "#1d1d1f", light: "#ffffff" },
     });
-    doc.addImage(qr, "PNG", L, fy, 16, 16);
+    doc.addImage(qr, "PNG", L, fy, 14, 14);
   } catch { /* */ }
 
-  const vx = L + 20;
-
-  doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...BLACK);
+  // Verify link — next to QR
+  const vx = L + 18;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...BLACK);
   doc.text("Verify this statement", vx, fy + 4);
 
   doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(...NAVY);
   doc.textWithLink("fundslip.xyz/verify", vx, fy + 8.5, { url: qrUrl });
 
-  doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...GRAY);
-  doc.text("Upload this PDF or scan the QR code to verify.", vx, fy + 12.5);
-
-  // Fingerprint
-  label(doc, "Statement Fingerprint", vx, fy + 17);
-  doc.setFont("courier", "normal"); doc.setFontSize(4); doc.setTextColor(...BLACK);
-  const fp = hash || "";
-  const maxFpW = CW - 22;
-  if (doc.getTextWidth(fp) > maxFpW && fp.length > 50) {
-    doc.text(`${fp.slice(0, 30)}…${fp.slice(-30)}`, vx, fy + 20.5);
-  } else {
-    doc.text(fp, vx, fy + 20.5);
-  }
-
-  doc.setFont("helvetica", "normal"); doc.setFontSize(4); doc.setTextColor(...LIGHT);
-  doc.text("Cryptographically signed by the wallet owner. Independently verifiable against Ethereum.", vx, fy + 24);
-
-  // EIP-712 badge — small emerald dot + text
+  // EIP-712 badge — right aligned
   doc.setFillColor(...EMERALD);
-  doc.circle(R - 25, fy + 3.5, 1.2, "F");
-  doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(...GRAY);
-  doc.text("EIP-712 Signed", R - 22.5, fy + 4.5);
+  doc.circle(R - 22, fy + 3, 1.2, "F");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...GRAY);
+  doc.text("EIP-712 Signed", R - 19.5, fy + 4);
 
-  // ── Page footer ──
+  // Page footer
   const pfY = H - 8;
   doc.setFontSize(5); doc.setTextColor(...LIGHT); doc.setFont("helvetica", "normal");
-  doc.text("Fundslip — fundslip.xyz", L, pfY);
-  doc.text(dateTime, R, pfY, { align: "right" });
+  doc.text(`${sid} · ${dateTime}`, L, pfY);
+  doc.text("fundslip.xyz", R, pfY, { align: "right" });
 
   return doc.output("blob");
 }

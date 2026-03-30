@@ -25,6 +25,23 @@ function typeTitle(t: string) {
   return "Full Transaction History";
 }
 
+// PDF colors
+const C = {
+  navy: "#003499",
+  black: "#1d1d1f",
+  gray: "#86868b",
+  light: "#a2a2a7",
+  rule: "#e5e5ea",
+  surface: "#f5f5f7",
+  emerald: "#85f8c4",
+};
+
+// Shared label style — matches PDF label() helper exactly
+const labelStyle: React.CSSProperties = { fontSize: 7, color: C.gray, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 400, marginBottom: 3 };
+const valueStyle: React.CSSProperties = { fontSize: 10, color: C.black };
+const thStyle: React.CSSProperties = { ...labelStyle, padding: "5px 0", textAlign: "left", fontWeight: 400 };
+const thRight: React.CSSProperties = { ...thStyle, textAlign: "right" };
+
 interface Props {
   data: StatementData;
   statementId: string;
@@ -50,11 +67,9 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
     : "USD values reflect prices at time of generation.";
   const recv = txs.filter(t => t.type === "receive").reduce((s, t) => s + t.valueUsd, 0);
   const sent = txs.filter(t => t.type === "send" || t.type === "contract").reduce((s, t) => s + t.valueUsd, 0);
-  const fp = data.walletAddress ? `${statementId}` : "";
 
-  // Details grid — matches PDF exactly
-  const details: { l: string; v: string }[] = [
-    { l: "Account", v: data.ensName || shortAddr(data.walletAddress) },
+  const details: { l: string; v: string; mono?: boolean }[] = [
+    { l: "Account", v: data.ensName || shortAddr(data.walletAddress), mono: true },
     { l: "Network", v: data.networkName || "Ethereum Mainnet" },
     { l: "Block", v: `#${data.blockNumber.toLocaleString()}` },
   ];
@@ -63,160 +78,143 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
 
   return (
     <div className="relative">
-      {/* Scrollable frame */}
+      {/* Scrollable frame — both axes scroll when zoomed */}
       <div className="rounded-xl border border-outline-variant overflow-auto bg-[#e8e8ed]" style={{ maxHeight: "80vh" }}>
-        {/* Scale wrapper — transform scales both axes uniformly */}
-        <div style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
-          width: `${100 / scale}%`,
-        }}>
-          {/* ═══ The document ═══ */}
-          <div className="bg-white mx-auto shadow-sm" style={{ maxWidth: 800, padding: "48px 56px", fontFamily: "Helvetica, Arial, sans-serif" }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", minWidth: scale > 1 ? `${scale * 100}%` : undefined }}>
+          {/* ═══ The document page ═══ */}
+          <div style={{
+            backgroundColor: "#fff", maxWidth: 760, margin: "0 auto",
+            padding: "44px 52px", fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          }}>
 
-            {/* HEADER — matches PDF: logo · Fundslip · subtitle · VERIFIED pill */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Image src="/fundslip.svg" alt="" width={14} height={18} style={{ height: "auto" }} />
-                <span style={{ fontSize: 15, fontWeight: 700, color: "#1d1d1f" }}>Fundslip</span>
-                <span style={{ fontSize: 8, color: "#86868b", marginLeft: 4 }}>Asset Verification Report</span>
+            {/* ── HEADER ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Image src="/fundslip.svg" alt="" width={13} height={17} style={{ height: "auto" }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.black }}>Fundslip</span>
+                <span style={{ fontSize: 7.5, color: C.gray, marginLeft: 6 }}>Asset Verification Report</span>
               </div>
-              <span style={{
-                fontSize: 7, fontWeight: 700, letterSpacing: "0.05em",
-                color: "#003499", backgroundColor: "#85f8c4", padding: "3px 8px", borderRadius: 8,
-              }}>VERIFIED</span>
+              <span style={{ fontSize: 6, fontWeight: 700, letterSpacing: "0.06em", color: C.navy, backgroundColor: C.emerald, padding: "2.5px 7px", borderRadius: 7 }}>VERIFIED</span>
             </div>
 
-            {/* Rule */}
-            <div style={{ height: 1, backgroundColor: "#e5e5ea", margin: "14px 0 16px" }} />
+            <div style={{ height: 1, backgroundColor: C.rule, margin: "12px 0 14px" }} />
 
-            {/* DOCUMENT TITLE — matches PDF */}
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#1d1d1f", marginBottom: 4 }}>{typeTitle(data.statementType)}</div>
-            <div style={{ fontSize: 9, color: "#86868b", marginBottom: 20 }}>{dateTime}</div>
+            {/* ── TITLE ── */}
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.black, marginBottom: 3 }}>{typeTitle(data.statementType)}</div>
+            <div style={{ fontSize: 8, color: C.gray, marginBottom: 18 }}>{dateTime}</div>
 
-            {/* ACCOUNT DETAILS — grid matching PDF */}
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(details.length, 4)}, 1fr)`, gap: "8px 16px", marginBottom: 16 }}>
+            {/* ── DETAILS GRID ── */}
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(details.length, 4)}, 1fr)`, gap: "6px 12px", marginBottom: 14 }}>
               {details.map(d => (
                 <div key={d.l}>
-                  <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{d.l}</div>
-                  <div style={{ fontSize: 10, color: "#1d1d1f", fontFamily: d.l === "Account" ? "monospace" : "inherit" }}>{d.v}</div>
+                  <div style={labelStyle}>{d.l}</div>
+                  <div style={{ ...valueStyle, fontFamily: d.mono ? "'SF Mono', ui-monospace, monospace" : "inherit" }}>{d.v}</div>
                 </div>
               ))}
             </div>
 
             {data.personalDetails?.address && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Address</div>
-                <div style={{ fontSize: 10, color: "#1d1d1f" }}>{data.personalDetails.address}</div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={labelStyle}>Address</div>
+                <div style={{ fontSize: 9, color: C.black }}>{data.personalDetails.address}</div>
               </div>
             )}
 
-            {/* NET WORTH — surface well */}
-            <div style={{ backgroundColor: "#f5f5f7", borderRadius: 6, padding: "10px 14px", marginBottom: 20 }}>
-              <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Total Net Worth (USD)</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: "#003499" }}>${fmt(data.totalValueUsd)}</div>
+            {/* ── NET WORTH ── */}
+            <div style={{ backgroundColor: C.surface, borderRadius: 5, padding: "9px 12px", marginBottom: 18 }}>
+              <div style={labelStyle}>Total Net Worth (USD)</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: C.navy }}>${fmt(data.totalValueUsd)}</div>
             </div>
 
-            {/* HOLDINGS TABLE */}
-            <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Digital Asset Holdings</div>
-            <table style={{ width: "100%", fontSize: 9, borderCollapse: "collapse" }}>
+            {/* ── HOLDINGS ── */}
+            <div style={labelStyle}>Digital Asset Holdings</div>
+            <table style={{ width: "100%", fontSize: 8.5, borderCollapse: "collapse", marginBottom: 16 }}>
               <thead>
-                <tr style={{ borderBottom: "1px solid #e5e5ea" }}>
-                  <th style={{ textAlign: "left", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "4px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Asset</th>
-                  <th style={{ textAlign: "right", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "4px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Quantity</th>
-                  <th style={{ textAlign: "right", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "4px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Unit Price</th>
-                  <th style={{ textAlign: "right", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "4px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Value</th>
+                <tr style={{ borderBottom: `1px solid ${C.rule}` }}>
+                  <th style={thStyle}>Asset</th>
+                  <th style={thRight}>Quantity</th>
+                  <th style={thRight}>Unit Price</th>
+                  <th style={thRight}>Value</th>
                 </tr>
               </thead>
               <tbody>
-                {data.ethBalance > 0 && (
-                  <Hrow cells={["Ethereum (ETH)", data.ethBalance.toFixed(4), `$${fmt(data.ethPriceUsd)}`, `$${fmt(data.ethValueUsd)}`]} />
-                )}
+                {data.ethBalance > 0 && <Hrow cells={["Ethereum (ETH)", data.ethBalance.toFixed(4), `$${fmt(data.ethPriceUsd)}`, `$${fmt(data.ethValueUsd)}`]} />}
                 {pricedTokens.map(t => (
                   <Hrow key={t.contractAddress} cells={[
                     `${t.name} (${t.symbol})`,
                     t.balanceFormatted.toLocaleString("en-US", { maximumFractionDigits: 4 }),
-                    `$${fmt(t.priceUsd)}`,
-                    `$${fmt(t.valueUsd)}`,
+                    `$${fmt(t.priceUsd)}`, `$${fmt(t.valueUsd)}`,
                   ]} />
                 ))}
-                {data.ethBalance === 0 && pricedTokens.length === 0 && (
-                  <Hrow cells={["No assets found", "—", "—", "$0.00"]} />
-                )}
+                {data.ethBalance === 0 && pricedTokens.length === 0 && <Hrow cells={["No assets found", "—", "—", "$0.00"]} />}
               </tbody>
               <tfoot>
-                <tr style={{ backgroundColor: "#f5f5f7" }}>
-                  <td colSpan={3} style={{ textAlign: "right", padding: "6px 4px", fontWeight: 700, color: "#003499" }}>Total</td>
-                  <td style={{ textAlign: "right", padding: "6px 0", fontWeight: 700, color: "#003499", fontVariantNumeric: "tabular-nums" }}>${fmt(data.totalValueUsd)}</td>
+                <tr style={{ backgroundColor: C.surface }}>
+                  <td colSpan={3} style={{ textAlign: "right", padding: "6px 4px", fontWeight: 700, color: C.navy, fontSize: 8.5 }}>Total</td>
+                  <td style={{ textAlign: "right", padding: "6px 0", fontWeight: 700, color: C.navy, fontVariantNumeric: "tabular-nums", fontSize: 8.5 }}>${fmt(data.totalValueUsd)}</td>
                 </tr>
               </tfoot>
             </table>
 
-            {/* UNPRICED ASSETS */}
+            {/* ── UNPRICED ── */}
             {unpricedTokens.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Other Assets (No Market Price Available)</div>
-                <table style={{ width: "100%", fontSize: 8, borderCollapse: "collapse", color: "#86868b" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1px solid #e5e5ea" }}>
-                      <th style={{ textAlign: "left", fontWeight: 400, fontSize: 7, padding: "3px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Asset</th>
-                      <th style={{ textAlign: "right", fontWeight: 400, fontSize: 7, padding: "3px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Quantity</th>
-                    </tr>
-                  </thead>
+              <>
+                <div style={{ ...labelStyle, marginBottom: 3 }}>Other Assets (No Market Price Available)</div>
+                <table style={{ width: "100%", fontSize: 8, borderCollapse: "collapse", color: C.gray, marginBottom: 16 }}>
+                  <thead><tr style={{ borderBottom: `1px solid ${C.rule}` }}><th style={thStyle}>Asset</th><th style={thRight}>Quantity</th></tr></thead>
                   <tbody>
                     {unpricedTokens.map(t => (
-                      <tr key={t.contractAddress} style={{ borderBottom: "1px solid #e5e5ea30" }}>
+                      <tr key={t.contractAddress} style={{ borderBottom: `1px solid ${C.rule}30` }}>
                         <td style={{ padding: "4px 0" }}>{t.name} ({t.symbol})</td>
                         <td style={{ textAlign: "right", padding: "4px 0", fontVariantNumeric: "tabular-nums" }}>{t.balanceFormatted.toLocaleString("en-US", { maximumFractionDigits: 4 })}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </>
             )}
 
-            {/* TRANSACTIONS */}
+            {/* ── TRANSACTIONS ── */}
             {!isBs && txs.length > 0 && (
-              <div style={{ marginTop: 20 }}>
+              <>
                 {isIs ? (
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Total Income</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: "#003499" }}>${fmt(recv)}</div>
-                    <div style={{ fontSize: 8, color: "#86868b" }}>{txs.length} transaction{txs.length !== 1 ? "s" : ""}</div>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={labelStyle}>Total Income</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>${fmt(recv)}</div>
+                    <div style={{ fontSize: 8, color: C.gray }}>{txs.length} transaction{txs.length !== 1 ? "s" : ""}</div>
                   </div>
                 ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 14 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, marginBottom: 12 }}>
                     {[{ l: "Received", v: `$${fmt(recv)}` }, { l: "Sent", v: `$${fmt(sent)}` }, { l: "Net", v: `$${fmt(recv - sent)}` }].map(b => (
-                      <div key={b.l} style={{ backgroundColor: "#f5f5f7", borderRadius: 4, padding: "6px 10px" }}>
-                        <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 1 }}>{b.l}</div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#1d1d1f", fontVariantNumeric: "tabular-nums" }}>{b.v}</div>
+                      <div key={b.l} style={{ backgroundColor: C.surface, borderRadius: 4, padding: "5px 8px" }}>
+                        <div style={{ fontSize: 6.5, color: C.gray, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 1 }}>{b.l}</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: C.black, fontVariantNumeric: "tabular-nums" }}>{b.v}</div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
-                  {isIs ? "Income Transactions" : "Transaction History"}
-                </div>
-                <div style={{ fontSize: 6, fontStyle: "italic", color: "#a2a2a7", marginBottom: 6 }}>{priceLabel}</div>
+                <div style={labelStyle}>{isIs ? "Income Transactions" : "Transaction History"}</div>
+                <div style={{ fontSize: 5.5, fontStyle: "italic", color: C.light, marginBottom: 5 }}>{priceLabel}</div>
 
-                <table style={{ width: "100%", fontSize: 8, borderCollapse: "collapse" }}>
+                <table style={{ width: "100%", fontSize: 7.5, borderCollapse: "collapse", marginBottom: 8 }}>
                   <thead>
-                    <tr style={{ borderBottom: "1px solid #e5e5ea" }}>
-                      {["Date", "Description", isIs ? "From" : "Counterparty", "Type", "Value"].map(h => (
-                        <th key={h} style={{ textAlign: h === "Value" ? "right" : "left", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "3px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                    <tr style={{ borderBottom: `1px solid ${C.rule}` }}>
+                      {["Date", "Description", isIs ? "From" : "Counterparty", "Type", "Value"].map((h, i) => (
+                        <th key={h} style={{ ...thStyle, fontSize: 6.5, textAlign: i === 4 ? "right" : "left" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {txs.slice(0, 100).map((tx, i) => (
-                      <tr key={`${tx.hash}-${i}`} style={{ borderBottom: "1px solid #e5e5ea20" }}>
-                        <td style={{ padding: "4px 0", whiteSpace: "nowrap", color: "#86868b" }}>
+                      <tr key={`${tx.hash}-${i}`} style={{ borderBottom: `1px solid ${C.rule}20` }}>
+                        <td style={{ padding: "4px 2px 4px 0", whiteSpace: "nowrap", color: C.gray }}>
                           {new Date(tx.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}
                         </td>
                         <td style={{ padding: "4px 4px" }}>{tx.description}</td>
-                        <td style={{ padding: "4px 4px", fontFamily: "monospace", color: "#86868b" }}>{tx.type === "receive" ? shortAddr(tx.from) : shortAddr(tx.to)}</td>
-                        <td style={{ padding: "4px 4px", color: "#86868b" }}>
+                        <td style={{ padding: "4px 4px", fontFamily: "monospace", fontSize: 7, color: C.gray }}>{tx.type === "receive" ? shortAddr(tx.from) : shortAddr(tx.to)}</td>
+                        <td style={{ padding: "4px 4px", color: C.gray }}>
                           {tx.type === "contract" ? (tx.description.toLowerCase().includes("swap") ? "Swap" : "Action") : tx.type === "receive" ? "In" : "Out"}
                         </td>
                         <td style={{ padding: "4px 0", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{tx.valueUsd > 0 ? `$${fmt(tx.valueUsd)}` : "—"}</td>
@@ -225,43 +223,29 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
                   </tbody>
                 </table>
                 {txs.length > 100 && (
-                  <div style={{ fontSize: 7, color: "#a2a2a7", marginTop: 4 }}>
-                    Showing 100 of {(data.totalTransactionCount || txs.length).toLocaleString()} transactions
-                  </div>
+                  <div style={{ fontSize: 6.5, color: C.light }}>Showing 100 of {(data.totalTransactionCount || txs.length).toLocaleString()} transactions</div>
                 )}
-              </div>
+              </>
             )}
 
-            {/* VERIFICATION FOOTER — matches PDF exactly */}
-            <div style={{ borderTop: "1px solid #e5e5ea", marginTop: 24, paddingTop: 14, display: "flex", gap: 20 }}>
-              {/* Left: verification text */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: "#1d1d1f", marginBottom: 4 }}>Verify this statement</div>
-                <a href={verifyUrl} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 8, color: "#003499", textDecoration: "none" }}>
-                  {verifyUrl.replace("https://", "").replace("http://", "").split("?")[0]}
+            {/* ── FOOTER — clean: QR + verify link + badge ── */}
+            <div style={{ borderTop: `1px solid ${C.rule}`, marginTop: 22, paddingTop: 12, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.black, marginBottom: 3 }}>Verify this statement</div>
+                <a href={verifyUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 7.5, color: C.navy, textDecoration: "none" }}>
+                  fundslip.xyz/verify
                 </a>
-                <div style={{ fontSize: 7, color: "#86868b", marginTop: 4 }}>Upload this PDF or scan the QR code to verify.</div>
-
-                <div style={{ marginTop: 10 }}>
-                  <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Statement Fingerprint</div>
-                  <div style={{ fontSize: 5, fontFamily: "monospace", color: "#1d1d1f", wordBreak: "break-all" }}>{fp}</div>
-                </div>
-                <div style={{ fontSize: 5, color: "#a2a2a7", marginTop: 4 }}>
-                  Cryptographically signed by the wallet owner. Independently verifiable against Ethereum.
-                </div>
               </div>
-              {/* Right: EIP-712 badge */}
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 4, whiteSpace: "nowrap" }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#85f8c4", marginTop: 1 }} />
-                <span style={{ fontSize: 7, color: "#86868b" }}>EIP-712 Signed</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: C.emerald }} />
+                <span style={{ fontSize: 6.5, color: C.gray }}>EIP-712 Signed</span>
               </div>
             </div>
 
-            {/* PAGE FOOTER */}
-            <div style={{ borderTop: "1px solid #e5e5ea", marginTop: 14, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 6, color: "#a2a2a7" }}>
-              <span>Fundslip — fundslip.xyz</span>
-              <span>{dateTime}</span>
+            {/* Page footer */}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 6, color: C.light, marginTop: 10 }}>
+              <span>{statementId} · {dateTime}</span>
+              <span>fundslip.xyz</span>
             </div>
 
           </div>
@@ -270,13 +254,11 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
 
       {/* Zoom controls */}
       <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 bg-white/95 backdrop-blur-sm border border-outline-variant rounded-xl px-2 py-1.5 shadow-sm select-none">
-        <button type="button" onClick={zoomOut} disabled={zoom <= 50}
-          className="p-1 hover:bg-surface rounded-lg transition-colors disabled:opacity-30">
+        <button type="button" onClick={zoomOut} disabled={zoom <= 50} className="p-1 hover:bg-surface rounded-lg transition-colors disabled:opacity-30">
           <ZoomOut className="w-3.5 h-3.5 text-on-surface-variant" />
         </button>
         <span className="text-[10px] text-on-surface-variant font-mono w-8 text-center">{zoom}%</span>
-        <button type="button" onClick={zoomIn} disabled={zoom >= 200}
-          className="p-1 hover:bg-surface rounded-lg transition-colors disabled:opacity-30">
+        <button type="button" onClick={zoomIn} disabled={zoom >= 200} className="p-1 hover:bg-surface rounded-lg transition-colors disabled:opacity-30">
           <ZoomIn className="w-3.5 h-3.5 text-on-surface-variant" />
         </button>
       </div>
@@ -284,14 +266,13 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
   );
 }
 
-/* Holdings table row — matches PDF styling */
 function Hrow({ cells }: { cells: string[] }) {
   return (
-    <tr style={{ borderBottom: "1px solid #e5e5ea50" }}>
-      <td style={{ padding: "6px 0" }}>{cells[0]}</td>
-      <td style={{ textAlign: "right", padding: "6px 0", fontVariantNumeric: "tabular-nums" }}>{cells[1]}</td>
-      <td style={{ textAlign: "right", padding: "6px 0", fontVariantNumeric: "tabular-nums" }}>{cells[2]}</td>
-      <td style={{ textAlign: "right", padding: "6px 0", fontVariantNumeric: "tabular-nums" }}>{cells[3]}</td>
+    <tr style={{ borderBottom: `1px solid ${C.rule}50` }}>
+      <td style={{ padding: "5px 0" }}>{cells[0]}</td>
+      <td style={{ textAlign: "right", padding: "5px 0", fontVariantNumeric: "tabular-nums" }}>{cells[1]}</td>
+      <td style={{ textAlign: "right", padding: "5px 0", fontVariantNumeric: "tabular-nums" }}>{cells[2]}</td>
+      <td style={{ textAlign: "right", padding: "5px 0", fontVariantNumeric: "tabular-nums" }}>{cells[3]}</td>
     </tr>
   );
 }
