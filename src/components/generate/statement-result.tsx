@@ -195,7 +195,7 @@ export function StatementResult({
 
         {/* Statement preview — native HTML, instant, selectable */}
         <div className="max-w-3xl mx-auto">
-          <StatementPreview data={statementData} statementId={statementId} verifyUrl={verifyUrl} />
+          <StatementPreview data={statementData} statementId={statementId} verifyUrl={verifyUrl} fingerprint={verificationHash} />
         </div>
       </div>
     </div>

@@ -142,8 +142,9 @@ export function VerifyResult({ result, fingerprint }: VerifyResultProps) {
         <div className="max-w-3xl mx-auto">
           <StatementPreview
             data={result.statementData}
-            statementId={`Block #${result.blockNumber.toLocaleString()}`}
+            statementId={`FS-${result.blockNumber}`}
             verifyUrl={fingerprint ? `${typeof window !== "undefined" ? window.location.origin : ""}/verify?p=${encodeURIComponent(fingerprint)}` : ""}
+            fingerprint={fingerprint}
           />
         </div>
       )}

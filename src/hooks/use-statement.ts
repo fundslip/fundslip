@@ -32,8 +32,8 @@ function writeBalanceCache(address: string, chainId: number, balance: number) {
   try { localStorage.setItem(`${BAL_KEY}${address.toLowerCase()}:${chainId}`, String(balance)); } catch { /* */ }
 }
 
-function makeStatementId(): string {
-  return `FS-${Math.floor(100000 + Math.random() * 900000)}`;
+function makeStatementId(blockNumber: number): string {
+  return `FS-${blockNumber}`;
 }
 
 export function useStatement() {
@@ -260,7 +260,7 @@ export function useStatement() {
           ethBalanceRaw, tokenBalancesForHash, txHashes, stypeCode
         );
 
-        const sid = makeStatementId();
+        const sid = makeStatementId(blockNumber);
         const data: StatementData = {
           walletAddress: addr, ensName, network: "ethereum",
           periodStart: start, periodEnd: end, statementType: sType,

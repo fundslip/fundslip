@@ -46,9 +46,10 @@ interface Props {
   data: StatementData;
   statementId: string;
   verifyUrl: string;
+  fingerprint?: string;
 }
 
-export function StatementPreview({ data, statementId, verifyUrl }: Props) {
+export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: Props) {
   const [zoom, setZoom] = useState(100);
   const zoomIn = useCallback(() => setZoom(z => Math.min(200, z + 25)), []);
   const zoomOut = useCallback(() => setZoom(z => Math.max(50, z - 25)), []);
@@ -78,12 +79,19 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
 
   return (
     <div className="relative">
-      {/* Scrollable frame — both axes scroll when zoomed */}
+      {/* Scrollable frame */}
       <div className="rounded-xl border border-outline-variant overflow-auto bg-[#e8e8ed]" style={{ maxHeight: "80vh" }}>
-        <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", minWidth: scale > 1 ? `${scale * 100}%` : undefined }}>
+        {/* Scale wrapper — uses transform for uniform scaling, centered */}
+        <div style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "top center",
+          width: 760,
+          margin: "0 auto",
+          height: "fit-content",
+        }}>
           {/* ═══ The document page ═══ */}
           <div style={{
-            backgroundColor: "#fff", maxWidth: 760, margin: "0 auto",
+            backgroundColor: "#fff", width: 760,
             padding: "44px 52px", fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif",
             boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
           }}>
@@ -228,16 +236,28 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
               </>
             )}
 
-            {/* ── FOOTER — clean: QR + verify link + badge ── */}
-            <div style={{ borderTop: `1px solid ${C.rule}`, marginTop: 22, paddingTop: 12, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-              <div>
+            {/* ── VERIFICATION FOOTER ── */}
+            <div style={{ borderTop: `1px solid ${C.rule}`, marginTop: 22, paddingTop: 12, display: "flex", gap: 14 }}>
+              {/* QR code placeholder — matches PDF QR position */}
+              <div style={{ width: 48, height: 48, border: `1px solid ${C.rule}`, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontSize: 6, color: C.light, textAlign: "center", lineHeight: 1.2 }}>QR in<br/>PDF</span>
+              </div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: C.black, marginBottom: 3 }}>Verify this statement</div>
                 <a href={verifyUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 7.5, color: C.navy, textDecoration: "none" }}>
                   fundslip.xyz/verify
                 </a>
+                {fingerprint && (
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{ fontSize: 6, color: C.gray, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Fingerprint</div>
+                    <div style={{ fontSize: 5, fontFamily: "'SF Mono', ui-monospace, monospace", color: C.black, wordBreak: "break-all", lineHeight: 1.4 }}>
+                      {fingerprint.length > 60 ? `${fingerprint.slice(0, 28)}…${fingerprint.slice(-28)}` : fingerprint}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: C.emerald }} />
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 4, flexShrink: 0 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: C.emerald, marginTop: 1 }} />
                 <span style={{ fontSize: 6.5, color: C.gray }}>EIP-712 Signed</span>
               </div>
             </div>

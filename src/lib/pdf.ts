@@ -354,9 +354,9 @@ export async function generatePdfBlob(
   if (lastTableY > fy - 6) { doc.addPage(); fy = H - 38; }
 
   rule(doc, L, fy, R);
-  fy += 6;
+  fy += 5;
 
-  // QR code — left side
+  // QR code — left
   const qrUrl = verifyUrl || "https://fundslip.xyz/verify";
   try {
     const qr = await QRCode.toDataURL(qrUrl, {
@@ -366,19 +366,27 @@ export async function generatePdfBlob(
     doc.addImage(qr, "PNG", L, fy, 14, 14);
   } catch { /* */ }
 
-  // Verify link — next to QR
+  // Verify info — next to QR
   const vx = L + 18;
   doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...BLACK);
-  doc.text("Verify this statement", vx, fy + 4);
+  doc.text("Verify this statement", vx, fy + 3.5);
 
   doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(...NAVY);
-  doc.textWithLink("fundslip.xyz/verify", vx, fy + 8.5, { url: qrUrl });
+  doc.textWithLink("fundslip.xyz/verify", vx, fy + 7.5, { url: qrUrl });
+
+  // Fingerprint — below verify link
+  doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(...GRAY);
+  doc.text("Fingerprint", vx, fy + 12);
+  doc.setFont("courier", "normal"); doc.setFontSize(3.8); doc.setTextColor(...BLACK);
+  const fp = hash || "";
+  const truncFp = fp.length > 60 ? `${fp.slice(0, 28)}…${fp.slice(-28)}` : fp;
+  doc.text(truncFp, vx, fy + 15);
 
   // EIP-712 badge — right aligned
   doc.setFillColor(...EMERALD);
-  doc.circle(R - 22, fy + 3, 1.2, "F");
+  doc.circle(R - 22, fy + 2.5, 1.2, "F");
   doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...GRAY);
-  doc.text("EIP-712 Signed", R - 19.5, fy + 4);
+  doc.text("EIP-712 Signed", R - 19.5, fy + 3.5);
 
   // Page footer
   const pfY = H - 8;
