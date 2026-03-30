@@ -17,7 +17,7 @@ export const wagmiConfig = createConfig({
   connectors: [
     injected(),
     walletConnect({ projectId, showQrModal: false }),
-    coinbaseWallet({ appName: "Fundslip" }),
+    coinbaseWallet({ appName: "Fundslip", preference: { options: "all", telemetry: false } }),
   ],
   transports: {
     [mainnet.id]: fallback([

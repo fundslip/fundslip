@@ -50,6 +50,7 @@ export function useStatement() {
   const [verificationHash, setVerificationHash] = useState("");
   const [statementId, setStatementId] = useState("");
   const [totalBalance, setTotalBalance] = useState(0);
+  const [balanceLoaded, setBalanceLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
@@ -70,11 +71,16 @@ export function useStatement() {
 
   // Fetch balance — cache-first, refresh in background
   useEffect(() => {
-    if (!address) { setTotalBalance(0); return; }
+    if (!address) { setTotalBalance(0); setBalanceLoaded(false); return; }
 
     // Instantly show cached balance for this address+chain (no network wait)
     const cached = readBalanceCache(address, chainId);
-    if (cached > 0) setTotalBalance(cached);
+    if (cached > 0) {
+      setTotalBalance(cached);
+      setBalanceLoaded(true);
+    } else {
+      setBalanceLoaded(false);
+    }
 
     // Fetch fresh in background
     let cancelled = false;
@@ -101,9 +107,11 @@ export function useStatement() {
 
         if (!cancelled) {
           setTotalBalance(total);
+          setBalanceLoaded(true);
           writeBalanceCache(address, chainId, total);
         }
       } catch { /* silent */ }
+      if (!cancelled) setBalanceLoaded(true);
     })();
     return () => { cancelled = true; };
   }, [address, chainId]);
@@ -341,7 +349,7 @@ export function useStatement() {
   return {
     step, currentProgress, period, setPeriod, statementType, setStatementType,
     chainId, statementData, verificationHash, statementId,
-    totalBalance, generate, reset, customStart, setCustomStart, customEnd,
+    totalBalance, balanceLoaded, generate, reset, customStart, setCustomStart, customEnd,
     setCustomEnd, personalDetails, setPersonalDetails, error, pdfBlobUrl, pdfBlob,
   };
 }

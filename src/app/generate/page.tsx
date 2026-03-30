@@ -41,7 +41,7 @@ function GenerateContent() {
   const {
     step, currentProgress, period, setPeriod, statementType, setStatementType,
     chainId, statementData, verificationHash, statementId,
-    totalBalance, generate, reset, customStart, setCustomStart, customEnd,
+    totalBalance, balanceLoaded, generate, reset, customStart, setCustomStart, customEnd,
     setCustomEnd, personalDetails, setPersonalDetails, error, pdfBlobUrl, pdfBlob,
   } = useStatement();
   const isGenerating = step === "signing" || step === "generating";
@@ -63,7 +63,7 @@ function GenerateContent() {
               <p className="text-xs uppercase tracking-wide text-on-surface-variant mb-2">Configure</p>
               <h1 className="font-headline text-2xl md:text-3xl font-semibold text-brand-black">Generate Statement</h1>
             </div>
-            <BalanceCard balance={totalBalance} />
+            <BalanceCard balance={totalBalance} loaded={balanceLoaded} />
           </div>
         </header>
 
