@@ -87,18 +87,24 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
 
   return (
     <div className="relative">
-      {/* Scrollable frame */}
-      <div className="rounded-xl border border-outline-variant overflow-auto bg-[#e8e8ed]" style={{ maxHeight: "80vh" }}>
-          {/* The document page — CSS zoom on outer wrapper so scroll container sees correct size */}
-          <div style={{ zoom: scale }}>
+      {/* Scrollable frame — gray background like a real PDF viewer */}
+      <div className="rounded-xl border border-outline-variant overflow-auto bg-[#d4d4d8]" style={{ maxHeight: "80vh" }}>
+          <div style={{ zoom: scale, padding: "16px 0" }}>
+          {/* A4 page — fixed width, minimum height preserves page feel */}
           <div style={{
             backgroundColor: "#fff",
             width: 760,
+            minHeight: 760 * 1.414, /* A4 ratio */
             margin: "0 auto",
             padding: "44px 52px",
             fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif",
-            boxShadow: scale < 1 ? "0 1px 4px rgba(0,0,0,0.08)" : undefined,
+            boxShadow: "0 1px 8px rgba(0,0,0,0.12), 0 0 1px rgba(0,0,0,0.08)",
+            display: "flex",
+            flexDirection: "column",
           }}>
+
+            {/* Main content — grows to fill page */}
+            <div style={{ flex: 1 }}>
 
             {/* ── HEADER ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -222,7 +228,9 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
               </>
             )}
 
-            {/* ── VERIFICATION FOOTER — matches PDF exactly ── */}
+            </div>{/* end main content */}
+
+            {/* ── VERIFICATION FOOTER — pinned to bottom of page ── */}
             <div style={{ borderTop: `1px solid ${C.rule}`, marginTop: 20, paddingTop: 10, display: "flex", gap: 12, alignItems: "flex-start" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {qrDataUrl && <img src={qrDataUrl} alt="Verify" style={{ width: 48, height: 48, flexShrink: 0 }} />}
