@@ -10,7 +10,7 @@ export function CopyButton({ text, className = "" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
   const handleCopy = useCallback(async () => {
     const ok = await copyToClipboard(text);
-    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
   }, [text]);
 
   return (

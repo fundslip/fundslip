@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Share2, Mail, Send, Check, ArrowRight, Copy, ShieldCheck } from "lucide-react";
+import { Download, Share2, Mail, Send, Check, ArrowLeft, ArrowRight, Copy, ShieldCheck } from "lucide-react";
 import { PdfViewer } from "@/components/shared/pdf-viewer";
 import type { StatementData } from "@/types";
 import { useState, useCallback } from "react";
@@ -97,7 +97,7 @@ export function StatementResult({
         <div className="mb-10">
           <button onClick={onNewStatement}
             className="flex items-center gap-2 text-sm text-on-surface-variant hover:text-brand-black transition-colors mb-6">
-            <ArrowRight className="w-4 h-4 rotate-180" /> New Statement
+            <ArrowLeft className="w-4 h-4" /> Generate another statement
           </button>
           <h1 className="font-headline text-3xl md:text-4xl font-semibold text-brand-black text-center">
             Your statement is ready

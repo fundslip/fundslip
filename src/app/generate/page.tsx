@@ -3,7 +3,7 @@
 import { useStatement } from "@/hooks/use-statement";
 import { useAccount } from "wagmi";
 import { useCachedEnsName } from "@/hooks/use-cached-ens";
-import { Wallet, AlertCircle } from "lucide-react";
+import { Wallet, AlertCircle, Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
 import { BalanceCard } from "@/components/generate/balance-card";
@@ -44,9 +44,10 @@ function GenerateContent() {
     totalBalance, generate, reset, customStart, setCustomStart, customEnd,
     setCustomEnd, personalDetails, setPersonalDetails, error, pdfBlobUrl, pdfBlob,
   } = useStatement();
+  const isGenerating = step === "signing" || step === "generating";
 
   if (!isConnected) return <ConnectWalletGate />;
-  if (step === "signing" || step === "generating") return <GeneratingProgress currentStep={currentProgress} isSigning={step === "signing"} />;
+  if (isGenerating) return <GeneratingProgress currentStep={currentProgress} isSigning={step === "signing"} />;
   if (step === "ready" && statementData && pdfBlobUrl && pdfBlob) {
     return <StatementResult statementData={statementData} verificationHash={verificationHash}
       statementId={statementId} pdfBlobUrl={pdfBlobUrl} pdfBlob={pdfBlob}
@@ -87,7 +88,7 @@ function GenerateContent() {
             <SummaryCard period={period} type={statementType} network={getNetworkName(chainId)}
               ensName={ensName || null} personalDetails={personalDetails}
               customStart={customStart} customEnd={customEnd}
-              onGenerate={generate} isGenerating={false} />
+              onGenerate={generate} isGenerating={isGenerating} />
           </div>
         </div>
       </div>
@@ -95,6 +96,14 @@ function GenerateContent() {
   );
 }
 
+function PageLoader() {
+  return (
+    <div className="pt-24 pb-20 flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="w-6 h-6 text-on-surface-variant animate-spin" />
+    </div>
+  );
+}
+
 export default function GeneratePage() {
-  return <Suspense><GenerateContent /></Suspense>;
+  return <Suspense fallback={<PageLoader />}><GenerateContent /></Suspense>;
 }

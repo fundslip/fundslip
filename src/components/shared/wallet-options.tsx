@@ -130,7 +130,7 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
                 <>
                   <button onClick={async () => {
                     const ok = await copyToClipboard(wcUri);
-                    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
+                    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
                   }}
                     className="flex items-center gap-1.5 text-[12px] text-on-surface-variant hover:text-brand-black transition-colors">
                     {copied ? <Check className="w-3.5 h-3.5 text-tertiary" /> : <Copy className="w-3.5 h-3.5" />}

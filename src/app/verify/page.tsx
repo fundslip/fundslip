@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { QrScanner } from "@/components/verify/qr-scanner";
 import { PdfUpload } from "@/components/verify/pdf-upload";
@@ -9,8 +9,7 @@ import { VerifyResult } from "@/components/verify/verify-result";
 import { VerifyingProgress } from "@/components/verify/verifying-progress";
 import type { VerificationResult } from "@/types";
 import type { VerifyResult as CryptoVerifyResult } from "@/lib/verification";
-import { useEffect } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 function toUiResult(r: CryptoVerifyResult): VerificationResult {
   if (r.status === "verified") {
@@ -65,7 +64,7 @@ function VerifyContent() {
       setResult({ verified: false, statementId: "", walletAddress: "", ensName: null, totalValueUsd: 0, tokens: [], ethBalance: "0", statementType: "", periodStart: "", periodEnd: "", blockNumber: 0, generatedAt: "", verifiedAt: new Date(), error: "Verification failed. Please try again." });
     }
     setIsVerifying(false);
-    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
+    if (window.scrollY > 100) setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
   }, [onProgress]);
 
   const handlePdfUpload = useCallback(async (file: File) => {
@@ -81,7 +80,7 @@ function VerifyContent() {
       setResult({ verified: false, statementId: "", walletAddress: "", ensName: null, totalValueUsd: 0, tokens: [], ethBalance: "0", statementType: "", periodStart: "", periodEnd: "", blockNumber: 0, generatedAt: "", verifiedAt: new Date(), error: "Failed to process the PDF." });
     }
     setIsVerifying(false);
-    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
+    if (window.scrollY > 100) setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
   }, [onProgress]);
 
   useEffect(() => {
@@ -132,6 +131,14 @@ function VerifyContent() {
   );
 }
 
+function PageLoader() {
+  return (
+    <div className="pt-24 pb-20 flex items-center justify-center min-h-[60vh]">
+      <Loader2 className="w-6 h-6 text-on-surface-variant animate-spin" />
+    </div>
+  );
+}
+
 export default function VerifyPage() {
-  return <Suspense><VerifyContent /></Suspense>;
+  return <Suspense fallback={<PageLoader />}><VerifyContent /></Suspense>;
 }

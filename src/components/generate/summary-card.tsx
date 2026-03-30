@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import type { StatementPeriod, StatementType, PersonalDetails } from "@/types";
 
 interface SummaryCardProps {
@@ -40,7 +41,7 @@ export function SummaryCard({
   period, type, network, ensName, personalDetails, customStart, customEnd, onGenerate, isGenerating,
 }: SummaryCardProps) {
   return (
-    <div className="sticky top-16 rounded-xl border border-outline-variant p-6">
+    <div className="sticky top-16 rounded-xl border border-outline-variant bg-white shadow-[0_2px_12px_-2px_rgba(0,0,0,0.06)] p-6">
       <h3 className="font-headline text-base font-medium text-brand-black mb-4">Summary</h3>
       <ul className="space-y-3 text-sm mb-6">
         <li className="flex justify-between">
@@ -71,7 +72,11 @@ export function SummaryCard({
 
       <button type="button" onClick={onGenerate} disabled={isGenerating}
         className="w-full bg-brand-navy text-white py-3 rounded-lg text-[14px] font-medium hover:bg-brand-navy/90 transition-colors disabled:opacity-50 mb-4">
-        {isGenerating ? "Generating..." : "Generate Statement"}
+        {isGenerating ? (
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" /> Generating...
+          </span>
+        ) : "Generate Statement"}
       </button>
 
       <div className="pt-4 border-t border-outline-variant">

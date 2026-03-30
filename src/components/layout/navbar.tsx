@@ -108,7 +108,7 @@ function DesktopWalletButton() {
 
               <button onClick={async () => {
                 const ok = await copyToClipboard(address);
-                if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
+                if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
               }}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-brand-black hover:bg-surface rounded-xl transition-colors">
                 {copied ? <Check className="w-4 h-4 text-tertiary" /> : <Copy className="w-4 h-4 text-on-surface-variant" />}
@@ -244,7 +244,7 @@ function MobileMenu({ pathname, NAV, isActive }: {
 
                   <button onClick={async () => {
                     const ok = await copyToClipboard(address);
-                    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
+                    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
                   }}
                     className="w-full flex items-center gap-2.5 px-3 py-3 text-[15px] text-brand-black hover:bg-surface rounded-xl transition-colors">
                     {copied ? <Check className="w-4 h-4 text-tertiary" /> : <Copy className="w-4 h-4 text-on-surface-variant" />}
@@ -333,6 +333,7 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-7">
           {NAV.map((l) => (
             <Link key={l.href} href={l.href}
+              aria-current={isActive(l) ? "page" : undefined}
               className={`text-[14px] transition-colors ${isActive(l) ? "text-brand-black font-medium" : "text-on-surface-variant hover:text-brand-black"}`}>
               {l.label}
             </Link>
