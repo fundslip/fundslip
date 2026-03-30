@@ -93,6 +93,25 @@
 
 ::selection { background: rgba(0,52,153,0.08); color: #003499; }
 
+/* PDF text layer — selectable text positioned over the canvas */
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+  text-size-adjust: none;
+}
+.pdf-text-layer span,
+.pdf-text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  transform-origin: 0% 0%;
+  pointer-events: all;
+}
+.pdf-text-layer ::selection { background: rgba(0,52,153,0.15); }
+.pdf-text-layer .endOfContent { display: none; }
+
 /* Force html5-qrcode video to fill container on resize */
 #qr-reader-element { position: absolute; inset: 0; }
 #qr-reader-element > div { width: 100% !important; height: 100% !important; }
