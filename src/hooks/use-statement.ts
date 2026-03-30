@@ -89,20 +89,12 @@ export function useStatement() {
         let total = ethResult.balance * ethPrice;
 
         if (tokens.length > 0) {
-          // Use contract-based pricing for dynamically detected tokens
+          // Only count tokens CoinGecko recognizes by contract address
           const contractAddrs = tokens.map(t => t.contractAddress);
           const contractPrices = await fetchPricesByContract(contractAddrs).catch(() => new Map<string, number>());
 
-          // Also try symbol-based as fallback for known tokens
-          const unpricedSymbols = tokens
-            .filter(t => !contractPrices.has(t.contractAddress.toLowerCase()))
-            .map(t => t.symbol);
-          const symbolPrices = unpricedSymbols.length > 0
-            ? await fetchPrices(unpricedSymbols).catch(() => ({} as Record<string, number>))
-            : {};
-
           for (const t of tokens) {
-            const price = contractPrices.get(t.contractAddress.toLowerCase()) || symbolPrices[t.symbol] || 0;
+            const price = contractPrices.get(t.contractAddress.toLowerCase()) || 0;
             total += t.balanceFormatted * price;
           }
         }

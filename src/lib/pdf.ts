@@ -333,31 +333,31 @@ export async function generatePdfBlob(
     doc.addImage(qr, "PNG", L, fy, 14, 14);
   } catch { /* */ }
 
-  // Verify info — next to QR
+  // Content — next to QR
   const vx = L + 18;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...BLACK);
-  doc.text("Verify this statement", vx, fy + 3.5);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...BLACK);
+  doc.text("Verify this statement", vx, fy + 4);
 
-  doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(...NAVY);
-  doc.textWithLink("fundslip.xyz/verify", vx, fy + 7.5, { url: qrUrl });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...NAVY);
+  doc.textWithLink("fundslip.xyz/verify", vx, fy + 8, { url: qrUrl });
 
-  // Fingerprint — below verify link
-  doc.setFont("helvetica", "normal"); doc.setFontSize(5); doc.setTextColor(...GRAY);
-  doc.text("Fingerprint", vx, fy + 12);
-  doc.setFont("courier", "normal"); doc.setFontSize(3.8); doc.setTextColor(...BLACK);
+  // Fingerprint on same line as label
+  doc.setFont("helvetica", "normal"); doc.setFontSize(6); doc.setTextColor(...GRAY);
+  doc.text("Fingerprint:", vx, fy + 12);
+  doc.setFont("courier", "normal"); doc.setFontSize(5); doc.setTextColor(...BLACK);
   const fp = hash || "";
   const truncFp = fp.length > 60 ? `${fp.slice(0, 28)}…${fp.slice(-28)}` : fp;
-  doc.text(truncFp, vx, fy + 15);
+  doc.text(truncFp, vx + 14, fy + 12);
 
-  // EIP-712 badge — right aligned
+  // EIP-712 badge — right aligned, vertically centered with title
   doc.setFillColor(...EMERALD);
-  doc.circle(R - 22, fy + 2.5, 1.2, "F");
-  doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...GRAY);
-  doc.text("EIP-712 Signed", R - 19.5, fy + 3.5);
+  doc.circle(R - 22, fy + 3, 1.2, "F");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(6); doc.setTextColor(...GRAY);
+  doc.text("EIP-712 Signed", R - 19.5, fy + 4);
 
   // Page footer
   const pfY = H - 8;
-  doc.setFontSize(5); doc.setTextColor(...LIGHT); doc.setFont("helvetica", "normal");
+  doc.setFontSize(5.5); doc.setTextColor(...LIGHT); doc.setFont("helvetica", "normal");
   doc.text(`${sid} · ${dateTime}`, L, pfY);
   doc.text("fundslip.xyz", R, pfY, { align: "right" });
 

@@ -226,28 +226,28 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
               </>
             )}
 
-            {/* ── VERIFICATION FOOTER ── */}
-            <div style={{ borderTop: `1px solid ${C.rule}`, marginTop: 20, paddingTop: 10, display: "flex", gap: 10, alignItems: "flex-start" }}>
+            {/* ── VERIFICATION FOOTER — matches PDF exactly ── */}
+            <div style={{ borderTop: `1px solid ${C.rule}`, marginTop: 20, paddingTop: 10, display: "flex", gap: 12, alignItems: "flex-start" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {qrDataUrl && <img src={qrDataUrl} alt="Verify" style={{ width: 48, height: 48, flexShrink: 0 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 8.5, fontWeight: 700, color: C.black, lineHeight: 1 }}>Verify this statement</div>
-                <a href={verifyUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 7, color: C.navy, textDecoration: "none", lineHeight: 1, display: "block", marginTop: 3 }}>fundslip.xyz/verify</a>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.black, lineHeight: 1.2 }}>Verify this statement</div>
+                <a href={verifyUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 9, color: C.navy, textDecoration: "none", display: "block", marginTop: 2, lineHeight: 1.2 }}>fundslip.xyz/verify</a>
                 {fingerprint && (
-                  <div style={{ marginTop: 3, lineHeight: 1 }}>
-                    <span style={{ fontSize: 5.5, color: C.gray }}>Fingerprint </span>
-                    <span style={{ fontSize: 4.5, fontFamily: "'SF Mono', ui-monospace, monospace", color: C.black }}>
+                  <div style={{ marginTop: 4, lineHeight: 1.2 }}>
+                    <span style={{ fontSize: 7.5, color: C.gray }}>Fingerprint: </span>
+                    <span style={{ fontSize: 6.5, fontFamily: "'SF Mono', ui-monospace, monospace", color: C.black }}>
                       {fingerprint.length > 60 ? `${fingerprint.slice(0, 28)}…${fingerprint.slice(-28)}` : fingerprint}
                     </span>
                   </div>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
-                <div style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: C.emerald }} />
-                <span style={{ fontSize: 6, color: C.gray }}>EIP-712 Signed</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: C.emerald }} />
+                <span style={{ fontSize: 8, color: C.gray }}>EIP-712 Signed</span>
               </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 5.5, color: C.light, marginTop: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 7, color: C.light, marginTop: 8 }}>
               <span>{statementId} · {dateTime}</span>
               <span>fundslip.xyz</span>
             </div>
