@@ -2,30 +2,26 @@
 
 import { useState, useCallback } from "react";
 import Image from "next/image";
-import { ShieldCheck, ZoomIn, ZoomOut } from "lucide-react";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import type { StatementData } from "@/types";
 import { processForDisplay } from "@/lib/ethereum";
 
 function fmt(n: number) {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
 function fmtDate(d: Date) {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
-
 function fmtDateShort(d: Date) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
-
 function shortAddr(a: string) {
   if (!a || a.length < 10) return a;
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
 }
-
 function typeTitle(t: string) {
   if (t === "balance-snapshot") return "Balance Snapshot";
-  if (t === "income-summary") return "Income Summary";
+  if (t === "income-summary") return "Income Statement";
   return "Full Transaction History";
 }
 
@@ -39,6 +35,7 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
   const [zoom, setZoom] = useState(100);
   const zoomIn = useCallback(() => setZoom(z => Math.min(200, z + 25)), []);
   const zoomOut = useCallback(() => setZoom(z => Math.max(50, z - 25)), []);
+  const scale = zoom / 100;
 
   const isBs = data.statementType === "balance-snapshot";
   const isIs = data.statementType === "income-summary";
@@ -51,135 +48,126 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
   const priceLabel = data.isHistoricalPricing && data.priceDate
     ? `USD values reflect prices as of ${fmtDate(data.priceDate)} (period end date).`
     : "USD values reflect prices at time of generation.";
-
   const recv = txs.filter(t => t.type === "receive").reduce((s, t) => s + t.valueUsd, 0);
   const sent = txs.filter(t => t.type === "send" || t.type === "contract").reduce((s, t) => s + t.valueUsd, 0);
+  const fp = data.walletAddress ? `${statementId}` : "";
+
+  // Details grid — matches PDF exactly
+  const details: { l: string; v: string }[] = [
+    { l: "Account", v: data.ensName || shortAddr(data.walletAddress) },
+    { l: "Network", v: data.networkName || "Ethereum Mainnet" },
+    { l: "Block", v: `#${data.blockNumber.toLocaleString()}` },
+  ];
+  if (data.personalDetails?.fullName) details.push({ l: "Name", v: data.personalDetails.fullName });
+  if (!isBs) details.push({ l: "Period", v: `${fmtDateShort(data.periodStart)} – ${fmtDateShort(data.periodEnd)}` });
 
   return (
     <div className="relative">
-      {/* Scrollable viewport — fixed height frame */}
-      <div className="rounded-xl border border-outline-variant overflow-auto bg-surface/30" style={{ maxHeight: "80vh" }}>
-        {/* Zoomable content */}
-        <div style={{ width: `${zoom}%`, transition: "width 0.15s ease" }} className="mx-auto">
+      {/* Scrollable frame */}
+      <div className="rounded-xl border border-outline-variant overflow-auto bg-[#e8e8ed]" style={{ maxHeight: "80vh" }}>
+        {/* Scale wrapper — transform scales both axes uniformly */}
+        <div style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          width: `${100 / scale}%`,
+        }}>
+          {/* ═══ The document ═══ */}
+          <div className="bg-white mx-auto shadow-sm" style={{ maxWidth: 800, padding: "48px 56px", fontFamily: "Helvetica, Arial, sans-serif" }}>
 
-          {/* ═══ The statement document ═══ */}
-          <div className="bg-white text-brand-black" style={{ padding: "8% 7%" }}>
-
-            {/* Header — Logo · Wordmark · Verified badge */}
-            <div className="flex items-center justify-between mb-3">
+            {/* HEADER — matches PDF: logo · Fundslip · subtitle · VERIFIED pill */}
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Image src="/fundslip.svg" alt="" width={16} height={20} style={{ height: "auto" }} />
-                <span className="font-headline font-bold text-[14px]">Fundslip</span>
-                <span className="text-[8px] text-on-surface-variant ml-1">Asset Verification Report</span>
+                <Image src="/fundslip.svg" alt="" width={14} height={18} style={{ height: "auto" }} />
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#1d1d1f" }}>Fundslip</span>
+                <span style={{ fontSize: 8, color: "#86868b", marginLeft: 4 }}>Asset Verification Report</span>
               </div>
-              <span className="text-[7px] font-bold uppercase tracking-wider text-brand-navy bg-brand-emerald/30 px-2.5 py-1 rounded-full">
-                Verified
-              </span>
+              <span style={{
+                fontSize: 7, fontWeight: 700, letterSpacing: "0.05em",
+                color: "#003499", backgroundColor: "#85f8c4", padding: "3px 8px", borderRadius: 8,
+              }}>VERIFIED</span>
             </div>
 
-            <div className="h-px bg-outline-variant mb-5" />
+            {/* Rule */}
+            <div style={{ height: 1, backgroundColor: "#e5e5ea", margin: "14px 0 16px" }} />
 
-            {/* Document title */}
-            <h2 className="font-headline text-xl font-bold mb-1">{typeTitle(data.statementType)}</h2>
-            <p className="text-[9px] text-on-surface-variant mb-6">{dateTime}</p>
+            {/* DOCUMENT TITLE — matches PDF */}
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#1d1d1f", marginBottom: 4 }}>{typeTitle(data.statementType)}</div>
+            <div style={{ fontSize: 9, color: "#86868b", marginBottom: 20 }}>{dateTime}</div>
 
-            {/* Account details — grid matching PDF layout */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mb-6">
-              <div>
-                <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">Account</p>
-                <p className="text-[10px] font-mono">{data.ensName || shortAddr(data.walletAddress)}</p>
-              </div>
-              <div>
-                <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">Network</p>
-                <p className="text-[10px]">{data.networkName || "Ethereum Mainnet"}</p>
-              </div>
-              <div>
-                <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">Block</p>
-                <p className="text-[10px]">#{data.blockNumber.toLocaleString()}</p>
-              </div>
-              {!isBs && (
-                <div>
-                  <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">Period</p>
-                  <p className="text-[10px]">{fmtDateShort(data.periodStart)} – {fmtDateShort(data.periodEnd)}</p>
+            {/* ACCOUNT DETAILS — grid matching PDF */}
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(details.length, 4)}, 1fr)`, gap: "8px 16px", marginBottom: 16 }}>
+              {details.map(d => (
+                <div key={d.l}>
+                  <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{d.l}</div>
+                  <div style={{ fontSize: 10, color: "#1d1d1f", fontFamily: d.l === "Account" ? "monospace" : "inherit" }}>{d.v}</div>
                 </div>
-              )}
-              {data.personalDetails?.fullName && (
-                <div>
-                  <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">Name</p>
-                  <p className="text-[10px]">{data.personalDetails.fullName}</p>
-                </div>
-              )}
+              ))}
             </div>
 
             {data.personalDetails?.address && (
-              <div className="mb-6">
-                <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">Address</p>
-                <p className="text-[10px]">{data.personalDetails.address}</p>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Address</div>
+                <div style={{ fontSize: 10, color: "#1d1d1f" }}>{data.personalDetails.address}</div>
               </div>
             )}
 
-            {/* Net Worth */}
-            <div className="bg-surface rounded-lg px-4 py-3 mb-6">
-              <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">Total Net Worth (USD)</p>
-              <p className="text-[22px] font-headline font-bold text-brand-navy leading-tight">${fmt(data.totalValueUsd)}</p>
+            {/* NET WORTH — surface well */}
+            <div style={{ backgroundColor: "#f5f5f7", borderRadius: 6, padding: "10px 14px", marginBottom: 20 }}>
+              <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Total Net Worth (USD)</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: "#003499" }}>${fmt(data.totalValueUsd)}</div>
             </div>
 
-            {/* Holdings table */}
-            <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-1.5">Digital Asset Holdings</p>
-            <table className="w-full text-[9px] mb-6">
+            {/* HOLDINGS TABLE */}
+            <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Digital Asset Holdings</div>
+            <table style={{ width: "100%", fontSize: 9, borderCollapse: "collapse" }}>
               <thead>
-                <tr className="text-[7px] uppercase tracking-wider text-on-surface-variant border-b border-outline-variant">
-                  <th className="text-left font-normal py-1.5">Asset</th>
-                  <th className="text-right font-normal py-1.5">Quantity</th>
-                  <th className="text-right font-normal py-1.5">Unit Price</th>
-                  <th className="text-right font-normal py-1.5">Value</th>
+                <tr style={{ borderBottom: "1px solid #e5e5ea" }}>
+                  <th style={{ textAlign: "left", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "4px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Asset</th>
+                  <th style={{ textAlign: "right", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "4px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Quantity</th>
+                  <th style={{ textAlign: "right", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "4px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Unit Price</th>
+                  <th style={{ textAlign: "right", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "4px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Value</th>
                 </tr>
               </thead>
               <tbody>
                 {data.ethBalance > 0 && (
-                  <tr className="border-b border-outline-variant/50">
-                    <td className="py-2">Ethereum (ETH)</td>
-                    <td className="text-right py-2 tabular-nums">{data.ethBalance.toFixed(4)}</td>
-                    <td className="text-right py-2 tabular-nums">${fmt(data.ethPriceUsd)}</td>
-                    <td className="text-right py-2 tabular-nums">${fmt(data.ethValueUsd)}</td>
-                  </tr>
+                  <Hrow cells={["Ethereum (ETH)", data.ethBalance.toFixed(4), `$${fmt(data.ethPriceUsd)}`, `$${fmt(data.ethValueUsd)}`]} />
                 )}
                 {pricedTokens.map(t => (
-                  <tr key={t.contractAddress} className="border-b border-outline-variant/50">
-                    <td className="py-2">{t.name} ({t.symbol})</td>
-                    <td className="text-right py-2 tabular-nums">{t.balanceFormatted.toLocaleString("en-US", { maximumFractionDigits: 4 })}</td>
-                    <td className="text-right py-2 tabular-nums">${fmt(t.priceUsd)}</td>
-                    <td className="text-right py-2 tabular-nums">${fmt(t.valueUsd)}</td>
-                  </tr>
+                  <Hrow key={t.contractAddress} cells={[
+                    `${t.name} (${t.symbol})`,
+                    t.balanceFormatted.toLocaleString("en-US", { maximumFractionDigits: 4 }),
+                    `$${fmt(t.priceUsd)}`,
+                    `$${fmt(t.valueUsd)}`,
+                  ]} />
                 ))}
                 {data.ethBalance === 0 && pricedTokens.length === 0 && (
-                  <tr><td colSpan={4} className="py-2 text-on-surface-variant">No assets found</td></tr>
+                  <Hrow cells={["No assets found", "—", "—", "$0.00"]} />
                 )}
               </tbody>
               <tfoot>
-                <tr className="bg-surface/60 font-bold text-brand-navy">
-                  <td colSpan={3} className="py-2 text-right">Total</td>
-                  <td className="text-right py-2 tabular-nums">${fmt(data.totalValueUsd)}</td>
+                <tr style={{ backgroundColor: "#f5f5f7" }}>
+                  <td colSpan={3} style={{ textAlign: "right", padding: "6px 4px", fontWeight: 700, color: "#003499" }}>Total</td>
+                  <td style={{ textAlign: "right", padding: "6px 0", fontWeight: 700, color: "#003499", fontVariantNumeric: "tabular-nums" }}>${fmt(data.totalValueUsd)}</td>
                 </tr>
               </tfoot>
             </table>
 
-            {/* Unpriced assets */}
+            {/* UNPRICED ASSETS */}
             {unpricedTokens.length > 0 && (
-              <div className="mb-6">
-                <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-1.5">Other Assets (No Market Price Available)</p>
-                <table className="w-full text-[8px] text-on-surface-variant">
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Other Assets (No Market Price Available)</div>
+                <table style={{ width: "100%", fontSize: 8, borderCollapse: "collapse", color: "#86868b" }}>
                   <thead>
-                    <tr className="text-[7px] uppercase tracking-wider border-b border-outline-variant">
-                      <th className="text-left font-normal py-1.5">Asset</th>
-                      <th className="text-right font-normal py-1.5">Quantity</th>
+                    <tr style={{ borderBottom: "1px solid #e5e5ea" }}>
+                      <th style={{ textAlign: "left", fontWeight: 400, fontSize: 7, padding: "3px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Asset</th>
+                      <th style={{ textAlign: "right", fontWeight: 400, fontSize: 7, padding: "3px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Quantity</th>
                     </tr>
                   </thead>
                   <tbody>
                     {unpricedTokens.map(t => (
-                      <tr key={t.contractAddress} className="border-b border-outline-variant/30">
-                        <td className="py-1.5">{t.name} ({t.symbol})</td>
-                        <td className="text-right py-1.5 tabular-nums">{t.balanceFormatted.toLocaleString("en-US", { maximumFractionDigits: 4 })}</td>
+                      <tr key={t.contractAddress} style={{ borderBottom: "1px solid #e5e5ea30" }}>
+                        <td style={{ padding: "4px 0" }}>{t.name} ({t.symbol})</td>
+                        <td style={{ textAlign: "right", padding: "4px 0", fontVariantNumeric: "tabular-nums" }}>{t.balanceFormatted.toLocaleString("en-US", { maximumFractionDigits: 4 })}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -187,77 +175,95 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
               </div>
             )}
 
-            {/* Transactions */}
+            {/* TRANSACTIONS */}
             {!isBs && txs.length > 0 && (
-              <div className="mb-6">
-                {/* Summary boxes */}
+              <div style={{ marginTop: 20 }}>
                 {isIs ? (
-                  <div className="mb-3">
-                    <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">Total Income</p>
-                    <p className="text-[16px] font-headline font-bold text-brand-navy">${fmt(recv)}</p>
-                    <p className="text-[8px] text-on-surface-variant">{txs.length} transaction{txs.length !== 1 ? "s" : ""}</p>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Total Income</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "#003499" }}>${fmt(recv)}</div>
+                    <div style={{ fontSize: 8, color: "#86868b" }}>{txs.length} transaction{txs.length !== 1 ? "s" : ""}</div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    {[
-                      { l: "Received", v: `$${fmt(recv)}` },
-                      { l: "Sent", v: `$${fmt(sent)}` },
-                      { l: "Net", v: `$${fmt(recv - sent)}` },
-                    ].map(b => (
-                      <div key={b.l} className="bg-surface rounded-lg px-3 py-2">
-                        <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">{b.l}</p>
-                        <p className="text-[11px] font-bold tabular-nums">{b.v}</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 14 }}>
+                    {[{ l: "Received", v: `$${fmt(recv)}` }, { l: "Sent", v: `$${fmt(sent)}` }, { l: "Net", v: `$${fmt(recv - sent)}` }].map(b => (
+                      <div key={b.l} style={{ backgroundColor: "#f5f5f7", borderRadius: 4, padding: "6px 10px" }}>
+                        <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 1 }}>{b.l}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#1d1d1f", fontVariantNumeric: "tabular-nums" }}>{b.v}</div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <p className="text-[7px] uppercase tracking-wider text-on-surface-variant mb-0.5">
+                <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
                   {isIs ? "Income Transactions" : "Transaction History"}
-                </p>
-                <p className="text-[6px] italic text-on-surface-variant/60 mb-1.5">{priceLabel}</p>
+                </div>
+                <div style={{ fontSize: 6, fontStyle: "italic", color: "#a2a2a7", marginBottom: 6 }}>{priceLabel}</div>
 
-                <table className="w-full text-[8px]">
+                <table style={{ width: "100%", fontSize: 8, borderCollapse: "collapse" }}>
                   <thead>
-                    <tr className="text-[7px] uppercase tracking-wider text-on-surface-variant border-b border-outline-variant">
-                      <th className="text-left font-normal py-1.5">Date</th>
-                      <th className="text-left font-normal py-1.5">Description</th>
-                      <th className="text-left font-normal py-1.5">{isIs ? "From" : "Counterparty"}</th>
-                      <th className="text-left font-normal py-1.5">Type</th>
-                      <th className="text-right font-normal py-1.5">Value</th>
+                    <tr style={{ borderBottom: "1px solid #e5e5ea" }}>
+                      {["Date", "Description", isIs ? "From" : "Counterparty", "Type", "Value"].map(h => (
+                        <th key={h} style={{ textAlign: h === "Value" ? "right" : "left", fontWeight: 400, fontSize: 7, color: "#86868b", padding: "3px 0", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {txs.slice(0, 100).map((tx, i) => (
-                      <tr key={`${tx.hash}-${i}`} className="border-b border-outline-variant/30">
-                        <td className="py-1.5 whitespace-nowrap text-on-surface-variant">
+                      <tr key={`${tx.hash}-${i}`} style={{ borderBottom: "1px solid #e5e5ea20" }}>
+                        <td style={{ padding: "4px 0", whiteSpace: "nowrap", color: "#86868b" }}>
                           {new Date(tx.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}
                         </td>
-                        <td className="py-1.5">{tx.description}</td>
-                        <td className="py-1.5 font-mono text-on-surface-variant">{tx.type === "receive" ? shortAddr(tx.from) : shortAddr(tx.to)}</td>
-                        <td className="py-1.5 text-on-surface-variant">
-                          {tx.type === "contract"
-                            ? (tx.description.toLowerCase().includes("swap") ? "Swap" : "Action")
-                            : tx.type === "receive" ? "In" : "Out"}
+                        <td style={{ padding: "4px 4px" }}>{tx.description}</td>
+                        <td style={{ padding: "4px 4px", fontFamily: "monospace", color: "#86868b" }}>{tx.type === "receive" ? shortAddr(tx.from) : shortAddr(tx.to)}</td>
+                        <td style={{ padding: "4px 4px", color: "#86868b" }}>
+                          {tx.type === "contract" ? (tx.description.toLowerCase().includes("swap") ? "Swap" : "Action") : tx.type === "receive" ? "In" : "Out"}
                         </td>
-                        <td className="py-1.5 text-right tabular-nums">{tx.valueUsd > 0 ? `$${fmt(tx.valueUsd)}` : "—"}</td>
+                        <td style={{ padding: "4px 0", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{tx.valueUsd > 0 ? `$${fmt(tx.valueUsd)}` : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 {txs.length > 100 && (
-                  <p className="text-[7px] text-on-surface-variant mt-1.5">
+                  <div style={{ fontSize: 7, color: "#a2a2a7", marginTop: 4 }}>
                     Showing 100 of {(data.totalTransactionCount || txs.length).toLocaleString()} transactions
-                  </p>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* Footer */}
-            <div className="border-t border-outline-variant pt-3 flex justify-between text-[7px] text-on-surface-variant">
-              <span>Statement {statementId} · {dateTime}</span>
-              <span className="font-mono">{verifyUrl.replace("https://", "").replace("http://", "")}</span>
+            {/* VERIFICATION FOOTER — matches PDF exactly */}
+            <div style={{ borderTop: "1px solid #e5e5ea", marginTop: 24, paddingTop: 14, display: "flex", gap: 20 }}>
+              {/* Left: verification text */}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#1d1d1f", marginBottom: 4 }}>Verify this statement</div>
+                <a href={verifyUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 8, color: "#003499", textDecoration: "none" }}>
+                  {verifyUrl.replace("https://", "").replace("http://", "").split("?")[0]}
+                </a>
+                <div style={{ fontSize: 7, color: "#86868b", marginTop: 4 }}>Upload this PDF or scan the QR code to verify.</div>
+
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 7, color: "#86868b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Statement Fingerprint</div>
+                  <div style={{ fontSize: 5, fontFamily: "monospace", color: "#1d1d1f", wordBreak: "break-all" }}>{fp}</div>
+                </div>
+                <div style={{ fontSize: 5, color: "#a2a2a7", marginTop: 4 }}>
+                  Cryptographically signed by the wallet owner. Independently verifiable against Ethereum.
+                </div>
+              </div>
+              {/* Right: EIP-712 badge */}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 4, whiteSpace: "nowrap" }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#85f8c4", marginTop: 1 }} />
+                <span style={{ fontSize: 7, color: "#86868b" }}>EIP-712 Signed</span>
+              </div>
             </div>
+
+            {/* PAGE FOOTER */}
+            <div style={{ borderTop: "1px solid #e5e5ea", marginTop: 14, paddingTop: 6, display: "flex", justifyContent: "space-between", fontSize: 6, color: "#a2a2a7" }}>
+              <span>Fundslip — fundslip.xyz</span>
+              <span>{dateTime}</span>
+            </div>
+
           </div>
         </div>
       </div>
@@ -275,5 +281,17 @@ export function StatementPreview({ data, statementId, verifyUrl }: Props) {
         </button>
       </div>
     </div>
+  );
+}
+
+/* Holdings table row — matches PDF styling */
+function Hrow({ cells }: { cells: string[] }) {
+  return (
+    <tr style={{ borderBottom: "1px solid #e5e5ea50" }}>
+      <td style={{ padding: "6px 0" }}>{cells[0]}</td>
+      <td style={{ textAlign: "right", padding: "6px 0", fontVariantNumeric: "tabular-nums" }}>{cells[1]}</td>
+      <td style={{ textAlign: "right", padding: "6px 0", fontVariantNumeric: "tabular-nums" }}>{cells[2]}</td>
+      <td style={{ textAlign: "right", padding: "6px 0", fontVariantNumeric: "tabular-nums" }}>{cells[3]}</td>
+    </tr>
   );
 }
