@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle, XCircle, AlertTriangle, Copy, Check, ShieldCheck } from "lucide-react";
-import { PdfViewer } from "@/components/shared/pdf-viewer";
+import { StatementPreview } from "@/components/shared/statement-preview";
 import type { VerificationResult } from "@/types";
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
@@ -137,12 +137,16 @@ export function VerifyResult({ result, fingerprint }: VerifyResultProps) {
         </div>
       )}
 
-      {/* PDF preview — full width */}
-      <div className="max-w-3xl mx-auto">
-        {pdfBlob ? <PdfViewer pdfBlob={pdfBlob} /> : (
-          <div className="flex items-center justify-center py-16 text-on-surface-variant text-sm">Generating preview…</div>
-        )}
-      </div>
+      {/* Statement preview — native HTML */}
+      {result.statementData && (
+        <div className="max-w-3xl mx-auto">
+          <StatementPreview
+            data={result.statementData}
+            statementId={`Block #${result.blockNumber.toLocaleString()}`}
+            verifyUrl={fingerprint ? `${typeof window !== "undefined" ? window.location.origin : ""}/verify?p=${encodeURIComponent(fingerprint)}` : ""}
+          />
+        </div>
+      )}
     </div>
   );
 }

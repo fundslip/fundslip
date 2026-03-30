@@ -1,7 +1,7 @@
 "use client";
 
 import { Download, Share2, Mail, Send, Check, ArrowLeft, ArrowRight, Copy, ShieldCheck } from "lucide-react";
-import { PdfViewer } from "@/components/shared/pdf-viewer";
+import { StatementPreview } from "@/components/shared/statement-preview";
 import type { StatementData } from "@/types";
 import { useState, useCallback } from "react";
 import Image from "next/image";
@@ -193,9 +193,9 @@ export function StatementResult({
           </a>
         </div>
 
-        {/* PDF preview — full width */}
+        {/* Statement preview — native HTML, instant, selectable */}
         <div className="max-w-3xl mx-auto">
-          <PdfViewer pdfBlob={pdfBlob} />
+          <StatementPreview data={statementData} statementId={statementId} verifyUrl={verifyUrl} />
         </div>
       </div>
     </div>
