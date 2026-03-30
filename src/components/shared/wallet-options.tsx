@@ -1,6 +1,7 @@
 "use client";
 
 import { useConnect } from "wagmi";
+import { walletConnect, coinbaseWallet } from "wagmi/connectors";
 import { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from "react";
 import { ArrowLeft, Loader2, Copy, Check, Smartphone, HelpCircle } from "lucide-react";
 import QRCode from "qrcode";
@@ -20,6 +21,23 @@ const KNOWN_ICONS: Record<string, string> = {
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 480 480'%3E%3Crect width='480' height='480' rx='120' fill='%230052FF'/%3E%3Cpath d='M240 80c-88.4 0-160 71.6-160 160s71.6 160 160 160 160-71.6 160-160S328.4 80 240 80Zm-40 200a16 16 0 0 1-16-16v-48a16 16 0 0 1 16-16h80a16 16 0 0 1 16 16v48a16 16 0 0 1-16 16h-80Z' fill='%23fff'/%3E%3C/svg%3E",
 };
 
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
+
+// These are created lazily — their heavy SDKs only load when the user clicks them
+function createWcConnector() {
+  return walletConnect({ projectId, showQrModal: false });
+}
+function createCbConnector() {
+  return coinbaseWallet({ appName: "Fundslip", preference: { options: "all", telemetry: false } });
+}
+
+// Static entries for WalletConnect + Coinbase so they always appear in the list
+// without importing their SDKs
+const EXTRA_WALLETS = [
+  { id: "walletConnect", name: "WalletConnect", create: createWcConnector },
+  { id: "coinbaseWalletSDK", name: "Coinbase Wallet", create: createCbConnector },
+] as const;
+
 export function WalletOptions({ layout = "dropdown", onConnected }: WalletOptionsProps) {
   const { connect, connectAsync, connectors } = useConnect();
   const [wcQrDataUrl, setWcQrDataUrl] = useState<string | null>(null);
@@ -36,20 +54,17 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
 
   const isCompact = layout === "dropdown";
 
-  const { installed, others } = useMemo(() => {
-    const installed: (typeof connectors)[number][] = [];
-    const others: (typeof connectors)[number][] = [];
+  // Injected wallets from wagmi (MetaMask, Rabby, etc. via EIP-6963)
+  const installed = useMemo(() => {
+    const list: (typeof connectors)[number][] = [];
     const seenIds = new Set<string>();
-
     for (const c of connectors) {
       if (c.id === "injected") continue;
       if (seenIds.has(c.id)) continue;
       seenIds.add(c.id);
-
-      if (c.type === "injected") installed.push(c);
-      else others.push(c);
+      if (c.type === "injected") list.push(c);
     }
-    return { installed, others };
+    return list;
   }, [connectors]);
 
   const resetWc = useCallback(() => {
@@ -62,46 +77,55 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
     setCopied(false);
   }, []);
 
-  const handleSelect = useCallback(async (connector: (typeof connectors)[number]) => {
+  const handleSelectInjected = useCallback((connector: (typeof connectors)[number]) => {
     setPendingId(connector.uid);
-
-    if (connector.id === "walletConnect") {
-      setWcLoading(true);
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const provider = await (connector as any).getProvider();
-
-        const onUri = async (uri: string) => {
-          setWcUri(uri);
-          setWcLoading(false);
-          const dataUrl = await QRCode.toDataURL(uri, {
-            width: isCompact ? 220 : 280,
-            margin: 2,
-            color: { dark: "#1d1d1f", light: "#ffffff" },
-          });
-          setWcQrDataUrl(dataUrl);
-        };
-
-        provider.on("display_uri", onUri);
-        wcCleanupRef.current = () => provider.removeListener("display_uri", onUri);
-
-        connectAsync({ connector }).then(() => {
-          resetWc();
-          onConnected?.();
-        }).catch(() => {
-          resetWc();
-        });
-      } catch {
-        resetWc();
-      }
-      return;
-    }
-
     connect({ connector }, {
       onSuccess: () => { setPendingId(null); onConnected?.(); },
       onError: () => setPendingId(null),
     });
-  }, [connect, connectAsync, isCompact, onConnected, resetWc]);
+  }, [connect, onConnected]);
+
+  const handleSelectWc = useCallback(async () => {
+    setPendingId("walletConnect");
+    setWcLoading(true);
+    try {
+      const connector = createWcConnector();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const provider = await (connector as any).getProvider();
+
+      const onUri = async (uri: string) => {
+        setWcUri(uri);
+        setWcLoading(false);
+        const dataUrl = await QRCode.toDataURL(uri, {
+          width: isCompact ? 220 : 280,
+          margin: 2,
+          color: { dark: "#1d1d1f", light: "#ffffff" },
+        });
+        setWcQrDataUrl(dataUrl);
+      };
+
+      provider.on("display_uri", onUri);
+      wcCleanupRef.current = () => provider.removeListener("display_uri", onUri);
+
+      connectAsync({ connector }).then(() => {
+        resetWc();
+        onConnected?.();
+      }).catch(() => {
+        resetWc();
+      });
+    } catch {
+      resetWc();
+    }
+  }, [connectAsync, isCompact, onConnected, resetWc]);
+
+  const handleSelectCoinbase = useCallback(() => {
+    setPendingId("coinbaseWalletSDK");
+    const connector = createCbConnector();
+    connect({ connector }, {
+      onSuccess: () => { setPendingId(null); onConnected?.(); },
+      onError: () => setPendingId(null),
+    });
+  }, [connect, onConnected]);
 
   useEffect(() => { return () => resetWc(); }, [resetWc]);
 
@@ -154,9 +178,6 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
     );
   }
 
-  // ── Wallet List ──
-  const allWallets = [...installed, ...others];
-
   if (!mounted) {
     return (
       <div className={`flex justify-center ${isCompact ? "py-6" : "py-10"}`}>
@@ -168,14 +189,24 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
   return (
     <div className={isCompact ? "" : "w-full max-w-sm"}>
       <div className={isCompact ? "space-y-0.5" : "space-y-2"}>
-        {allWallets.map((connector, i) => (
-          <div key={connector.uid}>
-            {i === installed.length && installed.length > 0 && (
-              <div className={`border-t border-outline-variant ${isCompact ? "my-1.5" : "my-2"}`} />
-            )}
-            <WalletRow connector={connector} isCompact={isCompact}
-              isBusy={isBusy} pendingId={pendingId} onSelect={handleSelect} />
-          </div>
+        {/* Injected wallets (MetaMask, Rabby, etc.) */}
+        {installed.map((connector) => (
+          <WalletRow key={connector.uid} id={connector.id} name={connector.name}
+            icon={connector.icon} isCompact={isCompact}
+            isBusy={isBusy} isPending={pendingId === connector.uid}
+            onSelect={() => handleSelectInjected(connector)} />
+        ))}
+
+        {installed.length > 0 && (
+          <div className={`border-t border-outline-variant ${isCompact ? "my-1.5" : "my-2"}`} />
+        )}
+
+        {/* WalletConnect + Coinbase — lazy, no SDK loaded until clicked */}
+        {EXTRA_WALLETS.map((w) => (
+          <WalletRow key={w.id} id={w.id} name={w.name}
+            icon={KNOWN_ICONS[w.id]} isCompact={isCompact}
+            isBusy={isBusy} isPending={pendingId === w.id}
+            onSelect={w.id === "walletConnect" ? handleSelectWc : handleSelectCoinbase} />
         ))}
       </div>
 
@@ -200,20 +231,18 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
   );
 }
 
-type AnyConnector = ReturnType<typeof useConnect>["connectors"][number];
-
-function WalletRow({ connector, isCompact, isBusy, pendingId, onSelect }: {
-  connector: AnyConnector;
+function WalletRow({ id, name, icon, isCompact, isBusy, isPending, onSelect }: {
+  id: string;
+  name: string;
+  icon?: string;
   isCompact: boolean;
   isBusy: boolean;
-  pendingId: string | null;
-  onSelect: (c: AnyConnector) => void;
+  isPending: boolean;
+  onSelect: () => void;
 }) {
-  const icon = connector.icon || KNOWN_ICONS[connector.id];
-
   return (
     <button
-      onClick={() => onSelect(connector)}
+      onClick={onSelect}
       disabled={isBusy}
       className={`w-full flex items-center gap-3 rounded-lg transition-colors text-left disabled:opacity-50
         ${isCompact
@@ -226,21 +255,21 @@ function WalletRow({ connector, isCompact, isBusy, pendingId, onSelect }: {
       ) : (
         <div className="w-7 h-7 rounded-lg bg-surface flex items-center justify-center flex-shrink-0">
           <span className="text-[11px] font-semibold text-on-surface-variant">
-            {connector.name.charAt(0)}
+            {name.charAt(0)}
           </span>
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <span className="text-brand-black font-medium">{connector.name}</span>
-        {connector.id === "walletConnect" && (
+        <span className="text-brand-black font-medium">{name}</span>
+        {id === "walletConnect" && (
           <span className={`block text-on-surface-variant ${isCompact ? "text-[11px]" : "text-[12px]"}`}>
             Scan QR code
           </span>
         )}
       </div>
-      {pendingId === connector.uid ? (
+      {isPending ? (
         <Loader2 className="w-4 h-4 text-on-surface-variant animate-spin flex-shrink-0" />
-      ) : connector.id === "walletConnect" ? (
+      ) : id === "walletConnect" ? (
         <Smartphone className="w-4 h-4 text-on-surface-variant flex-shrink-0" />
       ) : null}
     </button>

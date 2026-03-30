@@ -21,11 +21,11 @@ import type { Address } from "viem";
 
 const BAL_KEY = "fundslip:bal:";
 
-function readBalanceCache(address: string, chainId: number): number {
+function readBalanceCache(address: string, chainId: number): number | null {
   try {
     const v = localStorage.getItem(`${BAL_KEY}${address.toLowerCase()}:${chainId}`);
-    return v ? parseFloat(v) : 0;
-  } catch { return 0; }
+    return v !== null ? parseFloat(v) : null;
+  } catch { return null; }
 }
 
 function writeBalanceCache(address: string, chainId: number, balance: number) {
@@ -75,10 +75,12 @@ export function useStatement() {
 
     // Instantly show cached balance for this address+chain (no network wait)
     const cached = readBalanceCache(address, chainId);
-    if (cached > 0) {
+    if (cached !== null) {
+      // Cache hit — show immediately, even if $0. No skeleton.
       setTotalBalance(cached);
       setBalanceLoaded(true);
     } else {
+      // Truly first visit to this chain — show skeleton until fetch completes
       setBalanceLoaded(false);
     }
 
