@@ -89,14 +89,14 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
     <div className="relative">
       {/* Scrollable frame */}
       <div className="rounded-xl border border-outline-variant overflow-auto bg-[#e8e8ed]" style={{ maxHeight: "80vh" }}>
-          {/* The document page — CSS zoom scales everything uniformly */}
+          {/* The document page — CSS zoom on outer wrapper so scroll container sees correct size */}
+          <div style={{ zoom: scale }}>
           <div style={{
             backgroundColor: "#fff",
             width: 760,
             margin: "0 auto",
             padding: "44px 52px",
             fontFamily: "Helvetica Neue, Helvetica, Arial, sans-serif",
-            zoom: scale,
             boxShadow: scale < 1 ? "0 1px 4px rgba(0,0,0,0.08)" : undefined,
           }}>
 
@@ -248,6 +248,7 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
               <span>fundslip.xyz</span>
             </div>
 
+          </div>
           </div>
       </div>
 
