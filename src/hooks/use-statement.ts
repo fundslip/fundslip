@@ -12,7 +12,7 @@ import {
   getEthBalance, getTokenBalances, getTransactionHistory,
   getEnsName, getBlockNumber, getNetworkName,
 } from "@/lib/ethereum";
-import { fetchPrices, fetchPricesByContract } from "@/lib/prices";
+import { fetchPrices, fetchPricesByContract, fetchHistoricalPrices, fetchHistoricalEthPrice } from "@/lib/prices";
 import {
   computeDataHash, buildSigningRequest, buildPayload,
   statementTypeToCode, embedPayloadInPdf,
@@ -157,55 +157,7 @@ export function useStatement() {
         try { tokens = await getTokenBalances(addr as Address, cid, blockNumber); } catch (e) { console.error("Tokens:", e); }
         setCurrentProgress(1);
 
-        // 3. Fetch prices — contract-based for all detected tokens, symbol-based as fallback
-        let ethPriceUsd = 0;
-        const contractPrices = new Map<string, number>();
-
-        try {
-          // ETH price via symbol lookup
-          const ethPrices = await fetchPrices(["ETH"]);
-          ethPriceUsd = ethPrices.ETH || 0;
-
-          // Token prices via contract address
-          if (tokens.length > 0) {
-            const contractAddrs = tokens.map(t => t.contractAddress);
-            const fetched = await fetchPricesByContract(contractAddrs);
-            for (const [addr, price] of fetched) contractPrices.set(addr, price);
-
-            // Fallback: try symbol-based for any tokens CoinGecko didn't recognize by address
-            const unpricedSymbols = tokens
-              .filter(t => !contractPrices.has(t.contractAddress.toLowerCase()))
-              .map(t => t.symbol);
-            if (unpricedSymbols.length > 0) {
-              const symbolPrices = await fetchPrices(unpricedSymbols).catch(() => ({} as Record<string, number>));
-              for (const t of tokens) {
-                if (!contractPrices.has(t.contractAddress.toLowerCase()) && symbolPrices[t.symbol]) {
-                  contractPrices.set(t.contractAddress.toLowerCase(), symbolPrices[t.symbol]);
-                }
-              }
-            }
-          }
-        } catch (e) { console.error("Prices:", e); }
-
-        const ethValueUsd = ethBalanceNum * ethPriceUsd;
-
-        // Build priced token list — split into priced and unpriced
-        const pricedTokens = tokens.map(t => {
-          const price = contractPrices.get(t.contractAddress.toLowerCase()) || 0;
-          return { ...t, priceUsd: price, valueUsd: t.balanceFormatted * price };
-        });
-
-        // Sort: priced assets by USD value descending, then unpriced alphabetically
-        pricedTokens.sort((a, b) => {
-          if (a.valueUsd > 0 && b.valueUsd > 0) return b.valueUsd - a.valueUsd;
-          if (a.valueUsd > 0) return -1;
-          if (b.valueUsd > 0) return 1;
-          return a.symbol.localeCompare(b.symbol);
-        });
-
-        setCurrentProgress(2);
-
-        // Period dates
+        // Calculate period dates FIRST — needed to determine if we use historical pricing
         const end = new Date();
         const start = new Date();
         switch (per) {
@@ -225,6 +177,51 @@ export function useStatement() {
         }
         const periodStartTs = Math.floor(start.getTime() / 1000);
         const periodEndTs = Math.floor(end.getTime() / 1000);
+
+        // 3. Fetch prices — historical for past periods, current for today
+        let ethPriceUsd = 0;
+        let isHistoricalPricing = false;
+        const contractPrices = new Map<string, number>();
+
+        try {
+          // ETH price
+          const ethResult = await fetchHistoricalEthPrice(periodEndTs);
+          ethPriceUsd = ethResult.price;
+          isHistoricalPricing = ethResult.isHistorical;
+
+          // Token prices
+          if (tokens.length > 0) {
+            const contractAddrs = tokens.map(t => t.contractAddress);
+            const { prices: fetched } = await fetchHistoricalPrices(contractAddrs, periodEndTs);
+            for (const [a, price] of fetched) contractPrices.set(a, price);
+
+            // Fallback: current prices for tokens CoinGecko couldn't price historically
+            const unpriced = tokens.filter(t => !contractPrices.has(t.contractAddress.toLowerCase()));
+            if (unpriced.length > 0) {
+              const currentPrices = await fetchPricesByContract(unpriced.map(t => t.contractAddress)).catch(() => new Map<string, number>());
+              for (const [a, p] of currentPrices) {
+                if (!contractPrices.has(a)) contractPrices.set(a, p);
+              }
+            }
+          }
+        } catch (e) { console.error("Prices:", e); }
+
+        const ethValueUsd = ethBalanceNum * ethPriceUsd;
+
+        // Build priced token list
+        const pricedTokens = tokens.map(t => {
+          const price = contractPrices.get(t.contractAddress.toLowerCase()) || 0;
+          return { ...t, priceUsd: price, valueUsd: t.balanceFormatted * price };
+        });
+
+        pricedTokens.sort((a, b) => {
+          if (a.valueUsd > 0 && b.valueUsd > 0) return b.valueUsd - a.valueUsd;
+          if (a.valueUsd > 0) return -1;
+          if (b.valueUsd > 0) return 1;
+          return a.symbol.localeCompare(b.symbol);
+        });
+
+        setCurrentProgress(2);
 
         // Build symbol prices map for transaction history
         const symbolPricesForTxs: Record<string, number> = {};
@@ -271,6 +268,8 @@ export function useStatement() {
           transactions, totalValueUsd, generatedAt: new Date(), blockNumber,
           personalDetails: pd.fullName || pd.address ? pd : undefined,
           networkName: getNetworkName(cid), totalTransactionCount,
+          priceDate: isHistoricalPricing ? end : new Date(),
+          isHistoricalPricing,
         };
 
         // 4. Prompt EIP-712 signature (using @wagmi/core for chain mismatch handling)

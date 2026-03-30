@@ -192,6 +192,133 @@ export async function fetchPricesByContract(
   return prices;
 }
 
+// ─── Historical prices ───
+
+// Cache: "addr:date" → price (persists for session)
+const historicalCache = new Map<string, number>();
+
+/**
+ * Fetch historical prices for tokens at a specific date.
+ * Uses CoinGecko's contract-address market_chart/range endpoint.
+ * Returns Map of lowercase contract address → USD price at that date.
+ *
+ * If targetDate is within last 24 hours, delegates to current-price fetching.
+ */
+export async function fetchHistoricalPrices(
+  contractAddresses: string[],
+  targetTimestamp: number, // Unix seconds — the date to price at
+  platform: string = "ethereum"
+): Promise<{ prices: Map<string, number>; isHistorical: boolean }> {
+  const now = Math.floor(Date.now() / 1000);
+  const isRecent = (now - targetTimestamp) < 86400; // within 24 hours
+
+  // Recent: use current prices (faster, no historical API needed)
+  if (isRecent) {
+    const prices = await fetchPricesByContract(contractAddresses, platform);
+    return { prices, isHistorical: false };
+  }
+
+  const prices = new Map<string, number>();
+  const toLookup: string[] = [];
+
+  // Check cache first
+  const dateKey = new Date(targetTimestamp * 1000).toISOString().split("T")[0];
+  for (const addr of contractAddresses) {
+    const key = `${addr.toLowerCase()}:${dateKey}`;
+    if (historicalCache.has(key)) {
+      prices.set(addr.toLowerCase(), historicalCache.get(key)!);
+    } else {
+      toLookup.push(addr);
+    }
+  }
+
+  if (toLookup.length === 0) return { prices, isHistorical: true };
+
+  // Fetch historical prices — 1 call per token with concurrency limit
+  const CONCURRENCY = 3;
+  const DELAY_MS = 700; // stay well under 30 calls/minute
+
+  for (let i = 0; i < toLookup.length; i += CONCURRENCY) {
+    const batch = toLookup.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      batch.map(async (addr) => {
+        // 2-day window around target to ensure we get a data point
+        const from = targetTimestamp - 86400;
+        const to = targetTimestamp + 86400;
+        const url = `https://api.coingecko.com/api/v3/coins/${platform}/contract/${addr.toLowerCase()}/market_chart/range?vs_currency=usd&from=${from}&to=${to}`;
+
+        const res = await fetchWithRetry(url);
+        if (!res) return { addr, price: null };
+
+        const data = await res.json();
+        if (!data.prices || !Array.isArray(data.prices) || data.prices.length === 0) {
+          return { addr, price: null };
+        }
+
+        // Find the price point closest to our target
+        const targetMs = targetTimestamp * 1000;
+        let closest = data.prices[0];
+        let minDiff = Math.abs(closest[0] - targetMs);
+        for (const point of data.prices) {
+          const diff = Math.abs(point[0] - targetMs);
+          if (diff < minDiff) { closest = point; minDiff = diff; }
+        }
+
+        return { addr, price: closest[1] as number };
+      })
+    );
+
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value.price !== null) {
+        const addr = r.value.addr.toLowerCase();
+        prices.set(addr, r.value.price);
+        historicalCache.set(`${addr}:${dateKey}`, r.value.price);
+      }
+    }
+
+    // Delay between batches
+    if (i + CONCURRENCY < toLookup.length) {
+      await new Promise((r) => setTimeout(r, DELAY_MS));
+    }
+  }
+
+  return { prices, isHistorical: true };
+}
+
+/**
+ * Fetch historical ETH price at a specific date.
+ * Uses CoinGecko /coins/ethereum/history endpoint.
+ */
+export async function fetchHistoricalEthPrice(targetTimestamp: number): Promise<{ price: number; isHistorical: boolean }> {
+  const now = Math.floor(Date.now() / 1000);
+  if ((now - targetTimestamp) < 86400) {
+    const p = await fetchPrices(["ETH"]);
+    return { price: p.ETH || 0, isHistorical: false };
+  }
+
+  const dateKey = new Date(targetTimestamp * 1000).toISOString().split("T")[0];
+  const cacheKey = `eth:${dateKey}`;
+  if (historicalCache.has(cacheKey)) {
+    return { price: historicalCache.get(cacheKey)!, isHistorical: true };
+  }
+
+  // CoinGecko Demo API uses dd-mm-yyyy format
+  const d = new Date(targetTimestamp * 1000);
+  const ddmmyyyy = `${String(d.getUTCDate()).padStart(2, "0")}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${d.getUTCFullYear()}`;
+  const url = `https://api.coingecko.com/api/v3/coins/ethereum/history?date=${ddmmyyyy}&localization=false`;
+
+  try {
+    const res = await fetchWithRetry(url);
+    if (!res) return { price: 0, isHistorical: true };
+    const data = await res.json();
+    const price = data?.market_data?.current_price?.usd || 0;
+    if (price > 0) historicalCache.set(cacheKey, price);
+    return { price, isHistorical: true };
+  } catch {
+    return { price: 0, isHistorical: true };
+  }
+}
+
 /**
  * Fetch with exponential backoff on 429 rate limit.
  */

@@ -291,7 +291,10 @@ export async function generatePdfBlob(
       label(doc, isIs ? "Income Transactions" : "Transaction History", L, y);
       y += 2.5;
       doc.setFontSize(4.5); doc.setFont("helvetica", "italic"); doc.setTextColor(...LIGHT);
-      doc.text("USD values reflect prices at time of generation.", L, y);
+      const priceLabel = data.isHistoricalPricing && data.priceDate
+        ? `USD values reflect prices as of ${data.priceDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} (period end date).`
+        : "USD values reflect prices at time of generation.";
+      doc.text(priceLabel, L, y);
       y += 4;
 
       autoTable(doc, {

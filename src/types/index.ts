@@ -57,6 +57,8 @@ export interface StatementData {
   personalDetails?: PersonalDetails;
   networkName?: string;
   totalTransactionCount?: number;
+  priceDate?: Date;          // When the prices are from (period end date or generation time)
+  isHistoricalPricing?: boolean; // True if prices are from the period end date, not current
 }
 
 export interface VerificationResult {
