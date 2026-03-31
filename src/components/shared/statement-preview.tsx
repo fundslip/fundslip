@@ -67,6 +67,7 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
   const isBs = data.statementType === "balance-snapshot";
   const isIs = data.statementType === "income-summary";
   const pricedTokens = data.tokens.filter(t => t.valueUsd > 0.01);
+  const unpricedCount = data.tokens.length - pricedTokens.length;
   const displayTxs = processForDisplay(data.transactions);
   const txs = isIs ? displayTxs.filter(t => t.type === "receive") : displayTxs.filter(t => t.valueUsd > 0 || t.type === "send" || t.type === "contract");
 
@@ -174,6 +175,12 @@ export function StatementPreview({ data, statementId, verifyUrl, fingerprint }: 
                 </tr>
               </tfoot>
             </table>
+            <div style={{ fontSize: 5.5, fontStyle: "italic", color: C.light, marginBottom: unpricedCount > 0 ? 2 : 12 }}>{priceLabel}</div>
+            {unpricedCount > 0 && (
+              <div style={{ fontSize: 5.5, fontStyle: "italic", color: C.light, marginBottom: 12 }}>
+                {unpricedCount} additional token{unpricedCount !== 1 ? "s" : ""} held with no market value.
+              </div>
+            )}
 
             {/* ── TRANSACTIONS ── */}
             {!isBs && txs.length > 0 && (

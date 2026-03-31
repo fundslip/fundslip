@@ -186,19 +186,89 @@ export async function fetchHistoricalEthPrice(targetTimestamp: number): Promise<
 }
 
 /**
- * Fetch historical prices for tokens by symbol.
- * For recent periods (< 24h), uses current prices.
- * For older periods, uses the symbol-based current price as best-effort
- * (CoinGecko free tier doesn't support historical contract lookups reliably).
+ * Fetch historical prices for tokens at a specific date.
+ *
+ * Recent (< 24h): uses current symbol-based pricing — 1 API call total.
+ * Historical (>= 24h): fetches /coins/{id}/history per verified token.
+ *   - Only verified tokens (matching TRACKED_TOKENS addresses) get priced
+ *   - CoinGecko free tier limited to past 365 days
+ *   - Results cached for the session so repeat generates are free
+ *   - 2 concurrent fetches with 2s delay between batches (~30 calls/min safe)
  */
 export async function fetchHistoricalTokenPrices(
   tokens: { symbol: string; contractAddress: string }[],
-  _targetTimestamp: number,
+  targetTimestamp: number,
 ): Promise<{ prices: Map<string, number>; isHistorical: boolean }> {
-  // Use symbol-based pricing — 1 API call, no contract lookups
-  const prices = await priceTokensBySymbol(tokens);
   const now = Math.floor(Date.now() / 1000);
-  return { prices, isHistorical: (now - _targetTimestamp) >= 86400 };
+
+  // Recent: use current prices (1 API call, no historical lookup needed)
+  if ((now - targetTimestamp) < 86400) {
+    const prices = await priceTokensBySymbol(tokens);
+    return { prices, isHistorical: false };
+  }
+
+  // Historical: fetch per-token price at the target date
+  const dateKey = new Date(targetTimestamp * 1000).toISOString().split("T")[0];
+  const d = new Date(targetTimestamp * 1000);
+  const ddmmyyyy = `${String(d.getUTCDate()).padStart(2, "0")}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${d.getUTCFullYear()}`;
+
+  // Collect verified tokens that need historical pricing
+  const toLookup: { addr: string; coinId: string; cacheKey: string }[] = [];
+  const result = new Map<string, number>();
+
+  for (const t of tokens) {
+    const addr = t.contractAddress.toLowerCase();
+    const symbol = VERIFIED_ADDRESS_TO_SYMBOL.get(addr);
+    if (!symbol) continue; // Unverified token — can't price
+
+    const coinId = COINGECKO_IDS[symbol];
+    if (!coinId) continue; // No CoinGecko mapping
+
+    const cacheKey = `${coinId}:${dateKey}`;
+    if (historicalCache.has(cacheKey)) {
+      // Cache hit — no API call needed
+      result.set(addr, historicalCache.get(cacheKey)!);
+    } else {
+      toLookup.push({ addr, coinId, cacheKey });
+    }
+  }
+
+  // Fetch uncached historical prices — 2 concurrent, 2s delay between batches
+  const CONCURRENCY = 2;
+
+  for (let i = 0; i < toLookup.length; i += CONCURRENCY) {
+    const batch = toLookup.slice(i, i + CONCURRENCY);
+
+    const results = await Promise.allSettled(
+      batch.map(async ({ addr, coinId, cacheKey }) => {
+        const url = `${CG_BASE}/coins/${coinId}/history?date=${ddmmyyyy}&localization=false`;
+        const res = await deduplicatedFetch(url);
+        if (!res || !res.ok) return { addr, cacheKey, price: 0 };
+
+        const data = await res.json();
+        const price = data?.market_data?.current_price?.usd || 0;
+        return { addr, cacheKey, price };
+      })
+    );
+
+    for (const r of results) {
+      if (r.status === "fulfilled") {
+        const { addr, cacheKey, price } = r.value;
+        if (price > 0) {
+          result.set(addr, price);
+          historicalCache.set(cacheKey, price);
+        }
+        // price === 0 means CoinGecko has no data for this date — leave unpriced
+      }
+    }
+
+    // Delay between batches to respect rate limits
+    if (i + CONCURRENCY < toLookup.length) {
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+
+  return { prices: result, isHistorical: true };
 }
 
 // ─── Internal ───

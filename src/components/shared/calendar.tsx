@@ -14,6 +14,10 @@ interface CalendarProps {
 
 const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+const MONTHS_FULL = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
@@ -29,6 +33,7 @@ function parseDate(s: string): Date {
 
 export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
   const [open, setOpen] = useState(false);
+  const [picking, setPicking] = useState<"days" | "months">("days");
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; width: number; dropUp: boolean }>({ top: 0, left: 0, width: 0, dropUp: false });
@@ -45,7 +50,7 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
-    const dropUp = spaceBelow < 320;
+    const dropUp = spaceBelow < 340;
     setPos({
       top: dropUp ? rect.top - 4 : rect.bottom + 4,
       left: rect.left,
@@ -63,18 +68,21 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
         buttonRef.current && !buttonRef.current.contains(e.target as Node)
       ) {
         setOpen(false);
+        setPicking("days");
       }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
+  // Always render 6 rows (42 cells) so the grid never resizes
   const days = useMemo(() => {
     const firstDay = new Date(viewYear, viewMonth, 1).getDay();
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
     const cells: (number | null)[] = [];
     for (let i = 0; i < firstDay; i++) cells.push(null);
     for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    while (cells.length < 42) cells.push(null);
     return cells;
   }, [viewYear, viewMonth]);
 
@@ -109,6 +117,12 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
     if (isDisabled(day)) return;
     onChange(toDateStr(viewYear, viewMonth, day));
     setOpen(false);
+    setPicking("days");
+  }
+
+  function selectMonth(m: number) {
+    setViewMonth(m);
+    setPicking("days");
   }
 
   const displayValue = selectedDate
@@ -116,7 +130,10 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
     : "Select date";
 
   const handleToggle = () => {
-    if (!open) updatePosition();
+    if (!open) {
+      updatePosition();
+      setPicking("days");
+    }
     setOpen(!open);
   };
 
@@ -153,49 +170,78 @@ export function Calendar({ value, onChange, min, max, label }: CalendarProps) {
             <button type="button" onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-surface transition-colors">
               <ChevronLeft className="w-4 h-4 text-on-surface-variant" />
             </button>
-            <span className="text-sm font-headline font-medium text-brand-black">
-              {MONTHS[viewMonth]} {viewYear}
-            </span>
+            <button
+              type="button"
+              onClick={() => setPicking(picking === "months" ? "days" : "months")}
+              className="text-sm font-headline font-medium text-brand-black hover:bg-surface px-3 py-1 rounded-lg transition-colors"
+            >
+              {MONTHS_FULL[viewMonth]} {viewYear}
+            </button>
             <button type="button" onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-surface transition-colors">
               <ChevronRight className="w-4 h-4 text-on-surface-variant" />
             </button>
           </div>
 
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-0 mb-1">
-            {DAYS.map((d) => (
-              <div key={d} className="text-center text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide py-1">
-                {d}
+          {picking === "months" ? (
+            /* ── Month Picker Grid ── */
+            <div className="grid grid-cols-3 gap-1.5">
+              {MONTHS.map((m, i) => {
+                const isCurrent = i === viewMonth;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => selectMonth(i)}
+                    className={`py-2.5 text-sm rounded-lg transition-colors ${
+                      isCurrent
+                        ? "bg-brand-navy text-white font-medium"
+                        : "text-on-surface hover:bg-surface"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            /* ── Day Picker Grid ── */
+            <>
+              <div className="grid grid-cols-7 gap-0 mb-1">
+                {DAYS.map((d) => (
+                  <div key={d} className="text-center text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide py-1">
+                    {d}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-0">
-            {days.map((day, i) => {
-              if (day === null) return <div key={`empty-${i}`} className="p-1" />;
-              const disabled = isDisabled(day);
-              const selected = isSelected(day);
-              const today = isToday(day);
+              {/* Fixed 6-row height — h-[216px] = 6 rows × 36px each */}
+              <div className="grid grid-cols-7 grid-rows-6 gap-0 h-[216px]">
+                {days.map((day, i) => {
+                  if (day === null) return <div key={`empty-${i}`} />;
+                  const disabled = isDisabled(day);
+                  const selected = isSelected(day);
+                  const today = isToday(day);
 
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => selectDay(day)}
-                  disabled={disabled}
-                  className={`p-1.5 text-center text-sm rounded-lg transition-colors ${
-                    selected ? "bg-brand-navy text-white font-medium"
-                    : disabled ? "text-outline cursor-not-allowed"
-                    : today ? "bg-brand-navy/5 text-brand-navy font-medium hover:bg-brand-navy/10"
-                    : "text-on-surface hover:bg-surface"
-                  }`}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => selectDay(day)}
+                      disabled={disabled}
+                      className={`flex items-center justify-center text-sm rounded-lg transition-colors ${
+                        selected ? "bg-brand-navy text-white font-medium"
+                        : disabled ? "text-outline cursor-not-allowed"
+                        : today ? "bg-brand-navy/5 text-brand-navy font-medium hover:bg-brand-navy/10"
+                        : "text-on-surface hover:bg-surface"
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>,
         document.body
       )}
