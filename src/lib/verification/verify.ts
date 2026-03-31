@@ -105,18 +105,9 @@ export async function verifyPayload(
     ethPriceUsd = ethPrices.ETH || 0;
 
     if (tokens.length > 0) {
-      const { fetchPricesByContract } = await import("../prices");
-      const fetched = await fetchPricesByContract(tokens.map(t => t.contractAddress));
+      const { priceTokensBySymbol } = await import("../prices");
+      const fetched = await priceTokensBySymbol(tokens);
       for (const [addr, price] of fetched) contractPrices.set(addr, price);
-
-      // Symbol fallback for unpriced tokens
-      const unpriced = tokens.filter(t => !contractPrices.has(t.contractAddress.toLowerCase()));
-      if (unpriced.length > 0) {
-        const symbolPrices = await fetchPrices(unpriced.map(t => t.symbol)).catch(() => ({} as Record<string, number>));
-        for (const t of unpriced) {
-          if (symbolPrices[t.symbol]) contractPrices.set(t.contractAddress.toLowerCase(), symbolPrices[t.symbol]);
-        }
-      }
     }
   } catch (e) {
     console.warn("Failed to fetch prices during verification:", e);

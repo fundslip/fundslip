@@ -12,7 +12,7 @@ import {
   getEthBalance, getTokenBalances, getTransactionHistory,
   getEnsName, getBlockNumber, getNetworkName,
 } from "@/lib/ethereum";
-import { fetchPrices, fetchPricesByContract, fetchHistoricalPrices, fetchHistoricalEthPrice } from "@/lib/prices";
+import { fetchPrices, priceTokensBySymbol, fetchHistoricalTokenPrices, fetchHistoricalEthPrice } from "@/lib/prices";
 import {
   computeDataHash, buildSigningRequest, buildPayload,
   statementTypeToCode, embedPayloadInPdf,
@@ -98,12 +98,11 @@ export function useStatement() {
         let total = ethResult.balance * ethPrice;
 
         if (tokens.length > 0) {
-          // Only count tokens CoinGecko recognizes by contract address
-          const contractAddrs = tokens.map(t => t.contractAddress);
-          const contractPrices = await fetchPricesByContract(contractAddrs).catch(() => new Map<string, number>());
+          // 1 API call for all token prices by symbol
+          const tokenPrices = await priceTokensBySymbol(tokens).catch(() => new Map<string, number>());
 
           for (const t of tokens) {
-            const price = contractPrices.get(t.contractAddress.toLowerCase()) || 0;
+            const price = tokenPrices.get(t.contractAddress.toLowerCase()) || 0;
             total += t.balanceFormatted * price;
           }
         }
@@ -195,20 +194,10 @@ export function useStatement() {
           ethPriceUsd = ethResult.price;
           isHistoricalPricing = ethResult.isHistorical;
 
-          // Token prices
+          // Token prices — 1 API call by symbol, no contract lookups
           if (tokens.length > 0) {
-            const contractAddrs = tokens.map(t => t.contractAddress);
-            const { prices: fetched } = await fetchHistoricalPrices(contractAddrs, periodEndTs);
+            const { prices: fetched } = await fetchHistoricalTokenPrices(tokens, periodEndTs);
             for (const [a, price] of fetched) contractPrices.set(a, price);
-
-            // Fallback: current prices for tokens CoinGecko couldn't price historically
-            const unpriced = tokens.filter(t => !contractPrices.has(t.contractAddress.toLowerCase()));
-            if (unpriced.length > 0) {
-              const currentPrices = await fetchPricesByContract(unpriced.map(t => t.contractAddress)).catch(() => new Map<string, number>());
-              for (const [a, p] of currentPrices) {
-                if (!contractPrices.has(a)) contractPrices.set(a, p);
-              }
-            }
           }
         } catch (e) { console.error("Prices:", e); }
 

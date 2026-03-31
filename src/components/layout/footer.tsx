@@ -15,7 +15,7 @@ export function Footer() {
       <div className="container-page px-5 md:px-6 py-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/fundslip.svg" alt="Fundslip" width={14} height={18} style={{ height: "auto" }} />
+            <Image src="/fundslip.svg" alt="Fundslip" width={15} height={18} style={{ height: "auto" }} />
             <span className="font-headline font-semibold text-brand-black text-[13px]">Fundslip</span>
           </Link>
           <span className="text-[11px] text-on-surface-variant">© 2026</span>

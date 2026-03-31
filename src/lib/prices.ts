@@ -1,5 +1,8 @@
 import { TRACKED_TOKENS } from "./constants";
 
+// Proxied through Next.js API route to avoid CORS on rate-limited responses
+const CG_BASE = "/api/coingecko";
+
 const COINGECKO_IDS: Record<string, string> = {
   ETH: "ethereum",
   USDC: "usd-coin",
@@ -29,13 +32,33 @@ const COINGECKO_IDS: Record<string, string> = {
   GRT: "the-graph",
 };
 
-// Simple in-memory cache to avoid CoinGecko rate limits
+// ─── Caching ───
+
+const CACHE_TTL = 5 * 60_000; // 5 minutes
+
 let priceCache: { prices: Record<string, number>; timestamp: number } | null = null;
-const CACHE_TTL = 60_000; // 1 minute
 
-// Contract address → USD price cache (separate from symbol cache)
-let contractPriceCache: { prices: Map<string, number>; timestamp: number } | null = null;
+// Session-level historical price cache: "key" → price
+const historicalCache = new Map<string, number>();
 
+// Deduplication — prevents duplicate concurrent fetches
+const inflightRequests = new Map<string, Promise<Response | null>>();
+
+async function deduplicatedFetch(url: string): Promise<Response | null> {
+  const existing = inflightRequests.get(url);
+  if (existing) return existing;
+
+  const promise = fetchOnce(url).finally(() => inflightRequests.delete(url));
+  inflightRequests.set(url, promise);
+  return promise;
+}
+
+// ─── Public API ───
+
+/**
+ * Fetch prices by symbol. This is the primary pricing method.
+ * 1 API call for any number of symbols. Cached for 5 minutes.
+ */
 export async function fetchPrices(
   symbols: string[]
 ): Promise<Record<string, number>> {
@@ -46,7 +69,8 @@ export async function fetchPrices(
     for (const s of symbols) {
       if (priceCache.prices[s] !== undefined) {
         cached[s] = priceCache.prices[s];
-      } else {
+      } else if (COINGECKO_IDS[s]) {
+        // Only count as missing if it's a known symbol we can actually fetch
         allFound = false;
       }
     }
@@ -59,32 +83,132 @@ export async function fetchPrices(
 
   if (ids.length === 0) return {};
 
-  // Try CoinGecko first
   const prices = await fetchFromCoinGecko(ids, symbols);
   if (Object.keys(prices).length > 0) {
-    priceCache = { prices, timestamp: Date.now() };
+    // Merge with existing cache
+    priceCache = {
+      prices: { ...(priceCache?.prices || {}), ...prices },
+      timestamp: Date.now(),
+    };
     return prices;
   }
 
-  // Fallback: try alternative free API
+  // Fallback: CryptoCompare
   const fallbackPrices = await fetchFromFallback(symbols);
   if (Object.keys(fallbackPrices).length > 0) {
-    priceCache = { prices: fallbackPrices, timestamp: Date.now() };
+    priceCache = {
+      prices: { ...(priceCache?.prices || {}), ...fallbackPrices },
+      timestamp: Date.now(),
+    };
     return fallbackPrices;
   }
 
   return {};
 }
 
-async function fetchFromCoinGecko(ids: string[], symbols: string[]): Promise<Record<string, number>> {
-  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd`;
+// Real contract addresses → symbol. Only tokens at these exact addresses get priced.
+// A fake token with symbol "USDT" at a random address will NOT be priced.
+const VERIFIED_ADDRESS_TO_SYMBOL = new Map<string, string>(
+  TRACKED_TOKENS.map(t => [t.address.toLowerCase(), t.symbol])
+);
+
+/**
+ * Price a list of tokens. 1 API call total.
+ * Only prices tokens whose contract address matches a known legitimate token.
+ * Fake/spam tokens with copied symbols get $0.
+ */
+export async function priceTokensBySymbol(
+  tokens: { symbol: string; contractAddress: string }[]
+): Promise<Map<string, number>> {
+  if (tokens.length === 0) return new Map();
+
+  // Only trust tokens at verified contract addresses
+  const verifiedSymbols = new Set<string>();
+  for (const t of tokens) {
+    const realSymbol = VERIFIED_ADDRESS_TO_SYMBOL.get(t.contractAddress.toLowerCase());
+    if (realSymbol) verifiedSymbols.add(realSymbol);
+  }
+
+  if (verifiedSymbols.size === 0) return new Map();
+
+  // 1 API call for all verified symbols
+  const prices = await fetchPrices([...verifiedSymbols]);
+
+  // Map prices back to contract addresses — only for verified tokens
+  const result = new Map<string, number>();
+  for (const t of tokens) {
+    const realSymbol = VERIFIED_ADDRESS_TO_SYMBOL.get(t.contractAddress.toLowerCase());
+    if (realSymbol && prices[realSymbol]) {
+      result.set(t.contractAddress.toLowerCase(), prices[realSymbol]);
+    }
+  }
+
+  return result;
+}
+
+export async function fetchAllPrices(): Promise<Record<string, number>> {
+  const symbols = ["ETH", ...TRACKED_TOKENS.map((t) => t.symbol)];
+  return fetchPrices(symbols);
+}
+
+// ─── Historical prices ───
+
+/**
+ * Fetch historical ETH price at a specific date.
+ */
+export async function fetchHistoricalEthPrice(targetTimestamp: number): Promise<{ price: number; isHistorical: boolean }> {
+  const now = Math.floor(Date.now() / 1000);
+  if ((now - targetTimestamp) < 86400) {
+    const p = await fetchPrices(["ETH"]);
+    return { price: p.ETH || 0, isHistorical: false };
+  }
+
+  const dateKey = new Date(targetTimestamp * 1000).toISOString().split("T")[0];
+  const cacheKey = `eth:${dateKey}`;
+  if (historicalCache.has(cacheKey)) {
+    return { price: historicalCache.get(cacheKey)!, isHistorical: true };
+  }
+
+  const d = new Date(targetTimestamp * 1000);
+  const ddmmyyyy = `${String(d.getUTCDate()).padStart(2, "0")}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${d.getUTCFullYear()}`;
+  const url = `${CG_BASE}/coins/ethereum/history?date=${ddmmyyyy}&localization=false`;
 
   try {
-    const res = await fetch(url);
-    if (res.status === 429) {
-      console.warn("CoinGecko rate limited");
-      return {};
-    }
+    const res = await deduplicatedFetch(url);
+    if (!res || !res.ok) return { price: 0, isHistorical: true };
+    const data = await res.json();
+    const price = data?.market_data?.current_price?.usd || 0;
+    if (price > 0) historicalCache.set(cacheKey, price);
+    return { price, isHistorical: true };
+  } catch {
+    return { price: 0, isHistorical: true };
+  }
+}
+
+/**
+ * Fetch historical prices for tokens by symbol.
+ * For recent periods (< 24h), uses current prices.
+ * For older periods, uses the symbol-based current price as best-effort
+ * (CoinGecko free tier doesn't support historical contract lookups reliably).
+ */
+export async function fetchHistoricalTokenPrices(
+  tokens: { symbol: string; contractAddress: string }[],
+  _targetTimestamp: number,
+): Promise<{ prices: Map<string, number>; isHistorical: boolean }> {
+  // Use symbol-based pricing — 1 API call, no contract lookups
+  const prices = await priceTokensBySymbol(tokens);
+  const now = Math.floor(Date.now() / 1000);
+  return { prices, isHistorical: (now - _targetTimestamp) >= 86400 };
+}
+
+// ─── Internal ───
+
+async function fetchFromCoinGecko(ids: string[], symbols: string[]): Promise<Record<string, number>> {
+  const url = `${CG_BASE}/simple/price?ids=${ids.join(",")}&vs_currencies=usd`;
+
+  try {
+    const res = await deduplicatedFetch(url);
+    if (!res || !res.ok) return {};
     const data = await res.json();
 
     const prices: Record<string, number> = {};
@@ -100,7 +224,6 @@ async function fetchFromCoinGecko(ids: string[], symbols: string[]): Promise<Rec
   }
 }
 
-// Fallback using CryptoCompare free API
 async function fetchFromFallback(symbols: string[]): Promise<Record<string, number>> {
   const fsyms = symbols.filter(s => s !== "stETH" && s !== "rETH" && s !== "cbETH").join(",");
   if (!fsyms) return {};
@@ -109,7 +232,6 @@ async function fetchFromFallback(symbols: string[]): Promise<Record<string, numb
     const res = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=USD&tsyms=${fsyms}`);
     const data = await res.json();
 
-    // CryptoCompare returns inverse: USD -> crypto. We need crypto -> USD
     const prices: Record<string, number> = {};
     for (const symbol of symbols) {
       if (data[symbol] && data[symbol] > 0) {
@@ -122,221 +244,21 @@ async function fetchFromFallback(symbols: string[]): Promise<Record<string, numb
   }
 }
 
-export async function fetchAllPrices(): Promise<Record<string, number>> {
-  const symbols = ["ETH", ...TRACKED_TOKENS.map((t) => t.symbol)];
-  return fetchPrices(symbols);
-}
-
 /**
- * Fetch prices by contract address via CoinGecko's token_price endpoint.
- * Returns a Map of lowercase contract address → USD price.
- * Tokens without CoinGecko data are simply absent from the map.
+ * Single fetch, single retry on 429. No exponential backoff hammering.
  */
-export async function fetchPricesByContract(
-  contractAddresses: string[],
-  platform: string = "ethereum"
-): Promise<Map<string, number>> {
-  if (contractAddresses.length === 0) return new Map();
-
-  // Check cache
-  if (contractPriceCache && Date.now() - contractPriceCache.timestamp < CACHE_TTL) {
-    const cached = new Map<string, number>();
-    let allFound = true;
-    for (const addr of contractAddresses) {
-      const key = addr.toLowerCase();
-      if (contractPriceCache.prices.has(key)) {
-        cached.set(key, contractPriceCache.prices.get(key)!);
-      } else {
-        allFound = false;
-      }
-    }
-    if (allFound) return cached;
-  }
-
-  const prices = new Map<string, number>();
-  const BATCH_SIZE = 25; // safe limit for CoinGecko free tier
-
-  for (let i = 0; i < contractAddresses.length; i += BATCH_SIZE) {
-    const batch = contractAddresses.slice(i, i + BATCH_SIZE);
-    const addresses = batch.map((a) => a.toLowerCase()).join(",");
-    const url = `https://api.coingecko.com/api/v3/simple/token_price/${platform}?contract_addresses=${addresses}&vs_currencies=usd`;
-
-    try {
-      const res = await fetchWithRetry(url);
-      if (!res) continue;
-
-      const data = await res.json();
-      for (const [addr, priceData] of Object.entries(data)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const usd = (priceData as any)?.usd;
-        if (typeof usd === "number" && usd > 0) {
-          prices.set(addr.toLowerCase(), usd);
-        }
-      }
-    } catch {
-      // Continue with what we have
-    }
-
-    // Small delay between batches to respect rate limits
-    if (i + BATCH_SIZE < contractAddresses.length) {
-      await new Promise((r) => setTimeout(r, 500));
-    }
-  }
-
-  // Update cache
-  contractPriceCache = {
-    prices: new Map([...(contractPriceCache?.prices || new Map()), ...prices]),
-    timestamp: Date.now(),
-  };
-
-  return prices;
-}
-
-// ─── Historical prices ───
-
-// Cache: "addr:date" → price (persists for session)
-const historicalCache = new Map<string, number>();
-
-/**
- * Fetch historical prices for tokens at a specific date.
- * Uses CoinGecko's contract-address market_chart/range endpoint.
- * Returns Map of lowercase contract address → USD price at that date.
- *
- * If targetDate is within last 24 hours, delegates to current-price fetching.
- */
-export async function fetchHistoricalPrices(
-  contractAddresses: string[],
-  targetTimestamp: number, // Unix seconds — the date to price at
-  platform: string = "ethereum"
-): Promise<{ prices: Map<string, number>; isHistorical: boolean }> {
-  const now = Math.floor(Date.now() / 1000);
-  const isRecent = (now - targetTimestamp) < 86400; // within 24 hours
-
-  // Recent: use current prices (faster, no historical API needed)
-  if (isRecent) {
-    const prices = await fetchPricesByContract(contractAddresses, platform);
-    return { prices, isHistorical: false };
-  }
-
-  const prices = new Map<string, number>();
-  const toLookup: string[] = [];
-
-  // Check cache first
-  const dateKey = new Date(targetTimestamp * 1000).toISOString().split("T")[0];
-  for (const addr of contractAddresses) {
-    const key = `${addr.toLowerCase()}:${dateKey}`;
-    if (historicalCache.has(key)) {
-      prices.set(addr.toLowerCase(), historicalCache.get(key)!);
-    } else {
-      toLookup.push(addr);
-    }
-  }
-
-  if (toLookup.length === 0) return { prices, isHistorical: true };
-
-  // Fetch historical prices — 1 call per token with concurrency limit
-  const CONCURRENCY = 3;
-  const DELAY_MS = 700; // stay well under 30 calls/minute
-
-  for (let i = 0; i < toLookup.length; i += CONCURRENCY) {
-    const batch = toLookup.slice(i, i + CONCURRENCY);
-    const results = await Promise.allSettled(
-      batch.map(async (addr) => {
-        // 2-day window around target to ensure we get a data point
-        const from = targetTimestamp - 86400;
-        const to = targetTimestamp + 86400;
-        const url = `https://api.coingecko.com/api/v3/coins/${platform}/contract/${addr.toLowerCase()}/market_chart/range?vs_currency=usd&from=${from}&to=${to}`;
-
-        const res = await fetchWithRetry(url);
-        if (!res) return { addr, price: null };
-
-        const data = await res.json();
-        if (!data.prices || !Array.isArray(data.prices) || data.prices.length === 0) {
-          return { addr, price: null };
-        }
-
-        // Find the price point closest to our target
-        const targetMs = targetTimestamp * 1000;
-        let closest = data.prices[0];
-        let minDiff = Math.abs(closest[0] - targetMs);
-        for (const point of data.prices) {
-          const diff = Math.abs(point[0] - targetMs);
-          if (diff < minDiff) { closest = point; minDiff = diff; }
-        }
-
-        return { addr, price: closest[1] as number };
-      })
-    );
-
-    for (const r of results) {
-      if (r.status === "fulfilled" && r.value.price !== null) {
-        const addr = r.value.addr.toLowerCase();
-        prices.set(addr, r.value.price);
-        historicalCache.set(`${addr}:${dateKey}`, r.value.price);
-      }
-    }
-
-    // Delay between batches
-    if (i + CONCURRENCY < toLookup.length) {
-      await new Promise((r) => setTimeout(r, DELAY_MS));
-    }
-  }
-
-  return { prices, isHistorical: true };
-}
-
-/**
- * Fetch historical ETH price at a specific date.
- * Uses CoinGecko /coins/ethereum/history endpoint.
- */
-export async function fetchHistoricalEthPrice(targetTimestamp: number): Promise<{ price: number; isHistorical: boolean }> {
-  const now = Math.floor(Date.now() / 1000);
-  if ((now - targetTimestamp) < 86400) {
-    const p = await fetchPrices(["ETH"]);
-    return { price: p.ETH || 0, isHistorical: false };
-  }
-
-  const dateKey = new Date(targetTimestamp * 1000).toISOString().split("T")[0];
-  const cacheKey = `eth:${dateKey}`;
-  if (historicalCache.has(cacheKey)) {
-    return { price: historicalCache.get(cacheKey)!, isHistorical: true };
-  }
-
-  // CoinGecko Demo API uses dd-mm-yyyy format
-  const d = new Date(targetTimestamp * 1000);
-  const ddmmyyyy = `${String(d.getUTCDate()).padStart(2, "0")}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${d.getUTCFullYear()}`;
-  const url = `https://api.coingecko.com/api/v3/coins/ethereum/history?date=${ddmmyyyy}&localization=false`;
-
+async function fetchOnce(url: string): Promise<Response | null> {
   try {
-    const res = await fetchWithRetry(url);
-    if (!res) return { price: 0, isHistorical: true };
-    const data = await res.json();
-    const price = data?.market_data?.current_price?.usd || 0;
-    if (price > 0) historicalCache.set(cacheKey, price);
-    return { price, isHistorical: true };
-  } catch {
-    return { price: 0, isHistorical: true };
-  }
-}
-
-/**
- * Fetch with exponential backoff on 429 rate limit.
- */
-async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response | null> {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const res = await fetch(url);
-      if (res.status === 429) {
-        if (attempt === maxRetries) return null;
-        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-        console.warn(`CoinGecko 429, retrying in ${Math.round(delay)}ms...`);
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
-      }
-      return res;
-    } catch {
-      if (attempt === maxRetries) return null;
+    const res = await fetch(url);
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const retry = await fetch(url);
+        return retry.status === 429 ? null : retry;
+      } catch { return null; }
     }
+    return res;
+  } catch {
+    return null;
   }
-  return null;
 }
