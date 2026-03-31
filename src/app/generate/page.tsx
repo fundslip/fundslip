@@ -17,6 +17,7 @@ import { StatementResult } from "@/components/generate/statement-result";
 import { WalletOptions } from "@/components/shared/wallet-options";
 import { downloadPdf } from "@/lib/pdf";
 import { getNetworkName } from "@/lib/ethereum";
+import { trackDownloadPdf } from "@/lib/analytics";
 
 function ConnectWalletGate() {
   return (
@@ -51,7 +52,7 @@ function GenerateContent() {
   if (step === "ready" && statementData && pdfBlobUrl && pdfBlob) {
     return <StatementResult statementData={statementData} verificationHash={verificationHash}
       statementId={statementId} pdfBlobUrl={pdfBlobUrl} pdfBlob={pdfBlob}
-      onNewStatement={reset} onDownload={() => downloadPdf(pdfBlobUrl, statementId)} />;
+      onNewStatement={reset} onDownload={() => { trackDownloadPdf(); downloadPdf(pdfBlobUrl, statementId); }} />;
   }
 
   return (

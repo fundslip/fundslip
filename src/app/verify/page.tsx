@@ -10,6 +10,7 @@ import { VerifyingProgress } from "@/components/verify/verifying-progress";
 import type { VerificationResult } from "@/types";
 import type { VerifyResult as CryptoVerifyResult } from "@/lib/verification";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { trackVerifyStart, trackVerifyResult } from "@/lib/analytics";
 
 function toUiResult(r: CryptoVerifyResult): VerificationResult {
   if (r.status === "verified") {
@@ -49,18 +50,23 @@ function VerifyContent() {
 
   const handleCodeVerify = useCallback(async (input: string) => {
     if (!input) return;
+    trackVerifyStart(input.startsWith("http") ? "url" : "code");
     setIsVerifying(true); setResult(null); setVerifyStep(0); setVerifyLabel("Decoding...");
     try {
       const { verifyPayload, extractPayloadFromUrl } = await import("@/lib/verification");
       const payload = extractPayloadFromUrl(input);
       if (!payload) {
+        trackVerifyResult(false);
         setResult({ verified: false, statementId: "", walletAddress: "", ensName: null, totalValueUsd: 0, tokens: [], ethBalance: "0", statementType: "", periodStart: "", periodEnd: "", blockNumber: 0, generatedAt: "", verifiedAt: new Date(), error: "Invalid input. Paste the statement fingerprint from your document." });
       } else {
         setLastFingerprint(payload);
         const r = await verifyPayload(payload, onProgress);
-        setResult(toUiResult(r));
+        const uiResult = toUiResult(r);
+        trackVerifyResult(uiResult.verified);
+        setResult(uiResult);
       }
     } catch {
+      trackVerifyResult(false);
       setResult({ verified: false, statementId: "", walletAddress: "", ensName: null, totalValueUsd: 0, tokens: [], ethBalance: "0", statementType: "", periodStart: "", periodEnd: "", blockNumber: 0, generatedAt: "", verifiedAt: new Date(), error: "Verification failed. Please try again." });
     }
     setIsVerifying(false);
@@ -68,6 +74,7 @@ function VerifyContent() {
   }, [onProgress]);
 
   const handlePdfUpload = useCallback(async (file: File) => {
+    trackVerifyStart("pdf");
     setIsVerifying(true); setResult(null); setVerifyStep(0); setVerifyLabel("Reading PDF...");
     try {
       const { verifyFromPdf, extractPayloadFromPdf } = await import("@/lib/verification");
@@ -75,8 +82,11 @@ function VerifyContent() {
       const extractedFp = await extractPayloadFromPdf(pdfBytes);
       if (extractedFp) setLastFingerprint(extractedFp);
       const r = await verifyFromPdf(file, onProgress);
-      setResult(toUiResult(r));
+      const uiResult = toUiResult(r);
+      trackVerifyResult(uiResult.verified);
+      setResult(uiResult);
     } catch {
+      trackVerifyResult(false);
       setResult({ verified: false, statementId: "", walletAddress: "", ensName: null, totalValueUsd: 0, tokens: [], ethBalance: "0", statementType: "", periodStart: "", periodEnd: "", blockNumber: 0, generatedAt: "", verifiedAt: new Date(), error: "Failed to process the PDF." });
     }
     setIsVerifying(false);

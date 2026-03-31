@@ -6,6 +6,7 @@ import type { StatementData } from "@/types";
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { copyToClipboard } from "@/lib/clipboard";
+import { trackDownloadPdf, trackCopyVerifyLink, trackCopyFingerprint, trackEmailSent, trackEmailFailed } from "@/lib/analytics";
 
 interface StatementResultProps {
   statementData: StatementData;
@@ -41,12 +42,12 @@ export function StatementResult({
 
   const handleShareLink = useCallback(async () => {
     const ok = await copyToClipboard(verifyUrl);
-    if (ok) { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); }
+    if (ok) { trackCopyVerifyLink(); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); }
   }, [verifyUrl]);
 
   const handleCopyHash = useCallback(async () => {
     const ok = await copyToClipboard(verificationHash);
-    if (ok) { setHashCopied(true); setTimeout(() => setHashCopied(false), 2000); }
+    if (ok) { trackCopyFingerprint(); setHashCopied(true); setTimeout(() => setHashCopied(false), 2000); }
   }, [verificationHash]);
 
   const handleSendEmail = useCallback(async () => {
@@ -76,11 +77,14 @@ export function StatementResult({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Failed to send email" }));
+        trackEmailFailed(data.error || `Error ${res.status}`);
         setEmailError(data.error || `Error ${res.status}`);
       } else {
+        trackEmailSent();
         setEmailSent(true);
       }
     } catch {
+      trackEmailFailed("Network error");
       setEmailError("Network error. Please try again.");
     } finally {
       setEmailSending(false);

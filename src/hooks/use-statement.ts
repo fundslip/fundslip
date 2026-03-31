@@ -18,6 +18,7 @@ import {
   statementTypeToCode, embedPayloadInPdf,
 } from "@/lib/verification";
 import type { Address } from "viem";
+import { trackGenerateStart, trackGenerateComplete, trackGenerateFail, trackSignRejected } from "@/lib/analytics";
 
 const BAL_KEY = "fundslip:bal:";
 
@@ -139,6 +140,9 @@ export function useStatement() {
     const pd = personalDetails;
     const cid = chainId;
     const addr = address;
+    const networkName = getNetworkName(cid);
+
+    trackGenerateStart(networkName, per, sType);
 
     (async () => {
       try {
@@ -295,12 +299,14 @@ export function useStatement() {
               await coreReconnect(wagmiConfig);
               signature = await coreSignTypedData(wagmiConfig, signPayload);
             } catch {
+              trackSignRejected(networkName);
               setError("Chain mismatch. Please refresh the page and try again.");
               setStep("config");
               return;
             }
           } else {
             console.error("EIP-712 sign error:", signErr);
+            trackSignRejected(networkName);
             setError("Signature was rejected. Please try again.");
             setStep("config");
             return;
@@ -326,9 +332,11 @@ export function useStatement() {
         setPdfBlob(signedBlob);
         setPdfBlobUrl(URL.createObjectURL(signedBlob));
         setStep("ready");
+        trackGenerateComplete(networkName, per, sType, pricedTokens.length);
 
       } catch (err) {
         console.error("Generation failed:", err);
+        trackGenerateFail(networkName, err instanceof Error ? err.message : "Unknown error");
         setError("Something went wrong. Please try again.");
         setStep("config");
       }

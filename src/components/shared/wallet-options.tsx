@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore
 import { ArrowLeft, Loader2, Copy, Check, Smartphone, HelpCircle } from "lucide-react";
 import QRCode from "qrcode";
 import { copyToClipboard } from "@/lib/clipboard";
+import { trackWalletConnected } from "@/lib/analytics";
 
 interface WalletOptionsProps {
   layout?: "dropdown" | "page";
@@ -80,7 +81,7 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
   const handleSelectInjected = useCallback((connector: (typeof connectors)[number]) => {
     setPendingId(connector.uid);
     connect({ connector }, {
-      onSuccess: () => { setPendingId(null); onConnected?.(); },
+      onSuccess: () => { setPendingId(null); trackWalletConnected(connector.name); onConnected?.(); },
       onError: () => setPendingId(null),
     });
   }, [connect, onConnected]);
@@ -109,6 +110,7 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
 
       connectAsync({ connector }).then(() => {
         resetWc();
+        trackWalletConnected("WalletConnect");
         onConnected?.();
       }).catch(() => {
         resetWc();
@@ -122,7 +124,7 @@ export function WalletOptions({ layout = "dropdown", onConnected }: WalletOption
     setPendingId("coinbaseWalletSDK");
     const connector = createCbConnector();
     connect({ connector }, {
-      onSuccess: () => { setPendingId(null); onConnected?.(); },
+      onSuccess: () => { setPendingId(null); trackWalletConnected("Coinbase Wallet"); onConnected?.(); },
       onError: () => setPendingId(null),
     });
   }, [connect, onConnected]);

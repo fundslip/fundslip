@@ -18,6 +18,8 @@ const manrope = Manrope({
 });
 
 const siteUrl = "https://fundslip.xyz";
+const umamiSrc = process.env.NEXT_PUBLIC_UMAMI_SRC;
+const umamiId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
 
 export const metadata: Metadata = {
   title: {
@@ -89,6 +91,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${manrope.variable} h-full`}>
       <head>
         <link rel="icon" href="/fundslip.svg" type="image/svg+xml" />
+        {umamiSrc && umamiId && (
+          <script defer src={umamiSrc} data-website-id={umamiId} />
+        )}
       </head>
       <body className="min-h-full flex flex-col">
         <script

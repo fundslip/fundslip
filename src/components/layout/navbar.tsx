@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useCachedEnsName } from "@/hooks/use-cached-ens";
 import { WalletOptions } from "@/components/shared/wallet-options";
+import { trackWalletDisconnected, trackChainSwitch } from "@/lib/analytics";
 
 const DROPDOWN = "bg-white rounded-2xl border border-outline-variant/60 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] z-[110]";
 
@@ -90,7 +91,7 @@ function DesktopWalletButton() {
                       <div className="px-1 pb-1 space-y-0.5">
                         {chains.map((chain) => (
                           <button key={chain.id}
-                            onClick={() => { switchChain({ chainId: chain.id }); setNetworkExpanded(false); }}
+                            onClick={() => { trackChainSwitch(chainId, chain.id); switchChain({ chainId: chain.id }); setNetworkExpanded(false); }}
                             className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] rounded-xl transition-colors
                               ${chain.id === chainId ? "text-brand-navy bg-brand-navy/5 font-medium" : "text-on-surface-variant hover:bg-surface hover:text-brand-black"}`}>
                             <Image src="/eth.svg" alt="" width={14} height={14} className="w-3.5 h-3.5 flex-shrink-0" />
@@ -117,7 +118,7 @@ function DesktopWalletButton() {
 
               <div className="h-px bg-outline-variant/60 mx-2 my-1" />
 
-              <button onClick={() => { disconnect(); setOpen(false); }}
+              <button onClick={() => { trackWalletDisconnected(); disconnect(); setOpen(false); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] text-error hover:bg-error-container/30 rounded-xl transition-colors">
                 <LogOut className="w-4 h-4" /> Disconnect
               </button>
@@ -229,7 +230,7 @@ function MobileMenu({ pathname, NAV, isActive }: {
                         <div className="pl-4 pb-1 space-y-0.5">
                           {chains.map((chain) => (
                             <button key={chain.id}
-                              onClick={() => { switchChain({ chainId: chain.id }); setNetworkExpanded(false); }}
+                              onClick={() => { trackChainSwitch(chainId, chain.id); switchChain({ chainId: chain.id }); setNetworkExpanded(false); }}
                               className={`w-full flex items-center gap-2.5 px-3 py-3 text-[14px] rounded-xl transition-colors
                                 ${chain.id === chainId ? "text-brand-navy bg-brand-navy/5 font-medium" : "text-on-surface-variant hover:bg-surface hover:text-brand-black"}`}>
                               <Image src="/eth.svg" alt="" width={14} height={14} className="w-3.5 h-3.5 flex-shrink-0" />
@@ -251,7 +252,7 @@ function MobileMenu({ pathname, NAV, isActive }: {
                     {copied ? "Copied" : "Copy address"}
                   </button>
 
-                  <button onClick={() => { disconnect(); setPanel("closed"); }}
+                  <button onClick={() => { trackWalletDisconnected(); disconnect(); setPanel("closed"); }}
                     className="w-full flex items-center gap-2.5 px-3 py-3 text-[15px] text-error hover:bg-error-container/30 rounded-xl transition-colors">
                     <LogOut className="w-4 h-4" /> Disconnect
                   </button>
